@@ -87,9 +87,12 @@ test('A-011 cruiser bombardment strikes adjacent coastal army without advancing'
   assert.deepEqual(next.units.find(u=>u.id==='u2').position,{x:7,y:25});
   assert.equal(next.units.find(u=>u.id==='u2').spent,1);
 });
-test('A-012 no automatic attacks: moving into an enemy remains gated',()=>{
+test('A-012 moving onto an adjacent enemy initiates combat (no result buttons)',()=>{
   const g=base();g.units.push(copy(g.units[2],{id:'enemy',position:{x:10,y:25}}));
-  assert.throws(()=>moveUnit(g,'u1',{x:10,y:25}),/COMBAT|verified/);
+  const next=moveUnit(g,'u1',{x:10,y:25});
+  assert.equal(next.units.some(u=>u.id==='u1') && next.units.some(u=>u.id==='enemy'),false);
+  assert.equal(next.rng.draws,1);
+  assert.equal(next.events.some(e=>e.kind==='combat'),true);
 });
 test('A-013 an adjudicated state exports and imports losslessly',()=>{
   const g=adjudicateCityCapture(addCity(base()),{armyId:'u1',cityId:'test-city',outcome:'captured'});

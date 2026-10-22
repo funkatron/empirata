@@ -1,6 +1,7 @@
 import { MAX_FIGHTER_FUEL, movementAllowance, requiredProductionTurns, STATS } from './units.js';
-import { MAP_HEIGHT, MAP_WIDTH, makeTestTerrain, playable, terrainAt, cityAt, equal, isCoastal } from './world.js';
-import { emptyKnowledge, updateAllKnowledge } from './knowledge.js';
+import { MAP_HEIGHT, MAP_WIDTH, makeTestTerrain, playable, terrainAt, cityAt, equal, isCoastal, directions } from './world.js';
+import { emptyKnowledge, updateAllKnowledge, getPlayerView } from './knowledge.js';
+import { resolveCombat, resolveCityAssault } from './combat.js';
 export class RuleNotImplemented extends Error {
     code;
     constructor(code, message) {
@@ -38,7 +39,7 @@ export function makeRulesLab() {
     for (const faction of ['blue', 'red', 'green'])
         g.knowledge[faction] = emptyKnowledge(g);
     updateAllKnowledge(g);
-    log(g, 'blue', 'system', 'Rules lab loaded. Combat, capture, cargo, and autopilot orders are intentionally disabled.');
+    log(g, 'blue', 'system', 'Rules laboratory loaded. Manual-based combat and city assaults are active; cargo and autopilot orders are unfinished.');
     return g;
 }
 export function selectProduction(game, cityId, kind) {
@@ -87,21 +88,27 @@ export function moveUnit(game, id, to) {
         throw new Error('Manual movement must be one adjacent square.');
     const terrain = terrainAt(g, to);
     const domain = STATS[unit.kind].domain;
-    if ((domain === 'land' && terrain !== 'land' && !cityAt(g, to)) || (domain === 'sea' && terrain !== 'sea' && !cityAt(g, to))) {
+    const city = cityAt(g, to);
+    const occupants = g.units.filter(u => !u.aboard && equal(u.position, to));
+    const enemy = occupants.find(u => u.owner !== unit.owner);
+    // Original rules allow armies to engage hostile ships in adjacent water, but
+    // the victorious army does not advance onto the sea square. Heavy warships
+    // likewise bombard coastal armies without moving onto land.
+    const coastalAttack = enemy && ((unit.kind === 'army' && terrain === 'sea') ||
+        ((unit.kind === 'cruiser' || unit.kind === 'battleship') && terrain === 'land' && enemy.kind === 'army'));
+    if ((domain === 'land' && terrain !== 'land' && !city && !coastalAttack) ||
+        (domain === 'sea' && terrain !== 'sea' && !city && !coastalAttack)) {
         throw new Error(`${STATS[unit.kind].name} cannot cross this terrain.`);
     }
-    const city = cityAt(g, to);
     if (domain === 'sea' && city && !isCoastal(g, city.position))
         throw new Error('A ship cannot enter an inland city.');
     if (city && city.owner !== unit.owner) {
         if (unit.kind === 'army')
-            throw new RuleNotImplemented('CITY_CAPTURE', 'City assault probabilities are still being verified.');
-        if (domain !== 'air')
-            throw new Error('Cannot enter a city that is not friendly.');
+            return resolveCityAssault(game, id, city.id);
+        throw new Error('Only armies may capture a neutral or enemy city.');
     }
-    const occupants = g.units.filter(u => !u.aboard && equal(u.position, to));
-    if (occupants.some(u => u.owner !== unit.owner))
-        throw new RuleNotImplemented('COMBAT', 'Historical combat resolution is not yet verified.');
+    if (enemy)
+        return resolveCombat(game, id, enemy.id);
     if (occupants.some(u => u.owner === unit.owner) && !city)
         throw new RuleNotImplemented('CARGO', 'Loading and same-cell stacking require verified original mechanics.');
     unit.position = { ...to };
@@ -154,11 +161,81 @@ export function endTurn(game) {
     beginTurn(g);
     return g;
 }
-/** Lab convenience: opposing faction passes its turn. Not a classic AI implementation. */
+/**
+ * Close Quarters' preliminary computer opponent. It sees only its own PlayerView,
+ * chooses known targets, and executes the very same moves as the human player.
+ * This is NOT an attempt to reproduce the original game's AI strategy.
+ * The older classic-lab fixture remains passive for reproducible system tests.
+ */
+function playRedOpponent(game) {
+    let g = game;
+    const redUnitIds = g.units.filter(u => u.owner === 'red' && !u.aboard).map(u => u.id);
+    const distance = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+    for (const id of redUnitIds) {
+        for (let step = 0; step < 5; step++) {
+            const view = getPlayerView(g, 'red');
+            const unit = view.ownUnits.find(u => u.id === id);
+            if (!unit || unit.spent >= movementAllowance(unit) || unit.order.kind === 'sentry')
+                break;
+            const visibleEnemies = view.enemies.filter(e => !e.stale);
+            const knownCities = view.cells.flatMap((cell, i) => cell.city && cell.city.owner !== 'red' ?
+                [{ pos: { x: i % view.width, y: Math.floor(i / view.width) }, city: cell.city }] : []);
+            // Only choose opponents visible to this faction. Ships/fighters may not
+            // attempt a city capture; those targets are exclusively for armies.
+            const foes = visibleEnemies.filter(e => distance(e.position, unit.position) === 1);
+            const adjacentCities = unit.kind === 'army' ? knownCities.filter(c => distance(c.pos, unit.position) === 1) : [];
+            const immediate = [...foes.map(e => e.position), ...adjacentCities.map(c => c.pos)];
+            let moved = false;
+            for (const target of immediate) {
+                try {
+                    g = moveUnit(g, id, target);
+                    moved = true;
+                    break;
+                }
+                catch { /* Try the next legal contact. */ }
+            }
+            // Stop after any encounter; the AI makes no additional tactical decision
+            // with a unit immediately after a battle or city assault.
+            if (moved)
+                break;
+            const goals = [...visibleEnemies.map(e => e.position),
+                ...(unit.kind === 'army' ? knownCities.map(c => c.pos) : [])].sort((a, b) => distance(a, unit.position) - distance(b, unit.position));
+            const goal = goals[0];
+            const possibilities = directions.map(d => ({ x: unit.position.x + d.x, y: unit.position.y + d.y }))
+                .filter(p => playable(g, p))
+                .sort((a, b) => goal ? distance(a, goal) - distance(b, goal) : a.y - b.y || a.x - b.x);
+            for (const dest of possibilities) {
+                const known = view.cells[dest.y * view.width + dest.x];
+                if (known && known.terrain !== null) {
+                    const domain = STATS[unit.kind].domain;
+                    const isPort = Boolean(known.city);
+                    if (domain === 'land' && known.terrain === 'sea' && !isPort)
+                        continue;
+                    if (domain === 'sea' && known.terrain === 'land' && !isPort)
+                        continue;
+                }
+                try {
+                    g = moveUnit(g, id, dest);
+                    moved = true;
+                    break;
+                }
+                catch { /* An obstacle remains an obstacle. */ }
+            }
+            if (!moved)
+                break;
+            // Movement never loops blindly through contacts: the next iteration
+            // recomputes the faction's actual, newly updated knowledge.
+        }
+    }
+    return g;
+}
+/** Advance one blue-player round, allowing a rules-bound Red opponent to act. */
 export function advanceLabRound(game) {
     if (game.mode !== 'rules-lab' || game.active !== 'blue')
         throw new Error('Lab round advance requires blue player.');
     let g = endTurn(game);
+    if (g.scenario === 'close-quarters' && g.active === 'red')
+        g = playRedOpponent(g);
     while (g.active !== 'blue')
         g = endTurn(g);
     return g;

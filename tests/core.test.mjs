@@ -73,9 +73,12 @@ test('T-011 T-012 damaged ships have speed 1 and repair docked at start of turn'
   const next=advanceLabRound(g);
   assert.equal(next.units.find(u=>u.id===ship.id).damage,2);
 });
-test('T-013 capture attempt is explicitly unavailable, not silently successful',()=>{
+test('T-013 capture attempts resolve a documented normal-efficiency conquest roll',()=>{
   let g=initial();g.cities.push({id:'neutral',position:{x:10,y:25},owner:null,production:null,progress:0,firstCycle:true});
-  errCode(()=>moveUnit(g,'u1',{x:10,y:25}),'CITY_CAPTURE');
+  const next=moveUnit(g,'u1',{x:10,y:25});
+  assert.equal(next.rng.draws,g.rng.draws+1);
+  assert.equal(next.units.some(u=>u.id==='u1'),false);
+  assert.ok(['blue',null].includes(next.cities.find(c=>c.id==='neutral').owner));
 });
 test('T-014 ship cannot enter ordinary land, bombardment not implemented',()=>{
   const g=initial();assert.throws(()=>moveUnit(g,'u2',{x:8,y:24}),/cannot cross/);
@@ -91,9 +94,11 @@ test('T-016 sentry can be cleared and skip ends remaining movement for this turn
   g=advanceLabRound(g);
   assert.equal(g.units.find(u=>u.id==='u1').order.kind,'none');
 });
-test('T-017 hostile contact is prohibited until combat is verified',()=>{
+test('T-017 hostile contact initiates a genuine combat exchange',()=>{
   const g=initial();g.units.push({...structuredClone(g.units[2]),id:'enemy-near',position:{x:10,y:25}});
-  errCode(()=>moveUnit(g,'u1',{x:10,y:25}),'COMBAT');
+  const next=moveUnit(g,'u1',{x:10,y:25});
+  assert.equal(Number(next.units.some(u=>u.id==='u1'))+Number(next.units.some(u=>u.id==='enemy-near')),1);
+  assert.ok(next.events.some(e=>e.kind==='combat'));
 });
 test('T-018 unseen enemy units and cities not leaked into player view',()=>{
   const g=initial(),v=getPlayerView(g,'blue');

@@ -1,51 +1,43 @@
-# Empirata Engine Status — v0.2
+# Empirata engine status — v0.4
 
-**Reference:** `Empirata_Classic_Rules_Specification_v0.1.md` (Interstel IBM PC DOS v2.05; August 1988 manual). This document audits implementation coverage. "Pass" means matching the *currently documented* assertion, not executable parity.
+**Rules target:** Interstel *Empire: Wargame of the Century*, DOS 2.05, classic edition. All implementation work should use the same reference edition.
 
-| Specification | Engine status | Notes |
-|---|---|---|
-| IMP-010–012, 014 | Implemented / partial | Grid geometry and terrain; synthetic test map replaces historical `.MAP`. |
-| IMP-013, 015, 017 | Deferred | `.MAP` reading, editor, selection, map generation. |
-| IMP-020–022 | Implemented / partial | Player rotation, production-first tick on entering faction turn, spent movement. Exact sequencing awaits validation. |
-| IMP-023–026 | Partial | Sentry, clear, skip; no autonomous traversal, activation, wait/survey yet. |
-| IMP-030–038 | Constants implemented | Eight-unit statistics, half-damage speed, capacities, fuel consumption. Target legality/combat not implemented. |
-| IMP-040–044 | Implemented for 50% | Setup vs repeat, change resets progress, coastal restrictions. Non-50 efficiencies intentionally blocked. |
-| IMP-045–048 | Partial / deferred | New units created and reported. Overpopulation and capture awaiting verification. |
-| IMP-050–055 | Partial / deferred | Non-combat movement, damaged-ship speed, one-step port repair; exchange/bombardment blocked. |
-| IMP-060–067 | Partial / deferred | Flyer can refuel in friendly city (timing provisional); embarked transport/patrols blocked. |
-| IMP-070–074 | Partial | Faction knowledge, fog, stale sightings. Visibility/detection edge cases need validation. |
-| IMP-080–084 | Partial | Canvas keyboard/mouse/touch for manual steps, sentry/skip, event log, selection/production. |
-| IMP-090–093 | Deferred | No working AI, hotseat UI or reproducible combat decisions. |
-| IMP-100–105 | Implemented foundation | Pure engine separate from renderer; typed commands, seeded PRNG facility, saved files, input handling. |
+## Working systems
 
-## Immediate follow-on work: v0.3
+| System | Coverage and limitations |
+|---|---|
+| World | 100×60 grid, impassable border; original custom test terrain, not historical .MAP files |
+| Units | All eight original classes, hit points, movement allowances, hit damage, production cost |
+| Fog of war | Faction-specific memory and live visibility; unusual submarine and city observation cases remain provisional |
+| Movement | Manual cardinal/diagonal moves and domain restrictions; some special stacking/boarding rules not implemented |
+| Production | Normal 50% efficiency setup/repeat cycles; rounding and non-50 efficiencies not implemented |
+| Combat | Real 50/50 hit-allocation at normal efficiency, continuing until one combatant dies; unit-specific damage and ship damage persistence |
+| Conquest | A single 50% roll for a normal-efficiency army attacking a nonfriendly city; garrison/army loss consequences |
+| Naval combat | Destroyer/submarine interaction, submarine triple damage, damage-based movement and cargo loss adjudication |
+| Computer opponent | Close Quarters-only basic Red opponent chooses goals from **Red's PlayerView**, executes the same movement/combat rules; not original AI parity |
+| Turns | Faction rotation, beginning-of-turn production and repair; exact DOS timing still needs verification |
+| Browser | Canvas rendering, touchscreen + keyboard, touch panning, zoom, selection and city production |
+| Saves | Seeded RNG state, faction knowledge, JSON export/import, browser autosave; schema 1 compatible with v0.3.1 saves |
 
-1. Obtain and inspect an authentic Interstel **2.05** DOS executable and its map files from an authorized source for behavioral comparison. Do not copy proprietary code or distribute assets.
-2. Create reference fixtures from actual combat encounters, documenting initial state, input, RNG uncertainty, and observed results.
-3. Add policy modules for combat and city assault only after evidence establishes a behavior (or clearly label a documented approximation that the strict classic mode must not use).
-4. Add safe army/transport boarding and carrier interactions against observed sequences.
-5. Build first AI **after** sufficient movement and combat systems allow a real game, restricting its inputs to faction-specific `getPlayerView`.
+## Combat evidence and remaining uncertainty
 
-## Special note about programmatic runtime
+The 2.05 manual states each normal-efficiency combatant has an equal chance of dealing a hit; higher combat efficiency changes those odds proportionally. Hit strength is fixed by the unit. Army city conquest is a function of the attacking faction's combat efficiency; the normal setting is 50%. The manual also confirms a successful army becomes the city's defending garrison.
 
-This is a self-contained static browser build. The code can be opened or modified in any IDE. No server component, database service, accounts, or API keys are necessary. The provided local server is only a static file server.
+**Implemented probabilities match the manual at normal settings.** The exact Interstel DOS pseudo-random generator and its per-turn call order have not been recovered. Empirata uses a deterministic xorshift PRNG and records its seed/draw count in saves; exact byte-for-byte DOS replay is not claimed.
 
+Source: [Interstel 2.05 manual](https://oldgamesdownload.com/manual/empire-wargame-of-the-century-dos-manual-english/) — *New Game Options / Combat Efficiency* and *Combat*, pp. 12 and 26–27.
 
-## v0.3 historical result adjudication (October 22, 2026)
+## User interface policy
 
-- New `src/engine/adjudication.ts` consumes an **externally supplied, already-decided** sequence of combat hits, or a captured/repelled city result.
-- It applies the manual-confirmed consequences: damage and unit death, submarine triple-hit damage, damaged ship movement reduction, destruction of embarked units when a carrier/transport sinks, cruiser/battleship bombardment without moving onto land, captured-city loss of occupying units, and conversion of the victorious army to a permanent garrison.
-- Neither adjudicator makes a random choice. Normal movement still refuses hostile combat and city assault until Interstel's actual combat and capture probability/turn algorithm can be established.
-- Browser **scripted outcome tests** let the user witness state transitions. They explicitly identify the results as prearranged and reset the test world.
-- Captured cities are left unassigned for production rather than copying an opponent's unknown queue; exact capture-to-production timings remain open.
-- Test suite increased to 39 passing automated engine tests.
-- Remaining work: validate battle-hit allocation, city probability, attacker/defender modifiers, production transfer, combat movement and fuel timing, naval transport loading/unloading, and historical turn ordering.
+There are **no scripted victory/defeat buttons or demonstration scenarios which substitute hand-picked outcomes for gameplay**. Close Quarters uses normal attacks; the deterministic, externally supplied hit-sequence adjudication utility remains internal for engine **unit tests only**.
 
+Close Quarters includes additional blue armies so players can engage in multiple attacks without losing all infantry on the first failed assault. The preliminary Red AI takes actions during **Next round**; the old `classic-lab` remains passive for regression tests.
 
-## v0.3.1 — Close Quarters QA fixture
+## Follow-up work
 
-- Default new scenario places blue army and red army in adjacent tiles, a blue destroyer beside a detectable red submarine, blue/red fighters in contact, and a neutral city one move away.
-- The map is an ORIGINAL diagnostic fixture. It is deliberately **not** a standard opening from the 1987 game. No AI moves the enemy.
-- Tapping an adjacent red unit or discovered neutral city (after selecting a blue unit) opens an explicit **scripted** result selector: blue wins or blue loses. These call adjudication functions without rolling odds.
-- The old rules-lab layout remains selectable under **Original test map**. Existing autosaves are preserved on load; choose **Start Close Quarters** to replace an older save.
-- Historical probability computation and automatic combat remain blocked. No new combat rule is inferred by the scenario.
+1. Naval transport loading and unloading, fighter carriers and fuel/refueling.
+2. Complete original standing orders (move-to, direction, patrol, escort, sentry waking), avoiding automatic attacks from orders.
+3. Improve Red AI strategic behavior while preserving faction-specific knowledge.
+4. Historical map loading/selection, production capture details and timing, city vision, full detection matrix.
+5. Win/loss detection, multiple factions and game menus.
+6. Behavioral comparison with licensed/authentic DOS version to resolve unresolved details.

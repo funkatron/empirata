@@ -1,36 +1,33 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <meta name="theme-color" content="#101b24"/>
-<title>Empirata · Rules Laboratory v0.3.1</title>
+<title>Empirata · Rules Laboratory v0.4</title>
 <link rel="stylesheet" href="./styles.css"/></head>
 <body><div class="app">
-  <header class="topbar"><div class="brand"><span class="brand-mark">✦</span><div><strong>EMPIRATA</strong><small>CLASSIC RULES LAB · v0.3.1</small></div></div>
+  <header class="topbar"><div class="brand"><span class="brand-mark">✦</span><div><strong>EMPIRATA</strong><small>CLASSIC RULES LAB · v0.4</small></div></div>
    <div class="topstate"><span id="round">ROUND 1</span><span class="separator"></span><span class="faction"><span class="dot"></span>BLUE</span></div>
    <button id="nextRound" class="primary">Next round <span aria-hidden="true">→</span></button>
   </header>
   <main class="content">
     <section class="map-area" aria-label="Game map">
-       <div class="toolbar"><div class="toolbar-left"><span class="live-label"><span class="pulse"></span> <span id="scenarioName">CLOSE QUARTERS · TEST</span></span><span id="mapStatus">60 × 100 world</span><button id="startSkirmish" class="scenario-start" title="Reset the skirmish test scenario">New skirmish</button></div>
+       <div class="toolbar"><div class="toolbar-left"><span class="live-label"><span class="pulse"></span> <span id="scenarioName">CLOSE QUARTERS · PLAYABLE</span></span><span id="mapStatus">60 × 100 world</span><button id="startSkirmish" class="scenario-start" title="Reset the skirmish test scenario">New skirmish</button></div>
        <div class="toolbar-right"><button id="zoomOut" aria-label="Zoom out" title="Zoom out">−</button><button id="zoomIn" aria-label="Zoom in" title="Zoom in">+</button><button id="recenter" title="Focus on your city">⌖</button></div></div>
        <div class="canvas-holder"><canvas id="map" tabindex="0" aria-label="Interactive tile map, use drag to pan and click to select a unit or city"></canvas>
        <div class="map-key"><span><i class="key-land"></i> Land</span><span><i class="key-sea"></i> Sea</span><span><i class="key-fog"></i> Unexplored</span></div></div>
-       <div class="map-help">Drag to pan · Tap a unit or city · Tap nearby red unit or gold city to test combat · Arrow keys / Q E Z C</div>
+       <div class="map-help">Drag to pan · Tap a unit or city · Tap adjacent enemy or city to attack · Arrow keys / Q E Z C</div>
     </section>
     <aside class="sidebar" aria-label="Unit and city controls"><div class="side-content">
       <section class="status card"><h2>Command center</h2><div class="statrow"><span>Controlled cities</span><strong id="cityCount">1</strong></div><div class="statrow"><span>Active units</span><strong id="unitCount">2</strong></div><div class="statrow"><span>Visible enemies</span><strong id="threatCount">0</strong></div><div class="statrow"><span>Current player</span><strong>Blue</strong></div></section>
       <section class="inspector card"><h2>Selection</h2><div id="inspector" aria-live="polite"></div></section>
       <section class="events card"><h2>Orders &amp; reports</h2><div id="events"></div></section>
       <section class="files card"><h2>Close Quarters · Immediate encounters</h2>
-        <p>At the start, blue and red armies face each other, a destroyer detects a submarine, and a neutral city is within one step. <strong>Choose a blue unit, tap an adjacent enemy or gold city, then select a scripted result.</strong> This is a QA fixture, not a normal game; no AI or historical combat roll is active.</p>
+        <p>Blue armies face nearby red forces and a neutral city. Select a blue unit and tap an adjacent red unit or gold city to fight. Results use the Interstel manual's combat odds, not scripted victory buttons. Additional armies make city assaults repeatable. Red responds on the next round using a preliminary rules-bound AI.</p>
         <div class="actions"><button id="newGame" class="wide">Start Close Quarters</button><button id="classicGame">Original test map</button></div>
-        <h2 style="margin-top:14px">Scripted outcome tests</h2>
-        <p>These examples reset the lab and apply a <strong>prearranged</strong> result, not a random combat or capture roll. They test the rules after an outcome is known.</p>
-        <div class="actions"><button id="demoCapture">Test successful capture</button><button id="demoCombat">Test naval combat</button></div>
         <h2 style="margin-top:14px">Save &amp; reset</h2>
         <div class="actions"><button id="exportSave">Export JSON</button><button id="importSave">Import JSON</button></div>
         <input id="saveFile" type="file" accept="application/json,.json" hidden/>
       </section>
     </div></aside>
   </main>
-  <footer><span id="toast" role="status" aria-live="polite">Movement and production are available. Combat and capture have scripted tests only; historical random rolls remain locked.</span><span>INTERSTEL 2.05 RULES TARGET</span></footer>
+  <footer><span id="toast" role="status" aria-live="polite">Movement, combat, and capture are available. Red has a basic opponent AI; troop loading remains under development.</span><span>INTERSTEL 2.05 RULES TARGET</span></footer>
 </div><script type="module" src="./ui/main.js"></script></body></html>

@@ -1,6 +1,6 @@
-import {adjudicateCombat,adjudicateCityCapture,advanceLabRound,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,scriptedLabCombat,scriptedLabCapture,
-  moveUnit,movementAllowance,requiredProductionTurns,RuleNotImplemented,saveLocally,selectProduction,setOrder,
-  STATS,UNIT_TYPES,isCoastal,updateAllKnowledge} from '../engine/index.js';
+import {advanceLabRound,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,
+  moveUnit,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
+  STATS,UNIT_TYPES,isCoastal} from '../engine/index.js';
 import type {City,Coord,Game,Unit,UnitType,PlayerView} from '../engine/index.js';
 
 const el=(id:string)=>document.getElementById(id)!;
@@ -11,17 +11,22 @@ const ctx=context;
 let game:Game=makeCloseQuartersLab();
 let view:PlayerView=getPlayerView(game,'blue');
 let selectedUnit:string|null='u1',selectedCity:string|null=null;
-type PendingEncounter={kind:'combat';attackerId:string;defenderId:string}|{kind:'capture';attackerId:string;cityId:string};
-let pending:PendingEncounter|null=null;
 let tileSize=30,cameraX=0,cameraY=0;
 let down:{x:number;y:number;cameraX:number;cameraY:number;moved:boolean}|null=null;
 let hydrated=false;
 const colors={sea:'#23485f',land:'#516e50',unseen:'#0b1821',blue:'#68c4f1',red:'#f47c73',neutral:'#e2c37c'};
 function uiMessage(message:string):void {el('toast').textContent=message;}
-function dispatch(operation:()=>Game):void{
-  try{game=operation();view=getPlayerView(game,'blue');refresh();
+function dispatch(operation:()=>Game):boolean {
+  try {
+    const before=game.nextEventId;
+    game=operation();view=getPlayerView(game,'blue');
+    if(selectedUnit&&!view.ownUnits.some(u=>u.id===selectedUnit))selectedUnit=null;
+    refresh();
+    const result=view.events.filter(e=>e.id>=before&&e.kind==='combat').at(-1);
+    if(result)uiMessage(result.message);
     void saveLocally(game).catch(()=>uiMessage('Local save unavailable; use Export JSON.'));
-  }catch(error){uiMessage(error instanceof Error?error.message:String(error));}
+    return true;
+  } catch(error) {uiMessage(error instanceof Error?error.message:String(error));return false;}
 }
 function resize():void{
   const rect=canvas.getBoundingClientRect(),ratio=window.devicePixelRatio||1;
@@ -96,35 +101,28 @@ function tapTile(pos:Coord):void {
   if(units.length){
     // Cycling reaches the production screen even when friendly units occupy a city.
     if(cityHere && selectedUnit===units[units.length-1]?.id){
-      selectedUnit=null;selectedCity=cityHere.id;pending=null;refresh();return;
+      selectedUnit=null;selectedCity=cityHere.id;refresh();return;
     }
     const last=units.findIndex(u=>u.id===selectedUnit);
     selectedUnit=units[(last+1)%units.length]!.id;
-    pending=null;selectedCity=null;refresh();return;
+    selectedCity=null;refresh();return;
   }
   const cell=view.cells[pos.y*game.width+pos.x];
-  if(selectedUnit && game.scenario==='close-quarters'){
-    const attacker=view.ownUnits.find(u=>u.id===selectedUnit);
-    const adjacent=attacker&&Math.max(Math.abs(attacker.position.x-pos.x),Math.abs(attacker.position.y-pos.y))===1;
-    if(adjacent){
-      const enemy=view.enemies.find(u=>!u.stale&&u.position.x===pos.x&&u.position.y===pos.y);
-      if(enemy){pending={kind:'combat',attackerId:selectedUnit,defenderId:enemy.id};selectedCity=null;refresh();
-        uiMessage('Close Quarters test encounter: choose a scripted outcome in the selection panel. No combat odds are rolled.');return;}
-      if(attacker?.kind==='army'&&cell?.city&&cell.city.owner!=='blue'){
-        pending={kind:'capture',attackerId:selectedUnit,cityId:cell.city.id};selectedCity=null;refresh();
-        uiMessage('Close Quarters test assault: choose a scripted capture outcome. No conquest odds are rolled.');return;}
-    }
-  }
   if(selectedUnit){
     const unit=view.ownUnits.find(u=>u.id===selectedUnit);
     if(unit&&Math.max(Math.abs(unit.position.x-pos.x),Math.abs(unit.position.y-pos.y))===1){
-      dispatch(()=>moveUnit(game,selectedUnit!,pos));return;
+      const targetCity=cell?.city?.owner!=='blue'?cell?.city:null;
+      if(dispatch(()=>moveUnit(game,selectedUnit!,pos))&&targetCity){
+        const newlyOwned=view.ownCities.find(c=>c.id===targetCity.id);
+        if(newlyOwned){selectedUnit=null;selectedCity=newlyOwned.id;refresh();}
+      }
+      return;
     }
   }
   const city=view.ownCities.find(c=>c.position.x===pos.x&&c.position.y===pos.y);
-  if(city){selectedCity=city.id;selectedUnit=null;pending=null;refresh();return;}
-  if(cell?.city){selectedCity=null;selectedUnit=null;pending=null;uiMessage(`City ${cell.city.id} · ${cell.city.owner??'neutral'} (read-only)`);refresh();return;}
-  selectedCity=null;selectedUnit=null;pending=null;refresh();
+  if(city){selectedCity=city.id;selectedUnit=null;refresh();return;}
+  if(cell?.city){selectedCity=null;selectedUnit=null;uiMessage(`City ${cell.city.id} · ${cell.city.owner??'neutral'} (read-only)`);refresh();return;}
+  selectedCity=null;selectedUnit=null;refresh();
 }
 function text(value:unknown):string{return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]!));}
 function selectedUnitBlock(unit:Unit):string {
@@ -136,7 +134,7 @@ function selectedUnitBlock(unit:Unit):string {
   ${unit.kind==='fighter'?`<div class="datum"><small>Fuel</small><strong>${unit.fuel} / 20</strong></div>`:''}
   ${possible!==null?`<div class="datum"><small>Cargo capacity</small><strong>${possible}</strong></div>`:''}</div>
   <div class="actions"><button id="sentryButton">Sentry</button><button id="clearButton">Clear</button><button id="skipButton">Skip move</button></div>
-  <p class="stat-note" style="margin-top:12px">Tap an adjacent tile to move. In Close Quarters, tap a nearby red unit or gold city to open a <strong>scripted</strong> encounter; the original combat odds have not been implemented.</p>`;
+  <p class="stat-note" style="margin-top:12px">Tap an adjacent tile to move or attack. Armies can assault neutral or enemy cities. Combat uses the original manual's normal-efficiency odds with a seeded random stream.</p>`;
 }
 function selectedCityBlock(city:City):string {
   const coastal=isCoastal(game,city.position);
@@ -149,57 +147,19 @@ function selectedCityBlock(city:City):string {
   <div class="datum"><small>Production phase</small><strong>${city.firstCycle?'Setup':'Repeat'}</strong></div></div>
   <p class="stat-note">Changing unit types discards unfinished production. Production advances at the beginning of your faction's turn.</p>`;
 }
-function pendingBlock():string {
-  if(!pending)return '';
-  const attacker=view.ownUnits.find(u=>u.id===pending!.attackerId);
-  const target=pending.kind==='combat'?view.enemies.find(u=>u.id===(pending as Extract<PendingEncounter,{kind:'combat'}>).defenderId&&!u.stale):null;
-  if(!attacker || (pending.kind==='combat'&&!target))return '';
-  const name=pending.kind==='combat'?`${STATS[attacker.kind].name} vs. ${STATS[target!.kind].name}`:
-    `${STATS[attacker.kind].name} vs. city ${pending.cityId}`;
-  return `<div class="encounter-panel" role="group" aria-label="Scripted encounter controls">
-    <strong>Scripted encounter · ${text(name)}</strong>
-    <p class="stat-note">Choose an outcome for testing. No random combat or capture roll occurs; these are <strong>not authentic battle odds</strong>.</p>
-    <div class="actions"><button id="fixtureWin" class="wide">Test: Blue wins</button>
-    <button id="fixtureLose" class="wide">Test: Blue loses</button><button id="fixtureCancel">Cancel</button></div></div>`;
-}
 function refresh():void {
   view=getPlayerView(game,'blue');
   el('round').textContent=`ROUND ${game.round}`;
   el('cityCount').textContent=String(view.ownCities.length);
   el('unitCount').textContent=String(view.ownUnits.length);
-  el('scenarioName').textContent=game.scenario==='close-quarters'?'CLOSE QUARTERS · TEST':'CLASSIC RULES LAB';
+  el('scenarioName').textContent=game.scenario==='close-quarters'?'CLOSE QUARTERS · PLAYABLE':'CLASSIC RULES LAB';
   el('threatCount').textContent=String(view.enemies.filter(u=>!u.stale).length);
   const unit=view.ownUnits.find(u=>u.id===selectedUnit);
   const city=view.ownCities.find(c=>c.id===selectedCity);
   const inspector=el('inspector');
   if(unit)inspector.innerHTML=selectedUnitBlock(unit);
   else if(city)inspector.innerHTML=selectedCityBlock(city);
-  else inspector.innerHTML='<p>Select a blue unit or city to see orders. Close Quarters is a diagnostic skirmish, not a historically accurate opening or full AI game.</p>';
-  if(pending){
-    const pendingMarkup=pendingBlock();
-    if(pendingMarkup)inspector.insertAdjacentHTML('afterbegin',pendingMarkup);
-    else pending=null;
-  }
-  for(const [button,outcome] of [['fixtureWin','win'],['fixtureLose','lose']] as const){
-    document.getElementById(button)?.addEventListener('click',()=>{
-      if(!pending)return;
-      const encounter=pending;
-      let ok=false;
-      try{
-        const result=encounter.kind==='combat'?
-          scriptedLabCombat(game,encounter.attackerId,encounter.defenderId,outcome==='win'?'attacker':'defender'):
-          scriptedLabCapture(game,encounter.attackerId,encounter.cityId,outcome==='win'?'captured':'repelled');
-        game=result;ok=true;
-      }catch(error){uiMessage(error instanceof Error?error.message:'Encounter failed.');}
-      if(!ok)return;
-      pending=null;
-      if(!game.units.some(u=>u.id===selectedUnit))selectedUnit=null;
-      if(encounter.kind==='capture'&&outcome==='win'){selectedCity=encounter.cityId;selectedUnit=null;}
-      refresh();void saveLocally(game).catch(()=>uiMessage('Local save unavailable; export JSON.'));
-      uiMessage(`SCRIPTED ${outcome==='win'?'BLUE VICTORY':'BLUE DEFEAT'} — ${encounter.kind==='combat'?'combat':'city assault'} consequences applied. No probability was rolled.`);
-    });
-  }
-  document.getElementById('fixtureCancel')?.addEventListener('click',()=>{pending=null;refresh();});
+  else inspector.innerHTML='<p>Select a blue unit, then tap an adjacent enemy to attack. Select a city to assign production. Red will respond on the next round using a preliminary rules-bound AI.</p>';
   const productionSelect=document.getElementById('productionSelect') as HTMLSelectElement | null;
   if(productionSelect&&city)productionSelect.addEventListener('change',()=>{
     if(productionSelect.value)dispatch(()=>selectProduction(game,city.id,productionSelect.value as UnitType));
@@ -226,35 +186,13 @@ document.addEventListener('keydown',ev=>{
   if(target.matches('input,textarea,select,button,[contenteditable="true"]'))return;
   const moves:Record<string,Coord>={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},
     q:{x:-1,y:-1},e:{x:1,y:-1},z:{x:-1,y:1},c:{x:1,y:1}};
-  if(ev.key==='Escape'){selectedUnit=null;selectedCity=null;pending=null;refresh();return;}
+  if(ev.key==='Escape'){selectedUnit=null;selectedCity=null;refresh();return;}
   if(ev.key==='+'||ev.key==='='){zoom(3);return;}if(ev.key==='-'){zoom(-3);return;}
   const delta=moves[ev.key];if(!delta||!selectedUnit)return;
   const u=view.ownUnits.find(u=>u.id===selectedUnit);if(!u)return;
   ev.preventDefault();tapTile({x:u.position.x+delta.x,y:u.position.y+delta.y});
 });
-el('demoCapture').addEventListener('click',()=>{
-  dispatch(()=>{
-    const lab=makeRulesLab();
-    lab.cities.push({id:'c-demo',position:{x:10,y:25},owner:null,production:null,progress:0,firstCycle:true});
-    updateAllKnowledge(lab);
-    return adjudicateCityCapture(lab,{armyId:'u1',cityId:'c-demo',outcome:'captured'});
-  });
-  selectedUnit=null;selectedCity='c-demo';refresh();focus({x:10,y:25});
-  uiMessage('Scripted city capture: successful outcome supplied by test fixture, NOT random gameplay.');
-});
-el('demoCombat').addEventListener('click',()=>{
-  dispatch(()=>{
-    const lab=makeRulesLab();
-    const template=lab.units.find(u=>u.id==='u2')!;
-    lab.units.push({...structuredClone(template),id:'u-fixture-sub',kind:'submarine',owner:'red',
-      position:{x:6,y:25},damage:0,spent:0,aboard:null});
-    updateAllKnowledge(lab);
-    return adjudicateCombat(lab,{attackerId:'u2',defenderId:'u-fixture-sub',hits:['attacker','attacker']});
-  });
-  selectedCity=null;selectedUnit='u2';refresh();focus({x:6,y:25});
-  uiMessage('Scripted naval battle: two destroyer hits supplied by test fixture, NOT computed odds.');
-});
-el('nextRound').addEventListener('click',()=>{dispatch(()=>advanceLabRound(game));uiMessage(`Round ${game.round}. Opponent passed; no AI is implemented yet.`);});
+el('nextRound').addEventListener('click',()=>{dispatch(()=>advanceLabRound(game));uiMessage(`Round ${game.round}. Red has completed its response turn.`);});
 el('zoomIn').addEventListener('click',()=>zoom(4));el('zoomOut').addEventListener('click',()=>zoom(-4));
 el('recenter').addEventListener('click',()=>focus(view.ownUnits.find(u=>u.id===selectedUnit)?.position??view.ownCities[0]?.position??{x:8,y:25}));
 el('exportSave').addEventListener('click',()=>{
@@ -272,9 +210,9 @@ el('saveFile').addEventListener('change',async()=>{
 function startScenario(kind:'close-quarters'|'classic-lab'):void{
   if(!window.confirm('Start a new test scenario? This will replace the current local autosave. Export JSON first if you want to keep it.'))return;
   game=kind==='close-quarters'?makeCloseQuartersLab():makeRulesLab();
-  selectedUnit='u1';selectedCity=null;pending=null;refresh();focus({x:9,y:25});
+  selectedUnit='u1';selectedCity=null;refresh();focus({x:9,y:25});
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; export JSON.'));
-  uiMessage(kind==='close-quarters'?'Close Quarters ready: blue army is selected; tap the adjacent red A or gold city.':'Classic rules lab reset.');
+  uiMessage(kind==='close-quarters'?'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.':'Classic rules lab reset.');
 }
 el('newGame').addEventListener('click',()=>startScenario('close-quarters'));
 el('startSkirmish').addEventListener('click',()=>startScenario('close-quarters'));
@@ -283,7 +221,7 @@ new ResizeObserver(resize).observe(canvas);
 async function boot():Promise<void>{
   try{const saved=await loadLocal();if(saved?.active==='blue')game=saved;}catch{uiMessage('Could not load local autosave; use Import JSON if needed.');}
   if(hydrated)return;hydrated=true;selectedUnit=game.units.some(u=>u.id==='u1'&&u.owner==='blue')?'u1':null;refresh();focus({x:9,y:25});
-  if(game.scenario==='close-quarters')uiMessage('Blue army selected. Tap the adjacent red A or gold city for a scripted skirmish.');
+  if(game.scenario==='close-quarters')uiMessage('Select a blue unit, then tap an adjacent red unit or gold city to fight.');
   else uiMessage('Existing saved game restored. Choose Start Close Quarters to try the immediate combat scenario.');
 }
 void boot();

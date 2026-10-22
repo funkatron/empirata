@@ -1,99 +1,47 @@
-# Empirata — Classic Rules Laboratory v0.3
+# Empirata
 
-**Purpose:** An initial browser-operable and independently testable TypeScript simulation foundation for **Empirata**, modeled on the **Interstel *Empire: Wargame of the Century* DOS 2.05 rules**, not Empire Deluxe or the older Bright v5.0 rules.
+A browser-based, classic-rules strategy wargame based on the **gameplay** of *Empire: Wargame of the Century* (Interstel DOS version 2.05).
 
-**Important:** This is a *rules laboratory*, not a complete or playable classic campaign. The reference manual describes several mechanics without publishing their exact algorithms; those are deliberately **not guessed** here. The sample map and extra starting units are ORIGINAL DEVELOPMENT FIXTURES, not authentic Interstel maps or starting conditions.
+**[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md)
 
-## Play in a browser (GitHub Pages)
+## Version 0.4 — First genuinely interactive skirmish
 
-Once this repository is published with GitHub Pages enabled, open the Pages URL in Safari, including on an iPad. No installation, local server, or account is needed to play the rules laboratory.
+**Close Quarters** is the default starting test scenario. Unlike v0.3, it uses actual randomized encounters, **not** buttons that prescribe who wins. Its layout is an original, intentionally compact fixture rather than a historical Interstel opening.
 
-**Deploy:** The included GitHub Actions workflow builds, tests, and publishes `dist/` automatically on pushes to `main`. The repository owner must first enable **Settings → Pages → Source: GitHub Actions**. Alternatively, upload the provided single-file `index.html` to the root of an empty repository and set **Pages → Deploy from a branch → main / (root)**.
+- **Combat:** select a blue unit, then tap an adjacent red unit. Each hit is assigned by the probability described in the Interstel 2.05 manual; damaged units retain their damage, and a fight destroys one participant. Unit type determines damage per hit.
+- **Conquest:** select a blue army, then tap a nearby neutral city. At normal combat efficiency, the capture attempt has a 50% chance of success. A victorious army becomes the city garrison and is removed from active units; a defeated army is also removed.
+- **More armies:** two additional blue armies are positioned within assault range of the frontier city, allowing retry/testing without immediately rebuilding or restarting the world.
+- **Naval combat:** a blue destroyer is adjacent to a red submarine. Destroyers detect submarines; submarines inflict 3 damage per hit.
+- **Opponent response:** after you select **Next round**, a preliminary red computer opponent makes legal moves and may attack/capture. It sees only its own faction's visible or remembered information; its *strategy* is not a claim of original AI parity.
+- **Production and saves:** city unit production, fog of war, local saves, JSON import/export, map pan/zoom, keyboard and iPad touch control remain available.
 
-**Limitations:** Combat, city capture, and AI are not yet implemented; this is an interactive simulation test scenario, not a complete Empire campaign.
+### Try it on an iPad
 
-## Try it locally
+1. Open **https://funkatron.github.io/empirata/** in Safari.
+2. Press **New skirmish** to replace an older saved scenario (export your save first if needed).
+3. The blue army is selected. Tap the adjacent red **A** to fight, or select one of the other blue armies and tap the nearby gold city to attempt capture.
+4. Select the blue **D**, then the adjacent red **S**, for naval combat.
+5. Press **Next round** to give the computer opponent a turn and reset your own units' movement.
 
-The `dist/` folder contains a **prebuilt, self-contained static site** with no third-party runtime dependencies. Serve it with any local web server, or publish the contents of `dist/` to a static host such as GitHub Pages. The app needs no backend and makes no network requests.
+**There are no scripted win/loss buttons.** The combat results are random but **reproducible from saved game state**, which is valuable for diagnosing bugs.
 
-If Node.js is installed:
+### Historical fidelity and its limits
 
-```bash
-npm start
-```
+The Interstel 2.05 manual explicitly explains that damage is awarded by repeated weighted hit rolls, with equal (50/50) hit allocation for two normal-efficiency opponents. Cities use the attacker's combat efficiency to determine capture, which is 50% at the ordinary setting. Higher efficiency weights combat-hit allocation; hit **damage** remains unit-specific.
 
-Then open `http://127.0.0.1:4173` in your browser. For source development, install TypeScript (`npm install`) and use:
+We follow those **documented odds**, but the original DOS PRNG, seeding, and sequence of calls have not been verified from the executable. Empirata uses a local seeded xorshift RNG, so its random outcomes are **not guaranteed to match the original executable turn-for-turn**. This is a known fidelity gap, not a gameplay-enhancement rule.
+
+Other remaining limits: simplified red AI; unfinished troop transport/carrier loading, automatic standing orders, and victory conditions; historical maps not imported; exact production timing and some submarine detection details still need executable confirmation. The old “Original test map” remains available as a passive rules test fixture.
+
+## Development
+
+The site is entirely static; GitHub Pages hosts `index.html` in the repository root. To work locally:
 
 ```bash
 npm run build
 npm test
+node scripts/build-single-file.cjs
 npm start
 ```
 
-`npm start` works with the committed prebuilt `dist/` without installing dependencies. The TypeScript source is in `src/engine/` and the standalone Canvas interface is in `src/ui/`. We intentionally deferred React/Vite until the core simulation settles; this makes the current foundation easy to test and static-host, without changing the future architecture.
-
-### Basic controls
-
-1. Tap/click a **blue unit** to select it; tap an **adjacent tile** to move. Arrow keys move orthogonally; **Q/E/Z/C** move diagonally. Blue units include an army and a destroyer in the test fixture.
-2. Tap/click the **blue city** to choose a production type. If a unit occupies the city, click/tap repeatedly to cycle through units to the city. Production takes **6 blue faction turns** to make the first army at the standard 50% efficiency, and **5** for subsequent armies.
-3. Select **Next round** to advance one round; the red faction *passes automatically* in this lab, with no AI.
-4. Pan by dragging and zoom with +/− buttons or the wheel. A status panel displays the selected unit/city and its available actions.
-5. Progress autosaves in **IndexedDB**, where available. Use **Export JSON** and **Import JSON** for portable saved states. Reset lab creates a fresh fixture.
-
-### Current working engine behavior
-
-- 60-row × 100-column world, eight-direction adjacency, impassable outer border.
-- Eight historically documented units: canonical normal-efficiency production costs, movement, damage, fighter fuel, and transport/carrier capacity.
-- Immutable command-style engine transitions; turn order and city production at the beginning of faction turns.
-- First-production setup costs, repeated production cycles, discarding incomplete work when switching factory type.
-- Inland cities limited to land/air production; ships limited to sea/eligible ports; armies limited to land/cities; aircraft have 20 movement fuel points.
-- 50% efficiency only; other values refused until historical rounding behavior is validated.
-- Standard ship speed loss at half damage; one-point friendly-port repair at the next owner turn (exact *timing* still awaiting DOS validation).
-- Faction-separated known world, remembered terrain, stale sightings, and production intelligence that cannot be read directly from unseen enemy cities. Simplified visibility/detection remains provisional until a reference capture.
-- Sentry, clear, and skip. Other standing orders intentionally unavailable.
-- Versioned JSON save structure and IndexedDB autosave. Seeded RNG facility, currently unused for combat.
-
-### Not implemented (intentionally blocked)
-
-- Historical combat exchange and city-assault probability: blocks move attempts, **not** arbitrary approximations.
-- Naval bombardment; ship loading/unloading and carrier operations.
-- Automatic pathfinding/patrol, escort, go-home, waking sentries, report suite.
-- Human-vs-AI gameplay, three-player hot seat, scoring/victory/surrender.
-- Authentic `.MAP` import and historical map selection.
-- Original AI policies, full combat detection matrix, efficiency sliders other than 50%.
-
-### Provisional details to validate against the DOS executable
-
-- Definition of coastal adjacency (currently any of eight touching sea tiles).
-- Exact production tick/repair/refuel timing, production spawn order, and excess-unit cap.
-- Whether cities provide passive vision on every turn (the lab currently treats owned cities as adjacent observers).
-- Submarine detection exceptions and dynamic enemy-sighting update timing.
-- Fighter refueling currently restores immediately when landing on a friendly city. Precise classic timing is not yet confirmed.
-
-See [`docs/ENGINE_STATUS.md`](docs/ENGINE_STATUS.md) and the preserved [`Classic Rules Specification v0.1`](docs/Empirata_Classic_Rules_Specification_v0.1.md).
-
-## Quality and distribution
-
-```bash
-npm test
-```
-
-The suite currently contains **25 independent tests** of constants, movement, production, fog of war, save integrity, and explicit unimplemented-rule blocks. No external assets or original *Empire* code are included. Source and UI are original to this project.
-
-
-### Scripted historical-result demonstrations (v0.3)
-
-Two buttons in the browser demonstrate a successful city capture and a naval combat result. These are **not** playable random battles. The initial state and winning outcome are explicitly supplied by the test fixture, because Interstel 2.05's exact selection of combat hits and city capture probability still requires verification. Each demonstration resets the lab and is intended for visual validation of manual-confirmed consequences.
-
-The independent `src/engine/adjudication.ts` functions can be given a verified hit sequence or captured/repelled result. Once the authentic probability engine is verified, it can drive those same consequences without changing their implementation.
-
-
-## Immediate encounters: Close Quarters (v0.3.1)
-
-New visits start in **Close Quarters**, a small diagnostic skirmish around the blue starting port. An enemy army, enemy submarine, and enemy fighter are already visible. A neutral city is one step away. The blue army is selected automatically.
-
-1. Tap the nearby **red A** (or gold city) on the map.
-2. In the selection panel, select **Test: Blue wins** or **Test: Blue loses**.
-3. Watch the state change and event report. Try the blue destroyer versus the nearby red S as another encounter.
-
-**Important:** The outcomes are hand-selected tests, not real combat probabilities or AI behavior. This feature makes it easier to test verified *consequences* while the historical combat resolver is researched. Existing browser autosaves load unchanged; use **Start Close Quarters** to switch to the new scenario. To restore the previous map, select **Original test map**.
+The root `index.html` embeds all JS and CSS. All engine code is in `src/engine`, UI in `src/ui`, tests in `tests`, and original rules/specification in `docs`. No proprietary *Empire* code, artwork or map assets are distributed.
