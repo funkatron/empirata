@@ -24,7 +24,7 @@ export type Knowledge = {
 };
 export type GameEvent = {
   id: number; round: number; recipient: FactionId | null;
-  kind: 'production' | 'movement' | 'system' | 'fuel' | 'repair'; message: string;
+  kind: 'production' | 'movement' | 'system' | 'fuel' | 'repair' | 'combat'; message: string;
 };
 export type Game = {
   schema: 1; ruleset: 'interstel-2.05'; mode: 'rules-lab';

@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <meta name="theme-color" content="#101b24"/>
-<title>Empirata · Rules Laboratory v0.2</title>
+<title>Empirata · Rules Laboratory v0.3</title>
 <style>
 :root{color-scheme:dark;font-family:ui-monospace, 'SFMono-Regular',Menlo,Consolas,monospace;background:#0d151c;color:#e1e9ec;font-synthesis:none}*{box-sizing:border-box}html,body{height:100%;margin:0}button,select{font:inherit}button{background:#1b2a35;color:#e6edef;border:1px solid #3b5261;border-radius:6px;padding:9px 12px;cursor:pointer;transition:background .15s}button:hover,button:focus-visible{background:#294458;outline-color:#69b2d5}button:disabled{opacity:.45;cursor:not-allowed}.app{height:100dvh;min-height:520px;display:flex;flex-direction:column}.topbar{height:72px;display:flex;gap:20px;align-items:center;background:#111d26;border-bottom:1px solid #324756;padding:12px 24px;flex:none}.brand{display:flex;align-items:center;gap:13px;min-width:250px}.brand-mark{font-size:28px;color:#d5bb70;border:1px solid #bca56e;border-radius:8px;width:44px;height:44px;display:grid;place-items:center}.brand strong{display:block;letter-spacing:.22em;font-family:Georgia,serif;font-size:22px;color:#f2e5ba}.brand small{color:#89a2b5;font-size:10px;letter-spacing:.06em}.topstate{display:flex;align-items:center;gap:16px;margin-left:auto;font-size:12px;letter-spacing:.12em;color:#a5bcc6}.separator{height:21px;border-left:1px solid #344959}.dot,.pulse{width:8px;height:8px;display:inline-block;background:#63bbd9;border-radius:50%;margin-right:7px}.primary{background:#d8bd78;color:#1c2429;border-color:#d8bd78;padding:12px 16px;font-weight:700;white-space:nowrap}.primary:hover{background:#edcf86}.content{display:grid;grid-template-columns:minmax(0,1fr) 310px;min-height:0;flex:1}.map-area{min-width:0;min-height:0;display:flex;flex-direction:column;background:#0a151f}.toolbar{height:49px;flex:none;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #283d4c;padding:0 18px;gap:10px}.toolbar-left,.toolbar-right{display:flex;align-items:center;gap:12px}.toolbar-right button{font-size:18px;padding:2px;width:32px;height:29px}.live-label{font-weight:700;letter-spacing:.12em;color:#dac17c;font-size:11px}.pulse{background:#d6bd78;width:6px;height:6px}.toolbar-left #mapStatus{color:#718b9d;font-size:11px}.canvas-holder{position:relative;flex:1;min-height:150px;overflow:hidden}canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair;outline:none}canvas:focus-visible{outline:2px solid #d8bd78;outline-offset:-2px}.map-key{position:absolute;bottom:12px;left:14px;background:#101e28e8;padding:8px 10px;border:1px solid #3b5160;display:flex;gap:15px;pointer-events:none;color:#bccfd7;font-size:10px}.map-key span{display:flex;align-items:center;gap:6px}.map-key i{height:10px;width:10px;display:inline-block}.key-land{background:#547354}.key-sea{background:#24465d}.key-fog{background:#0d1923}.map-help{height:34px;flex:none;font-size:11px;color:#8da4b5;display:flex;align-items:center;justify-content:center;border-top:1px solid #273e4e}.sidebar{background:#12202a;border-left:1px solid #354c5e;min-height:0;overflow-y:auto}.side-content{padding:13px;display:flex;flex-direction:column;gap:12px}.card{border:1px solid #304859;background:#172833;border-radius:8px;padding:16px}.card h2{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#d7bf85;margin:0 0 14px}.statrow{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #2b4352;font-size:12px;padding:8px 0;color:#9eb5c2}.statrow:last-child{border:0;padding-bottom:0}.statrow strong{color:#e5ebf0}.selection-title{font-family:Georgia,serif;font-size:19px;font-weight:600;margin-bottom:6px}.subtle{font-size:11px;color:#9bb3bf;line-height:1.7}.data{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:14px 0}.datum{border:1px solid #354d59;padding:8px;background:#12212b;border-radius:6px}.datum small{display:block;color:#93aab6;font-size:10px;margin-bottom:7px}.datum strong{display:block;font-size:15px}.actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}.actions button{font-size:11px;padding:8px 10px}.actions .wide{width:100%}.card select{width:100%;background:#0e1b25;border:1px solid #4e6876;color:#e9eef0;border-radius:5px;padding:9px;margin-top:9px}.card p{color:#aec0ca;line-height:1.6;font-size:11px;margin:0}.events #events{font-size:11px;color:#b3c4ce;max-height:200px;overflow:auto}.report{border-left:2px solid #4d758e;padding:3px 0 8px 10px;margin:0 0 9px;line-height:1.55}.report span{display:block;color:#d0b579;font-size:10px}.rule-warning{background:#392d1e;border:1px solid #685736;color:#edd6a7;padding:9px;border-radius:5px;font-size:11px;line-height:1.6}.stat-note{font-size:10px;color:#91a8b6;line-height:1.55}footer{height:37px;flex:none;background:#111d26;border-top:1px solid #324756;padding:0 18px;display:flex;align-items:center;justify-content:space-between;gap:24px;color:#9cb0bd;font-size:10px}footer span:last-child{white-space:nowrap;letter-spacing:.06em;color:#c6ae75}@media(max-width:850px){.content{grid-template-columns:minmax(0,1fr) 262px}.brand{min-width:0}.brand strong{font-size:19px}.topbar{padding:10px 12px}}@media(max-width:880px){.app{min-height:0}.content{display:flex;flex-direction:column}.map-area{flex:1;min-height:230px}.sidebar{border-left:0;border-top:1px solid #354c5e;max-height:36dvh;flex:none}.side-content{display:grid;grid-template-columns:1fr 1fr;padding:10px;gap:10px}.card{padding:12px}.events{grid-column:1 / -1}.files{grid-column:1 / -1}.brand-mark{width:34px;height:34px;font-size:22px}.brand small{font-size:8px}.brand strong{font-size:17px}.topbar{height:62px;gap:7px}.topstate{font-size:10px}.topstate .separator,.topstate .faction{display:none}.primary{padding:9px;font-size:11px}.map-help{height:auto;min-height:26px;padding:5px;font-size:9px;text-align:center}footer{font-size:9px;justify-content:center;text-align:center}footer span:last-child{display:none}}@media(max-width:440px){.side-content{display:block}.card{margin-bottom:10px}.sidebar{max-height:30dvh}.topstate{display:none}.topbar{justify-content:space-between}.primary{margin-left:auto}.map-key{font-size:9px;gap:8px}}
 
 </style></head>
 <body><div class="app">
-  <header class="topbar"><div class="brand"><span class="brand-mark">✦</span><div><strong>EMPIRATA</strong><small>CLASSIC RULES LAB · v0.2</small></div></div>
+  <header class="topbar"><div class="brand"><span class="brand-mark">✦</span><div><strong>EMPIRATA</strong><small>CLASSIC RULES LAB · v0.3</small></div></div>
    <div class="topstate"><span id="round">ROUND 1</span><span class="separator"></span><span class="faction"><span class="dot"></span>BLUE</span></div>
    <button id="nextRound" class="primary">Next round <span aria-hidden="true">→</span></button>
   </header>
@@ -23,19 +23,183 @@
       <section class="status card"><h2>Command center</h2><div class="statrow"><span>Controlled cities</span><strong id="cityCount">1</strong></div><div class="statrow"><span>Active units</span><strong id="unitCount">2</strong></div><div class="statrow"><span>Current player</span><strong>Blue</strong></div></section>
       <section class="inspector card"><h2>Selection</h2><div id="inspector" aria-live="polite"></div></section>
       <section class="events card"><h2>Orders &amp; reports</h2><div id="events"></div></section>
-      <section class="files card"><h2>Test scenarios</h2><p>This is a rules-engine test fixture, not a complete classic game.</p>
+      <section class="files card"><h2>Scripted outcome tests</h2>
+        <p>These examples reset the lab and apply a <strong>prearranged</strong> result, not a random combat or capture roll. They test the rules after an outcome is known.</p>
+        <div class="actions"><button id="demoCapture">Test successful capture</button><button id="demoCombat">Test naval combat</button></div>
+        <h2 style="margin-top:14px">Save &amp; reset</h2>
         <div class="actions"><button id="exportSave">Export JSON</button><button id="importSave">Import JSON</button><button id="newGame">Reset lab</button></div>
         <input id="saveFile" type="file" accept="application/json,.json" hidden/>
       </section>
     </div></aside>
   </main>
-  <footer><span id="toast" role="status" aria-live="polite">Exploration, production, and movement are enabled. Combat and capture remain locked pending rule verification.</span><span>INTERSTEL 2.05 RULES TARGET</span></footer>
+  <footer><span id="toast" role="status" aria-live="polite">Movement and production are available. Combat and capture have scripted tests only; historical random rolls remain locked.</span><span>INTERSTEL 2.05 RULES TARGET</span></footer>
 </div><script>
 
 (()=>{
 'use strict';
 const __modules=Object.create(null);
 const __cache=Object.create(null);
+__modules["engine/adjudication.js"] = function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.adjudicateCombat = adjudicateCombat;
+exports.adjudicateCityCapture = adjudicateCityCapture;
+const units_js_1 = require("./units.js");
+const world_js_1 = require("./world.js");
+const knowledge_js_1 = require("./knowledge.js");
+function oneStep(a, b) {
+    return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)) === 1;
+}
+function log(g, owner, message) {
+    g.events.push({ id: g.nextEventId++, round: g.round, recipient: owner, kind: 'combat', message });
+    if (g.events.length > 300)
+        g.events.shift();
+}
+function ready(g, unitId, type) {
+    const unit = g.units.find(u => u.id === unitId);
+    if (!unit || unit.owner !== g.active || unit.aboard)
+        throw new Error('An active, unembarked friendly unit is required.');
+    if (type && unit.kind !== type)
+        throw new Error(`A ${type} is required.`);
+    if (unit.order.kind === 'sentry')
+        throw new Error('Clear sentry before manually attacking.');
+    if (unit.spent >= (0, units_js_1.movementAllowance)(unit))
+        throw new Error('No movement remains.');
+    return unit;
+}
+function removeUnitAndCargo(g, id) {
+    const doomed = new Set([id]);
+    for (let changed = true; changed;) {
+        changed = false;
+        for (const unit of g.units)
+            if (unit.aboard && doomed.has(unit.aboard) && !doomed.has(unit.id)) {
+                doomed.add(unit.id);
+                changed = true;
+            }
+    }
+    g.units = g.units.filter(u => !doomed.has(u.id));
+}
+function legalAttack(g, attacker, defender) {
+    if (attacker.owner === defender.owner || attacker.id === defender.id)
+        throw new Error('Cannot attack a friendly unit.');
+    if (defender.aboard)
+        throw new Error('Embarked units cannot be targeted separately.');
+    if (!oneStep(attacker.position, defender.position))
+        throw new Error('Combat requires an adjacent target.');
+    const city = (0, world_js_1.cityAt)(g, defender.position);
+    if (city && city.owner !== attacker.owner)
+        throw new Error('A hostile city requires an army capture attempt, not unit combat.');
+    if (attacker.kind === 'army' && defender.kind === 'submarine')
+        throw new Error('Armies cannot attack submarines.');
+    if ((attacker.kind === 'destroyer' || attacker.kind === 'transport' || attacker.kind === 'submarine') && defender.kind === 'army') {
+        throw new Error('That naval unit cannot attack armies.');
+    }
+    if (attacker.kind === 'submarine' && defender.kind === 'fighter')
+        throw new Error('Submarines cannot initiate fighter attacks.');
+    const terrain = (0, world_js_1.terrainAt)(g, defender.position);
+    if (attacker.kind === 'army' && terrain === 'sea' && !city)
+        return { advances: false }; // Coastal attack, army cannot enter water
+    if (units_js_1.STATS[attacker.kind].domain === 'sea' && terrain === 'land' && !city) {
+        if ((attacker.kind !== 'cruiser' && attacker.kind !== 'battleship') || defender.kind !== 'army' || !(0, world_js_1.isCoastal)(g, defender.position)) {
+            throw new Error('Only cruisers and battleships can bombard coastal armies.');
+        }
+        return { advances: false };
+    }
+    if (units_js_1.STATS[attacker.kind].domain === 'sea' && city && !(0, world_js_1.isCoastal)(g, city.position))
+        throw new Error('A ship cannot enter an inland city.');
+    if (!(0, world_js_1.playable)(g, defender.position))
+        throw new Error('The border is impassable.');
+    return { advances: true };
+}
+/** Replays a supplied FINISHED hit sequence; does not make chance decisions. */
+function adjudicateCombat(game, record) {
+    if (!record.hits.length || record.hits.length > 1000)
+        throw new Error('Supply a bounded, nonempty hit sequence.');
+    const g = structuredClone(game);
+    const attacker = ready(g, record.attackerId), defender = g.units.find(u => u.id === record.defenderId);
+    if (!defender)
+        throw new Error('Target does not exist.');
+    const { advances } = legalAttack(g, attacker, defender);
+    let defeated = null;
+    for (let i = 0; i < record.hits.length; i++) {
+        const by = record.hits[i];
+        if (by !== 'attacker' && by !== 'defender')
+            throw new Error('Invalid hit source.');
+        const target = by === 'attacker' ? defender : attacker;
+        const source = by === 'attacker' ? attacker : defender;
+        target.damage += units_js_1.STATS[source.kind].hitDamage;
+        if (target.damage >= units_js_1.STATS[target.kind].hitPoints) {
+            if (i !== record.hits.length - 1)
+                throw new Error('A hit sequence cannot continue after a unit is destroyed.');
+            defeated = target;
+            break;
+        }
+    }
+    if (!defeated)
+        throw new Error('A battle must end with exactly one destroyed combatant.');
+    const winner = defeated === attacker ? defender : attacker;
+    const lostOwner = defeated.owner, winningOwner = winner.owner;
+    removeUnitAndCargo(g, defeated.id);
+    if (winner.id === attacker.id) {
+        attacker.spent++;
+        if (advances)
+            attacker.position = { ...defender.position };
+        if (attacker.kind === 'fighter') {
+            attacker.fuel = (attacker.fuel ?? 20) - 1;
+            const arrival = (0, world_js_1.cityAt)(g, attacker.position);
+            if (arrival?.owner === attacker.owner)
+                attacker.fuel = 20;
+            else if (attacker.fuel <= 0)
+                removeUnitAndCargo(g, attacker.id);
+        }
+    }
+    log(g, winningOwner, `${winner.kind} ${winner.id} defeated ${defeated.kind} ${defeated.id}${advances && winner.id === attacker.id ? ' and advanced' : ''}.`);
+    log(g, lostOwner, `${defeated.kind} ${defeated.id} was destroyed in combat with ${winner.kind} ${winner.id}.`);
+    (0, knowledge_js_1.updateAllKnowledge)(g);
+    return g;
+}
+/** City outcome supplied by a manual reference test; no invented capture odds. */
+function adjudicateCityCapture(game, record) {
+    if (!['captured', 'repelled'].includes(record.outcome))
+        throw new Error('Invalid city resolution.');
+    const g = structuredClone(game), army = ready(g, record.armyId, 'army');
+    const city = g.cities.find(c => c.id === record.cityId);
+    if (!city)
+        throw new Error('Unknown city.');
+    if (city.owner === army.owner)
+        throw new Error('City is already friendly.');
+    if (!oneStep(army.position, city.position))
+        throw new Error('The army must be adjacent to the city.');
+    if (!(0, world_js_1.playable)(g, city.position))
+        throw new Error('The city is outside the playable map.');
+    if (record.outcome === 'repelled') {
+        removeUnitAndCargo(g, army.id);
+        log(g, army.owner, `${army.id} was lost attacking ${city.id}.`);
+        if (city.owner)
+            log(g, city.owner, `${city.id} repelled an attacking army.`);
+    }
+    else {
+        const previousOwner = city.owner;
+        // All units occupying a captured city are destroyed; cargo perishes with its ship.
+        for (const resident of g.units.filter(u => !u.aboard && (0, world_js_1.equal)(u.position, city.position))) {
+            removeUnitAndCargo(g, resident.id);
+        }
+        removeUnitAndCargo(g, army.id); // Victorious army becomes an immobile city garrison
+        city.owner = army.owner;
+        // Captured-city production transfer/initialization timing needs executable verification.
+        // The lab leaves the city's factory unassigned instead of copying enemy production.
+        city.production = null;
+        city.progress = 0;
+        city.firstCycle = true;
+        log(g, army.owner, `${city.id} captured. ${army.id} joined its permanent garrison. Assign production.`);
+        if (previousOwner)
+            log(g, previousOwner, `${city.id} was captured by an enemy army.`);
+    }
+    (0, knowledge_js_1.updateAllKnowledge)(g);
+    return g;
+}
+
+};
 __modules["engine/game.js"] = function(module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -238,6 +402,7 @@ __exportStar(require("./rng.js"), exports);
 __exportStar(require("./game.js"), exports);
 __exportStar(require("./knowledge.js"), exports);
 __exportStar(require("./save.js"), exports);
+__exportStar(require("./adjudication.js"), exports);
 
 };
 __modules["engine/knowledge.js"] = function(module, exports, require) {
@@ -721,7 +886,7 @@ function selectedUnitBlock(unit) {
   ${unit.kind === 'fighter' ? `<div class="datum"><small>Fuel</small><strong>${unit.fuel} / 20</strong></div>` : ''}
   ${possible !== null ? `<div class="datum"><small>Cargo capacity</small><strong>${possible}</strong></div>` : ''}</div>
   <div class="actions"><button id="sentryButton">Sentry</button><button id="clearButton">Clear</button><button id="skipButton">Skip move</button></div>
-  <p class="stat-note" style="margin-top:12px">Tap an adjacent tile, use arrow keys, or Q/E/Z/C for diagonal movement. Standing travel orders, cargo, capture, and combat are not yet implemented.</p>`;
+  <p class="stat-note" style="margin-top:12px">Tap an adjacent tile, use arrow keys, or Q/E/Z/C for diagonal movement. Automatic combat/capture are still blocked until the original probability rules are verified. Use the scripted test scenarios to inspect known outcomes.</p>`;
 }
 function selectedCityBlock(city) {
     const coastal = (0, index_js_1.isCoastal)(game, city.position);
@@ -822,6 +987,34 @@ document.addEventListener('keydown', ev => {
         return;
     ev.preventDefault();
     dispatch(() => (0, index_js_1.moveUnit)(game, selectedUnit, { x: u.position.x + delta.x, y: u.position.y + delta.y }));
+});
+el('demoCapture').addEventListener('click', () => {
+    dispatch(() => {
+        const lab = (0, index_js_1.makeRulesLab)();
+        lab.cities.push({ id: 'c-demo', position: { x: 10, y: 25 }, owner: null, production: null, progress: 0, firstCycle: true });
+        (0, index_js_1.updateAllKnowledge)(lab);
+        return (0, index_js_1.adjudicateCityCapture)(lab, { armyId: 'u1', cityId: 'c-demo', outcome: 'captured' });
+    });
+    selectedUnit = null;
+    selectedCity = 'c-demo';
+    refresh();
+    focus({ x: 10, y: 25 });
+    uiMessage('Scripted city capture: successful outcome supplied by test fixture, NOT random gameplay.');
+});
+el('demoCombat').addEventListener('click', () => {
+    dispatch(() => {
+        const lab = (0, index_js_1.makeRulesLab)();
+        const template = lab.units.find(u => u.id === 'u2');
+        lab.units.push({ ...structuredClone(template), id: 'u-fixture-sub', kind: 'submarine', owner: 'red',
+            position: { x: 6, y: 25 }, damage: 0, spent: 0, aboard: null });
+        (0, index_js_1.updateAllKnowledge)(lab);
+        return (0, index_js_1.adjudicateCombat)(lab, { attackerId: 'u2', defenderId: 'u-fixture-sub', hits: ['attacker', 'attacker'] });
+    });
+    selectedCity = null;
+    selectedUnit = 'u2';
+    refresh();
+    focus({ x: 6, y: 25 });
+    uiMessage('Scripted naval battle: two destroyer hits supplied by test fixture, NOT computed odds.');
 });
 el('nextRound').addEventListener('click', () => { dispatch(() => (0, index_js_1.advanceLabRound)(game)); uiMessage(`Round ${game.round}. Opponent passed; no AI is implemented yet.`); });
 el('zoomIn').addEventListener('click', () => zoom(4));

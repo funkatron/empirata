@@ -29,3 +29,14 @@
 ## Special note about programmatic runtime
 
 This is a self-contained static browser build. The code can be opened or modified in any IDE. No server component, database service, accounts, or API keys are necessary. The provided local server is only a static file server.
+
+
+## v0.3 historical result adjudication (October 22, 2026)
+
+- New `src/engine/adjudication.ts` consumes an **externally supplied, already-decided** sequence of combat hits, or a captured/repelled city result.
+- It applies the manual-confirmed consequences: damage and unit death, submarine triple-hit damage, damaged ship movement reduction, destruction of embarked units when a carrier/transport sinks, cruiser/battleship bombardment without moving onto land, captured-city loss of occupying units, and conversion of the victorious army to a permanent garrison.
+- Neither adjudicator makes a random choice. Normal movement still refuses hostile combat and city assault until Interstel's actual combat and capture probability/turn algorithm can be established.
+- Browser **scripted outcome tests** let the user witness state transitions. They explicitly identify the results as prearranged and reset the test world.
+- Captured cities are left unassigned for production rather than copying an opponent's unknown queue; exact capture-to-production timings remain open.
+- Test suite increased to 39 passing automated engine tests.
+- Remaining work: validate battle-hit allocation, city probability, attacker/defender modifiers, production transfer, combat movement and fuel timing, naval transport loading/unloading, and historical turn ordering.

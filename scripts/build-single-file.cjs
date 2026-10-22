@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const ts = require('typescript');
+const ts = require('/opt/nvm/versions/node/v22.16.0/lib/node_modules/typescript');
 const root = path.resolve(__dirname, '..');
 const walk = dir => fs.readdirSync(dir,{withFileTypes:true}).flatMap(ent => ent.isDirectory()?walk(path.join(dir,ent.name)):[path.join(dir,ent.name)]);
 let registry = '';

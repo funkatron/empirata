@@ -5,3 +5,4 @@ export * from './rng.js';
 export * from './game.js';
 export * from './knowledge.js';
 export * from './save.js';
+export * from './adjudication.js';

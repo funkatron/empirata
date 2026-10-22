@@ -1,6 +1,6 @@
-import {advanceLabRound,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,
+import {adjudicateCombat,adjudicateCityCapture,advanceLabRound,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,
   moveUnit,movementAllowance,requiredProductionTurns,RuleNotImplemented,saveLocally,selectProduction,setOrder,
-  STATS,UNIT_TYPES,isCoastal} from '../engine/index.js';
+  STATS,UNIT_TYPES,isCoastal,updateAllKnowledge} from '../engine/index.js';
 import type {City,Coord,Game,Unit,UnitType,PlayerView} from '../engine/index.js';
 
 const el=(id:string)=>document.getElementById(id)!;
@@ -122,7 +122,7 @@ function selectedUnitBlock(unit:Unit):string {
   ${unit.kind==='fighter'?`<div class="datum"><small>Fuel</small><strong>${unit.fuel} / 20</strong></div>`:''}
   ${possible!==null?`<div class="datum"><small>Cargo capacity</small><strong>${possible}</strong></div>`:''}</div>
   <div class="actions"><button id="sentryButton">Sentry</button><button id="clearButton">Clear</button><button id="skipButton">Skip move</button></div>
-  <p class="stat-note" style="margin-top:12px">Tap an adjacent tile, use arrow keys, or Q/E/Z/C for diagonal movement. Standing travel orders, cargo, capture, and combat are not yet implemented.</p>`;
+  <p class="stat-note" style="margin-top:12px">Tap an adjacent tile, use arrow keys, or Q/E/Z/C for diagonal movement. Automatic combat/capture are still blocked until the original probability rules are verified. Use the scripted test scenarios to inspect known outcomes.</p>`;
 }
 function selectedCityBlock(city:City):string {
   const coastal=isCoastal(game,city.position);
@@ -177,6 +177,28 @@ document.addEventListener('keydown',ev=>{
   const delta=moves[ev.key];if(!delta||!selectedUnit)return;
   const u=view.ownUnits.find(u=>u.id===selectedUnit);if(!u)return;
   ev.preventDefault();dispatch(()=>moveUnit(game,selectedUnit!,{x:u.position.x+delta.x,y:u.position.y+delta.y}));
+});
+el('demoCapture').addEventListener('click',()=>{
+  dispatch(()=>{
+    const lab=makeRulesLab();
+    lab.cities.push({id:'c-demo',position:{x:10,y:25},owner:null,production:null,progress:0,firstCycle:true});
+    updateAllKnowledge(lab);
+    return adjudicateCityCapture(lab,{armyId:'u1',cityId:'c-demo',outcome:'captured'});
+  });
+  selectedUnit=null;selectedCity='c-demo';refresh();focus({x:10,y:25});
+  uiMessage('Scripted city capture: successful outcome supplied by test fixture, NOT random gameplay.');
+});
+el('demoCombat').addEventListener('click',()=>{
+  dispatch(()=>{
+    const lab=makeRulesLab();
+    const template=lab.units.find(u=>u.id==='u2')!;
+    lab.units.push({...structuredClone(template),id:'u-fixture-sub',kind:'submarine',owner:'red',
+      position:{x:6,y:25},damage:0,spent:0,aboard:null});
+    updateAllKnowledge(lab);
+    return adjudicateCombat(lab,{attackerId:'u2',defenderId:'u-fixture-sub',hits:['attacker','attacker']});
+  });
+  selectedCity=null;selectedUnit='u2';refresh();focus({x:6,y:25});
+  uiMessage('Scripted naval battle: two destroyer hits supplied by test fixture, NOT computed odds.');
 });
 el('nextRound').addEventListener('click',()=>{dispatch(()=>advanceLabRound(game));uiMessage(`Round ${game.round}. Opponent passed; no AI is implemented yet.`);});
 el('zoomIn').addEventListener('click',()=>zoom(4));el('zoomOut').addEventListener('click',()=>zoom(-4));
