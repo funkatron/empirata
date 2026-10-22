@@ -1,0 +1,17 @@
+{
+  "name": "empirata-rules-lab",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Empirata: strict classic Empire DOS Interstel 2.05 rules laboratory",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-assets.mjs",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "start": "node scripts/server.mjs",
+    "dev": "npm run build && npm run start",
+    "build:site": "npm run build && node scripts/build-single-file.cjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
