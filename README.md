@@ -86,3 +86,14 @@ The suite currently contains **25 independent tests** of constants, movement, pr
 Two buttons in the browser demonstrate a successful city capture and a naval combat result. These are **not** playable random battles. The initial state and winning outcome are explicitly supplied by the test fixture, because Interstel 2.05's exact selection of combat hits and city capture probability still requires verification. Each demonstration resets the lab and is intended for visual validation of manual-confirmed consequences.
 
 The independent `src/engine/adjudication.ts` functions can be given a verified hit sequence or captured/repelled result. Once the authentic probability engine is verified, it can drive those same consequences without changing their implementation.
+
+
+## Immediate encounters: Close Quarters (v0.3.1)
+
+New visits start in **Close Quarters**, a small diagnostic skirmish around the blue starting port. An enemy army, enemy submarine, and enemy fighter are already visible. A neutral city is one step away. The blue army is selected automatically.
+
+1. Tap the nearby **red A** (or gold city) on the map.
+2. In the selection panel, select **Test: Blue wins** or **Test: Blue loses**.
+3. Watch the state change and event report. Try the blue destroyer versus the nearby red S as another encounter.
+
+**Important:** The outcomes are hand-selected tests, not real combat probabilities or AI behavior. This feature makes it easier to test verified *consequences* while the historical combat resolver is researched. Existing browser autosaves load unchanged; use **Start Close Quarters** to switch to the new scenario. To restore the previous map, select **Original test map**.

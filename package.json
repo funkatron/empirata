@@ -1,6 +1,6 @@
 {
   "name": "empirata-rules-lab",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "description": "Empirata: strict classic Empire DOS Interstel 2.05 rules laboratory",

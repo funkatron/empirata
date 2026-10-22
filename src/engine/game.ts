@@ -22,7 +22,7 @@ export function makeRulesLab():Game {
   const cities=[mkCity('c-blue',8,25,'blue'),mkCity('c-red',80,36,'red'),
     ...([[20,16],[24,40],[33,24],[53,11],[67,24],[69,40],[52,50],[83,20]] as [number,number][])
     .map(([x,y],i)=>mkCity(`c${i+1}`,x,y,null))];
-  const g:Game={schema:1,ruleset:'interstel-2.05',mode:'rules-lab',width:MAP_WIDTH,height:MAP_HEIGHT,tiles,
+  const g:Game={schema:1,ruleset:'interstel-2.05',mode:'rules-lab',scenario:'classic-lab',width:MAP_WIDTH,height:MAP_HEIGHT,tiles,
     players:[{id:'blue',label:'Blue',combatEfficiency:50,productionEfficiency:50},
       {id:'red',label:'Red',combatEfficiency:50,productionEfficiency:50}],
     active:'blue',round:1,cities,units:[],knowledge:{blue:undefined!,red:undefined!,green:undefined!},

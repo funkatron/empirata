@@ -40,3 +40,12 @@ This is a self-contained static browser build. The code can be opened or modifie
 - Captured cities are left unassigned for production rather than copying an opponent's unknown queue; exact capture-to-production timings remain open.
 - Test suite increased to 39 passing automated engine tests.
 - Remaining work: validate battle-hit allocation, city probability, attacker/defender modifiers, production transfer, combat movement and fuel timing, naval transport loading/unloading, and historical turn ordering.
+
+
+## v0.3.1 — Close Quarters QA fixture
+
+- Default new scenario places blue army and red army in adjacent tiles, a blue destroyer beside a detectable red submarine, blue/red fighters in contact, and a neutral city one move away.
+- The map is an ORIGINAL diagnostic fixture. It is deliberately **not** a standard opening from the 1987 game. No AI moves the enemy.
+- Tapping an adjacent red unit or discovered neutral city (after selecting a blue unit) opens an explicit **scripted** result selector: blue wins or blue loses. These call adjudication functions without rolling odds.
+- The old rules-lab layout remains selectable under **Original test map**. Existing autosaves are preserved on load; choose **Start Close Quarters** to replace an older save.
+- Historical probability computation and automatic combat remain blocked. No new combat rule is inferred by the scenario.

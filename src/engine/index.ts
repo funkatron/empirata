@@ -7,3 +7,5 @@ export * from './knowledge.js';
 export * from './save.js';
 
 export * from './adjudication.js';
+
+export * from './scenario.js';

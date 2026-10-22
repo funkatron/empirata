@@ -1,13 +1,14 @@
-import { adjudicateCombat, adjudicateCityCapture, advanceLabRound, capacity, exportSave, getPlayerView, importSave, loadLocal, makeRulesLab, moveUnit, movementAllowance, requiredProductionTurns, saveLocally, selectProduction, setOrder, STATS, UNIT_TYPES, isCoastal, updateAllKnowledge } from '../engine/index.js';
+import { adjudicateCombat, adjudicateCityCapture, advanceLabRound, capacity, exportSave, getPlayerView, importSave, loadLocal, makeRulesLab, makeCloseQuartersLab, scriptedLabCombat, scriptedLabCapture, moveUnit, movementAllowance, requiredProductionTurns, saveLocally, selectProduction, setOrder, STATS, UNIT_TYPES, isCoastal, updateAllKnowledge } from '../engine/index.js';
 const el = (id) => document.getElementById(id);
 const canvas = el('map');
 const context = canvas.getContext('2d');
 if (!context)
     throw new Error('Canvas 2D is unavailable.');
 const ctx = context;
-let game = makeRulesLab();
+let game = makeCloseQuartersLab();
 let view = getPlayerView(game, 'blue');
-let selectedUnit = null, selectedCity = null;
+let selectedUnit = 'u1', selectedCity = null;
+let pending = null;
 let tileSize = 30, cameraX = 0, cameraY = 0;
 let down = null;
 let hydrated = false;
@@ -125,16 +126,39 @@ function tapTile(pos) {
         if (cityHere && selectedUnit === units[units.length - 1]?.id) {
             selectedUnit = null;
             selectedCity = cityHere.id;
+            pending = null;
             refresh();
             return;
         }
         const last = units.findIndex(u => u.id === selectedUnit);
         selectedUnit = units[(last + 1) % units.length].id;
+        pending = null;
         selectedCity = null;
         refresh();
         return;
     }
     const cell = view.cells[pos.y * game.width + pos.x];
+    if (selectedUnit && game.scenario === 'close-quarters') {
+        const attacker = view.ownUnits.find(u => u.id === selectedUnit);
+        const adjacent = attacker && Math.max(Math.abs(attacker.position.x - pos.x), Math.abs(attacker.position.y - pos.y)) === 1;
+        if (adjacent) {
+            const enemy = view.enemies.find(u => !u.stale && u.position.x === pos.x && u.position.y === pos.y);
+            if (enemy) {
+                pending = { kind: 'combat', attackerId: selectedUnit, defenderId: enemy.id };
+                selectedCity = null;
+                refresh();
+                uiMessage('Close Quarters test encounter: choose a scripted outcome in the selection panel. No combat odds are rolled.');
+                return;
+            }
+            if (attacker?.kind === 'army' && cell?.city && cell.city.owner !== 'blue') {
+                pending = { kind: 'capture', attackerId: selectedUnit, cityId: cell.city.id };
+                selectedCity = null;
+                refresh();
+                uiMessage('Close Quarters test assault: choose a scripted capture outcome. No conquest odds are rolled.');
+                return;
+            }
+        }
+    }
     if (selectedUnit) {
         const unit = view.ownUnits.find(u => u.id === selectedUnit);
         if (unit && Math.max(Math.abs(unit.position.x - pos.x), Math.abs(unit.position.y - pos.y)) === 1) {
@@ -146,18 +170,21 @@ function tapTile(pos) {
     if (city) {
         selectedCity = city.id;
         selectedUnit = null;
+        pending = null;
         refresh();
         return;
     }
     if (cell?.city) {
         selectedCity = null;
         selectedUnit = null;
+        pending = null;
         uiMessage(`City ${cell.city.id} · ${cell.city.owner ?? 'neutral'} (read-only)`);
         refresh();
         return;
     }
     selectedCity = null;
     selectedUnit = null;
+    pending = null;
     refresh();
 }
 function text(value) { return String(value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])); }
@@ -170,7 +197,7 @@ function selectedUnitBlock(unit) {
   ${unit.kind === 'fighter' ? `<div class="datum"><small>Fuel</small><strong>${unit.fuel} / 20</strong></div>` : ''}
   ${possible !== null ? `<div class="datum"><small>Cargo capacity</small><strong>${possible}</strong></div>` : ''}</div>
   <div class="actions"><button id="sentryButton">Sentry</button><button id="clearButton">Clear</button><button id="skipButton">Skip move</button></div>
-  <p class="stat-note" style="margin-top:12px">Tap an adjacent tile, use arrow keys, or Q/E/Z/C for diagonal movement. Automatic combat/capture are still blocked until the original probability rules are verified. Use the scripted test scenarios to inspect known outcomes.</p>`;
+  <p class="stat-note" style="margin-top:12px">Tap an adjacent tile to move. In Close Quarters, tap a nearby red unit or gold city to open a <strong>scripted</strong> encounter; the original combat odds have not been implemented.</p>`;
 }
 function selectedCityBlock(city) {
     const coastal = isCoastal(game, city.position);
@@ -183,11 +210,28 @@ function selectedCityBlock(city) {
   <div class="datum"><small>Production phase</small><strong>${city.firstCycle ? 'Setup' : 'Repeat'}</strong></div></div>
   <p class="stat-note">Changing unit types discards unfinished production. Production advances at the beginning of your faction's turn.</p>`;
 }
+function pendingBlock() {
+    if (!pending)
+        return '';
+    const attacker = view.ownUnits.find(u => u.id === pending.attackerId);
+    const target = pending.kind === 'combat' ? view.enemies.find(u => u.id === pending.defenderId && !u.stale) : null;
+    if (!attacker || (pending.kind === 'combat' && !target))
+        return '';
+    const name = pending.kind === 'combat' ? `${STATS[attacker.kind].name} vs. ${STATS[target.kind].name}` :
+        `${STATS[attacker.kind].name} vs. city ${pending.cityId}`;
+    return `<div class="encounter-panel" role="group" aria-label="Scripted encounter controls">
+    <strong>Scripted encounter · ${text(name)}</strong>
+    <p class="stat-note">Choose an outcome for testing. No random combat or capture roll occurs; these are <strong>not authentic battle odds</strong>.</p>
+    <div class="actions"><button id="fixtureWin" class="wide">Test: Blue wins</button>
+    <button id="fixtureLose" class="wide">Test: Blue loses</button><button id="fixtureCancel">Cancel</button></div></div>`;
+}
 function refresh() {
     view = getPlayerView(game, 'blue');
     el('round').textContent = `ROUND ${game.round}`;
     el('cityCount').textContent = String(view.ownCities.length);
     el('unitCount').textContent = String(view.ownUnits.length);
+    el('scenarioName').textContent = game.scenario === 'close-quarters' ? 'CLOSE QUARTERS · TEST' : 'CLASSIC RULES LAB';
+    el('threatCount').textContent = String(view.enemies.filter(u => !u.stale).length);
     const unit = view.ownUnits.find(u => u.id === selectedUnit);
     const city = view.ownCities.find(c => c.id === selectedCity);
     const inspector = el('inspector');
@@ -196,7 +240,45 @@ function refresh() {
     else if (city)
         inspector.innerHTML = selectedCityBlock(city);
     else
-        inspector.innerHTML = '<p>Select a blue unit or city on the map to see its details and available orders.</p><p class="stat-note" style="margin-top:12px">This test map contains extra starting units for engineering validation; it is not a historical opening position.</p>';
+        inspector.innerHTML = '<p>Select a blue unit or city to see orders. Close Quarters is a diagnostic skirmish, not a historically accurate opening or full AI game.</p>';
+    if (pending) {
+        const pendingMarkup = pendingBlock();
+        if (pendingMarkup)
+            inspector.insertAdjacentHTML('afterbegin', pendingMarkup);
+        else
+            pending = null;
+    }
+    for (const [button, outcome] of [['fixtureWin', 'win'], ['fixtureLose', 'lose']]) {
+        document.getElementById(button)?.addEventListener('click', () => {
+            if (!pending)
+                return;
+            const encounter = pending;
+            let ok = false;
+            try {
+                const result = encounter.kind === 'combat' ?
+                    scriptedLabCombat(game, encounter.attackerId, encounter.defenderId, outcome === 'win' ? 'attacker' : 'defender') :
+                    scriptedLabCapture(game, encounter.attackerId, encounter.cityId, outcome === 'win' ? 'captured' : 'repelled');
+                game = result;
+                ok = true;
+            }
+            catch (error) {
+                uiMessage(error instanceof Error ? error.message : 'Encounter failed.');
+            }
+            if (!ok)
+                return;
+            pending = null;
+            if (!game.units.some(u => u.id === selectedUnit))
+                selectedUnit = null;
+            if (encounter.kind === 'capture' && outcome === 'win') {
+                selectedCity = encounter.cityId;
+                selectedUnit = null;
+            }
+            refresh();
+            void saveLocally(game).catch(() => uiMessage('Local save unavailable; export JSON.'));
+            uiMessage(`SCRIPTED ${outcome === 'win' ? 'BLUE VICTORY' : 'BLUE DEFEAT'} — ${encounter.kind === 'combat' ? 'combat' : 'city assault'} consequences applied. No probability was rolled.`);
+        });
+    }
+    document.getElementById('fixtureCancel')?.addEventListener('click', () => { pending = null; refresh(); });
     const productionSelect = document.getElementById('productionSelect');
     if (productionSelect && city)
         productionSelect.addEventListener('change', () => {
@@ -252,6 +334,7 @@ document.addEventListener('keydown', ev => {
     if (ev.key === 'Escape') {
         selectedUnit = null;
         selectedCity = null;
+        pending = null;
         refresh();
         return;
     }
@@ -270,7 +353,7 @@ document.addEventListener('keydown', ev => {
     if (!u)
         return;
     ev.preventDefault();
-    dispatch(() => moveUnit(game, selectedUnit, { x: u.position.x + delta.x, y: u.position.y + delta.y }));
+    tapTile({ x: u.position.x + delta.x, y: u.position.y + delta.y });
 });
 el('demoCapture').addEventListener('click', () => {
     dispatch(() => {
@@ -337,17 +420,21 @@ el('saveFile').addEventListener('change', async () => {
         input.value = '';
     }
 });
-el('newGame').addEventListener('click', () => {
-    if (!window.confirm('Reset this lab? Your saved progress will be replaced.'))
+function startScenario(kind) {
+    if (!window.confirm('Start a new test scenario? This will replace the current local autosave. Export JSON first if you want to keep it.'))
         return;
-    game = makeRulesLab();
-    selectedUnit = null;
+    game = kind === 'close-quarters' ? makeCloseQuartersLab() : makeRulesLab();
+    selectedUnit = 'u1';
     selectedCity = null;
+    pending = null;
     refresh();
-    focus({ x: 8, y: 25 });
-    void saveLocally(game);
-    uiMessage('Rules lab reset.');
-});
+    focus({ x: 9, y: 25 });
+    void saveLocally(game).catch(() => uiMessage('Local save unavailable; export JSON.'));
+    uiMessage(kind === 'close-quarters' ? 'Close Quarters ready: blue army is selected; tap the adjacent red A or gold city.' : 'Classic rules lab reset.');
+}
+el('newGame').addEventListener('click', () => startScenario('close-quarters'));
+el('startSkirmish').addEventListener('click', () => startScenario('close-quarters'));
+el('classicGame').addEventListener('click', () => startScenario('classic-lab'));
 new ResizeObserver(resize).observe(canvas);
 async function boot() {
     try {
@@ -361,7 +448,12 @@ async function boot() {
     if (hydrated)
         return;
     hydrated = true;
+    selectedUnit = game.units.some(u => u.id === 'u1' && u.owner === 'blue') ? 'u1' : null;
     refresh();
-    focus({ x: 8, y: 25 });
+    focus({ x: 9, y: 25 });
+    if (game.scenario === 'close-quarters')
+        uiMessage('Blue army selected. Tap the adjacent red A or gold city for a scripted skirmish.');
+    else
+        uiMessage('Existing saved game restored. Choose Start Close Quarters to try the immediate combat scenario.');
 }
 void boot();
