@@ -1,0 +1,909 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#101b24"/>
+<title>Empirata · Rules Laboratory v0.2</title>
+<style>
+:root{color-scheme:dark;font-family:ui-monospace, 'SFMono-Regular',Menlo,Consolas,monospace;background:#0d151c;color:#e1e9ec;font-synthesis:none}*{box-sizing:border-box}html,body{height:100%;margin:0}button,select{font:inherit}button{background:#1b2a35;color:#e6edef;border:1px solid #3b5261;border-radius:6px;padding:9px 12px;cursor:pointer;transition:background .15s}button:hover,button:focus-visible{background:#294458;outline-color:#69b2d5}button:disabled{opacity:.45;cursor:not-allowed}.app{height:100dvh;min-height:520px;display:flex;flex-direction:column}.topbar{height:72px;display:flex;gap:20px;align-items:center;background:#111d26;border-bottom:1px solid #324756;padding:12px 24px;flex:none}.brand{display:flex;align-items:center;gap:13px;min-width:250px}.brand-mark{font-size:28px;color:#d5bb70;border:1px solid #bca56e;border-radius:8px;width:44px;height:44px;display:grid;place-items:center}.brand strong{display:block;letter-spacing:.22em;font-family:Georgia,serif;font-size:22px;color:#f2e5ba}.brand small{color:#89a2b5;font-size:10px;letter-spacing:.06em}.topstate{display:flex;align-items:center;gap:16px;margin-left:auto;font-size:12px;letter-spacing:.12em;color:#a5bcc6}.separator{height:21px;border-left:1px solid #344959}.dot,.pulse{width:8px;height:8px;display:inline-block;background:#63bbd9;border-radius:50%;margin-right:7px}.primary{background:#d8bd78;color:#1c2429;border-color:#d8bd78;padding:12px 16px;font-weight:700;white-space:nowrap}.primary:hover{background:#edcf86}.content{display:grid;grid-template-columns:minmax(0,1fr) 310px;min-height:0;flex:1}.map-area{min-width:0;min-height:0;display:flex;flex-direction:column;background:#0a151f}.toolbar{height:49px;flex:none;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #283d4c;padding:0 18px;gap:10px}.toolbar-left,.toolbar-right{display:flex;align-items:center;gap:12px}.toolbar-right button{font-size:18px;padding:2px;width:32px;height:29px}.live-label{font-weight:700;letter-spacing:.12em;color:#dac17c;font-size:11px}.pulse{background:#d6bd78;width:6px;height:6px}.toolbar-left #mapStatus{color:#718b9d;font-size:11px}.canvas-holder{position:relative;flex:1;min-height:150px;overflow:hidden}canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair;outline:none}canvas:focus-visible{outline:2px solid #d8bd78;outline-offset:-2px}.map-key{position:absolute;bottom:12px;left:14px;background:#101e28e8;padding:8px 10px;border:1px solid #3b5160;display:flex;gap:15px;pointer-events:none;color:#bccfd7;font-size:10px}.map-key span{display:flex;align-items:center;gap:6px}.map-key i{height:10px;width:10px;display:inline-block}.key-land{background:#547354}.key-sea{background:#24465d}.key-fog{background:#0d1923}.map-help{height:34px;flex:none;font-size:11px;color:#8da4b5;display:flex;align-items:center;justify-content:center;border-top:1px solid #273e4e}.sidebar{background:#12202a;border-left:1px solid #354c5e;min-height:0;overflow-y:auto}.side-content{padding:13px;display:flex;flex-direction:column;gap:12px}.card{border:1px solid #304859;background:#172833;border-radius:8px;padding:16px}.card h2{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#d7bf85;margin:0 0 14px}.statrow{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #2b4352;font-size:12px;padding:8px 0;color:#9eb5c2}.statrow:last-child{border:0;padding-bottom:0}.statrow strong{color:#e5ebf0}.selection-title{font-family:Georgia,serif;font-size:19px;font-weight:600;margin-bottom:6px}.subtle{font-size:11px;color:#9bb3bf;line-height:1.7}.data{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:14px 0}.datum{border:1px solid #354d59;padding:8px;background:#12212b;border-radius:6px}.datum small{display:block;color:#93aab6;font-size:10px;margin-bottom:7px}.datum strong{display:block;font-size:15px}.actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}.actions button{font-size:11px;padding:8px 10px}.actions .wide{width:100%}.card select{width:100%;background:#0e1b25;border:1px solid #4e6876;color:#e9eef0;border-radius:5px;padding:9px;margin-top:9px}.card p{color:#aec0ca;line-height:1.6;font-size:11px;margin:0}.events #events{font-size:11px;color:#b3c4ce;max-height:200px;overflow:auto}.report{border-left:2px solid #4d758e;padding:3px 0 8px 10px;margin:0 0 9px;line-height:1.55}.report span{display:block;color:#d0b579;font-size:10px}.rule-warning{background:#392d1e;border:1px solid #685736;color:#edd6a7;padding:9px;border-radius:5px;font-size:11px;line-height:1.6}.stat-note{font-size:10px;color:#91a8b6;line-height:1.55}footer{height:37px;flex:none;background:#111d26;border-top:1px solid #324756;padding:0 18px;display:flex;align-items:center;justify-content:space-between;gap:24px;color:#9cb0bd;font-size:10px}footer span:last-child{white-space:nowrap;letter-spacing:.06em;color:#c6ae75}@media(max-width:850px){.content{grid-template-columns:minmax(0,1fr) 262px}.brand{min-width:0}.brand strong{font-size:19px}.topbar{padding:10px 12px}}@media(max-width:880px){.app{min-height:0}.content{display:flex;flex-direction:column}.map-area{flex:1;min-height:230px}.sidebar{border-left:0;border-top:1px solid #354c5e;max-height:36dvh;flex:none}.side-content{display:grid;grid-template-columns:1fr 1fr;padding:10px;gap:10px}.card{padding:12px}.events{grid-column:1 / -1}.files{grid-column:1 / -1}.brand-mark{width:34px;height:34px;font-size:22px}.brand small{font-size:8px}.brand strong{font-size:17px}.topbar{height:62px;gap:7px}.topstate{font-size:10px}.topstate .separator,.topstate .faction{display:none}.primary{padding:9px;font-size:11px}.map-help{height:auto;min-height:26px;padding:5px;font-size:9px;text-align:center}footer{font-size:9px;justify-content:center;text-align:center}footer span:last-child{display:none}}@media(max-width:440px){.side-content{display:block}.card{margin-bottom:10px}.sidebar{max-height:30dvh}.topstate{display:none}.topbar{justify-content:space-between}.primary{margin-left:auto}.map-key{font-size:9px;gap:8px}}
+
+</style></head>
+<body><div class="app">
+  <header class="topbar"><div class="brand"><span class="brand-mark">✦</span><div><strong>EMPIRATA</strong><small>CLASSIC RULES LAB · v0.2</small></div></div>
+   <div class="topstate"><span id="round">ROUND 1</span><span class="separator"></span><span class="faction"><span class="dot"></span>BLUE</span></div>
+   <button id="nextRound" class="primary">Next round <span aria-hidden="true">→</span></button>
+  </header>
+  <main class="content">
+    <section class="map-area" aria-label="Game map">
+       <div class="toolbar"><div class="toolbar-left"><span class="live-label"><span class="pulse"></span> RULES LAB</span><span id="mapStatus">60 × 100 world</span></div>
+       <div class="toolbar-right"><button id="zoomOut" aria-label="Zoom out" title="Zoom out">−</button><button id="zoomIn" aria-label="Zoom in" title="Zoom in">+</button><button id="recenter" title="Focus on your city">⌖</button></div></div>
+       <div class="canvas-holder"><canvas id="map" tabindex="0" aria-label="Interactive tile map, use drag to pan and click to select a unit or city"></canvas>
+       <div class="map-key"><span><i class="key-land"></i> Land</span><span><i class="key-sea"></i> Sea</span><span><i class="key-fog"></i> Unexplored</span></div></div>
+       <div class="map-help">Drag to pan · Tap a unit or city · Select an adjacent square to move · Arrow keys / Q E Z C</div>
+    </section>
+    <aside class="sidebar" aria-label="Unit and city controls"><div class="side-content">
+      <section class="status card"><h2>Command center</h2><div class="statrow"><span>Controlled cities</span><strong id="cityCount">1</strong></div><div class="statrow"><span>Active units</span><strong id="unitCount">2</strong></div><div class="statrow"><span>Current player</span><strong>Blue</strong></div></section>
+      <section class="inspector card"><h2>Selection</h2><div id="inspector" aria-live="polite"></div></section>
+      <section class="events card"><h2>Orders &amp; reports</h2><div id="events"></div></section>
+      <section class="files card"><h2>Test scenarios</h2><p>This is a rules-engine test fixture, not a complete classic game.</p>
+        <div class="actions"><button id="exportSave">Export JSON</button><button id="importSave">Import JSON</button><button id="newGame">Reset lab</button></div>
+        <input id="saveFile" type="file" accept="application/json,.json" hidden/>
+      </section>
+    </div></aside>
+  </main>
+  <footer><span id="toast" role="status" aria-live="polite">Exploration, production, and movement are enabled. Combat and capture remain locked pending rule verification.</span><span>INTERSTEL 2.05 RULES TARGET</span></footer>
+</div><script>
+
+(()=>{
+'use strict';
+const __modules=Object.create(null);
+const __cache=Object.create(null);
+__modules["engine/game.js"] = function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RuleNotImplemented = void 0;
+exports.makeRulesLab = makeRulesLab;
+exports.selectProduction = selectProduction;
+exports.setOrder = setOrder;
+exports.moveUnit = moveUnit;
+exports.endTurn = endTurn;
+exports.advanceLabRound = advanceLabRound;
+const units_js_1 = require("./units.js");
+const world_js_1 = require("./world.js");
+const knowledge_js_1 = require("./knowledge.js");
+class RuleNotImplemented extends Error {
+    code;
+    constructor(code, message) {
+        super(message);
+        this.code = code;
+        this.name = 'RuleNotImplemented';
+    }
+}
+exports.RuleNotImplemented = RuleNotImplemented;
+function clone(g) { return structuredClone(g); }
+function log(g, recipient, kind, message) {
+    g.events.push({ id: g.nextEventId++, round: g.round, recipient, kind, message });
+    if (g.events.length > 300)
+        g.events.shift();
+}
+function newUnit(g, owner, kind, position) {
+    return { id: `u${g.nextId++}`, owner, kind, position: { ...position }, damage: 0, spent: 0,
+        fuel: kind === 'fighter' ? units_js_1.MAX_FIGHTER_FUEL : null, order: { kind: 'none' }, aboard: null };
+}
+function makeRulesLab() {
+    const tiles = (0, world_js_1.makeTestTerrain)();
+    const mkCity = (id, x, y, owner) => ({ id, position: { x, y }, owner,
+        production: null, progress: 0, firstCycle: true });
+    const cities = [mkCity('c-blue', 8, 25, 'blue'), mkCity('c-red', 80, 36, 'red'),
+        ...[[20, 16], [24, 40], [33, 24], [53, 11], [67, 24], [69, 40], [52, 50], [83, 20]]
+            .map(([x, y], i) => mkCity(`c${i + 1}`, x, y, null))];
+    const g = { schema: 1, ruleset: 'interstel-2.05', mode: 'rules-lab', width: world_js_1.MAP_WIDTH, height: world_js_1.MAP_HEIGHT, tiles,
+        players: [{ id: 'blue', label: 'Blue', combatEfficiency: 50, productionEfficiency: 50 },
+            { id: 'red', label: 'Red', combatEfficiency: 50, productionEfficiency: 50 }],
+        active: 'blue', round: 1, cities, units: [], knowledge: { blue: undefined, red: undefined, green: undefined },
+        rng: { seed: 20261021, draws: 0 }, nextId: 1, nextEventId: 1, events: [] };
+    // Lab-only starting units bypass original starting conditions intentionally.
+    g.units.push(newUnit(g, 'blue', 'army', { x: 9, y: 25 }));
+    g.units.push(newUnit(g, 'blue', 'destroyer', { x: 7, y: 25 }));
+    g.units.push(newUnit(g, 'red', 'army', { x: 79, y: 36 }));
+    for (const faction of ['blue', 'red', 'green'])
+        g.knowledge[faction] = (0, knowledge_js_1.emptyKnowledge)(g);
+    (0, knowledge_js_1.updateAllKnowledge)(g);
+    log(g, 'blue', 'system', 'Rules lab loaded. Combat, capture, cargo, and autopilot orders are intentionally disabled.');
+    return g;
+}
+function selectProduction(game, cityId, kind) {
+    const g = clone(game);
+    const city = g.cities.find(c => c.id === cityId);
+    if (!city || city.owner !== g.active)
+        throw new Error('You can only set production in your own cities on your turn.');
+    if (!units_js_1.STATS[kind])
+        throw new Error('Unknown unit type');
+    if (units_js_1.STATS[kind].domain === 'sea' && !(0, world_js_1.isCoastal)(g, city.position))
+        throw new Error('Inland cities cannot build ships.');
+    if (city.production === kind)
+        return g;
+    city.production = kind;
+    city.progress = 0;
+    city.firstCycle = true;
+    log(g, city.owner, 'production', `Production set to ${units_js_1.STATS[kind].name} at ${city.id}; previous progress discarded.`);
+    (0, knowledge_js_1.updateAllKnowledge)(g);
+    return g;
+}
+function setOrder(game, unitId, order) {
+    if (!['sentry', 'skip', 'none'].includes(order.kind))
+        throw new RuleNotImplemented('STANDING_ORDERS', 'Only Sentry, Skip, and Clear are active in v0.2.');
+    const g = clone(game), unit = g.units.find(u => u.id === unitId);
+    if (!unit || unit.owner !== g.active)
+        throw new Error('Unit not available to the active player.');
+    unit.order = { kind: order.kind };
+    if (order.kind === 'skip')
+        unit.spent = (0, units_js_1.movementAllowance)(unit);
+    return g;
+}
+function moveUnit(game, id, to) {
+    const g = clone(game), unit = g.units.find(u => u.id === id);
+    if (!unit || unit.owner !== g.active)
+        throw new Error('That unit cannot be moved this turn.');
+    if (unit.aboard)
+        throw new RuleNotImplemented('CARGO', 'Transport unloading is not yet implemented.');
+    if (unit.order.kind === 'sentry')
+        throw new Error('Clear sentry before moving.');
+    if (unit.spent >= (0, units_js_1.movementAllowance)(unit))
+        throw new Error('No movement remaining this turn.');
+    if (!(0, world_js_1.playable)(g, to))
+        throw new Error('The outer map border is impassable.');
+    const dx = Math.abs(to.x - unit.position.x), dy = Math.abs(to.y - unit.position.y);
+    if (Math.max(dx, dy) !== 1)
+        throw new Error('Manual movement must be one adjacent square.');
+    const terrain = (0, world_js_1.terrainAt)(g, to);
+    const domain = units_js_1.STATS[unit.kind].domain;
+    if ((domain === 'land' && terrain !== 'land' && !(0, world_js_1.cityAt)(g, to)) || (domain === 'sea' && terrain !== 'sea' && !(0, world_js_1.cityAt)(g, to))) {
+        throw new Error(`${units_js_1.STATS[unit.kind].name} cannot cross this terrain.`);
+    }
+    const city = (0, world_js_1.cityAt)(g, to);
+    if (domain === 'sea' && city && !(0, world_js_1.isCoastal)(g, city.position))
+        throw new Error('A ship cannot enter an inland city.');
+    if (city && city.owner !== unit.owner) {
+        if (unit.kind === 'army')
+            throw new RuleNotImplemented('CITY_CAPTURE', 'City assault probabilities are still being verified.');
+        if (domain !== 'air')
+            throw new Error('Cannot enter a city that is not friendly.');
+    }
+    const occupants = g.units.filter(u => !u.aboard && (0, world_js_1.equal)(u.position, to));
+    if (occupants.some(u => u.owner !== unit.owner))
+        throw new RuleNotImplemented('COMBAT', 'Historical combat resolution is not yet verified.');
+    if (occupants.some(u => u.owner === unit.owner) && !city)
+        throw new RuleNotImplemented('CARGO', 'Loading and same-cell stacking require verified original mechanics.');
+    unit.position = { ...to };
+    unit.spent++;
+    if (unit.kind === 'fighter') {
+        unit.fuel = (unit.fuel ?? units_js_1.MAX_FIGHTER_FUEL) - 1;
+        if (city?.owner === unit.owner)
+            unit.fuel = units_js_1.MAX_FIGHTER_FUEL; // Timing to be verified.
+        else if (unit.fuel <= 0) {
+            g.units = g.units.filter(u => u.id !== unit.id);
+            log(g, unit.owner, 'fuel', `${unit.id} ran out of fuel and crashed.`);
+        }
+    }
+    (0, knowledge_js_1.updateAllKnowledge)(g);
+    return g;
+}
+function beginTurn(g) {
+    for (const unit of g.units.filter(u => u.owner === g.active)) {
+        unit.spent = 0;
+        if (unit.order.kind === 'skip')
+            unit.order = { kind: 'none' };
+        const city = (0, world_js_1.cityAt)(g, unit.position);
+        if (units_js_1.STATS[unit.kind].domain === 'sea' && unit.damage > 0 && city?.owner === g.active && (0, world_js_1.isCoastal)(g, city.position)) {
+            unit.damage--;
+            log(g, g.active, 'repair', `${unit.id} repaired one damage point in port.`);
+        }
+    }
+    for (const city of g.cities.filter(c => c.owner === g.active && c.production !== null)) {
+        const kind = city.production;
+        const required = (0, units_js_1.requiredProductionTurns)(kind, city.firstCycle, 50);
+        city.progress++;
+        if (city.progress >= required) {
+            city.progress = 0;
+            city.firstCycle = false;
+            const unit = newUnit(g, g.active, kind, city.position);
+            g.units.push(unit);
+            log(g, g.active, 'production', `${city.id} completed ${units_js_1.STATS[kind].name} (${unit.id}).`);
+        }
+    }
+    (0, knowledge_js_1.updateAllKnowledge)(g);
+}
+function endTurn(game) {
+    const g = clone(game), currentIndex = g.players.findIndex(p => p.id === g.active);
+    if (currentIndex < 0)
+        throw new Error('Invalid active player');
+    const next = (currentIndex + 1) % g.players.length;
+    if (next === 0)
+        g.round++;
+    g.active = g.players[next].id;
+    beginTurn(g);
+    return g;
+}
+/** Lab convenience: opposing faction passes its turn. Not a classic AI implementation. */
+function advanceLabRound(game) {
+    if (game.mode !== 'rules-lab' || game.active !== 'blue')
+        throw new Error('Lab round advance requires blue player.');
+    let g = endTurn(game);
+    while (g.active !== 'blue')
+        g = endTurn(g);
+    return g;
+}
+
+};
+__modules["engine/index.js"] = function(module, exports, require) {
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./types.js"), exports);
+__exportStar(require("./units.js"), exports);
+__exportStar(require("./world.js"), exports);
+__exportStar(require("./rng.js"), exports);
+__exportStar(require("./game.js"), exports);
+__exportStar(require("./knowledge.js"), exports);
+__exportStar(require("./save.js"), exports);
+
+};
+__modules["engine/knowledge.js"] = function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.emptyKnowledge = emptyKnowledge;
+exports.updateKnowledge = updateKnowledge;
+exports.updateAllKnowledge = updateAllKnowledge;
+exports.getPlayerView = getPlayerView;
+const world_js_1 = require("./world.js");
+function emptyKnowledge(game) {
+    return { terrain: Array.from({ length: game.tiles.length }, () => null), visible: [], sightings: [], freshEnemies: [], cities: {} };
+}
+function detectedBy(game, faction, target) {
+    if (target.kind !== 'submarine')
+        return true;
+    return game.units.some(observer => observer.owner === faction && !observer.aboard &&
+        (observer.kind === 'cruiser' || observer.kind === 'destroyer') &&
+        Math.max(Math.abs(observer.position.x - target.position.x), Math.abs(observer.position.y - target.position.y)) <= 1);
+}
+/** Knowledge is an independent snapshot, never a live alias of the omniscient state. */
+function updateKnowledge(game, faction) {
+    const k = game.knowledge[faction];
+    const visible = new Set();
+    const origins = [...game.cities.filter(c => c.owner === faction).map(c => c.position),
+        ...game.units.filter(u => u.owner === faction && !u.aboard).map(u => u.position)];
+    for (const p of origins)
+        for (const d of [{ x: 0, y: 0 }, ...world_js_1.directions]) {
+            const q = { x: p.x + d.x, y: p.y + d.y };
+            if ((0, world_js_1.inMap)(game, q))
+                visible.add((0, world_js_1.index)(game, q));
+        }
+    const freshEnemies = new Set();
+    const previousSightings = new Map(k.sightings.map(s => [s.id, s]));
+    for (const i of visible) {
+        k.terrain[i] = game.tiles[i] ?? null;
+        const pos = { x: i % game.width, y: Math.floor(i / game.width) };
+        const city = (0, world_js_1.cityAt)(game, pos);
+        if (city) {
+            const known = k.cities[city.id];
+            const isOwned = city.owner === faction;
+            const spyPresent = game.units.some(u => u.owner === faction && u.kind === 'fighter' && !u.aboard &&
+                Math.max(Math.abs(u.position.x - pos.x), Math.abs(u.position.y - pos.y)) <= 1);
+            const revealProduction = isOwned || spyPresent;
+            const intel = { id: city.id, owner: city.owner,
+                production: revealProduction ? city.production : (known?.production ?? null),
+                productionKnown: revealProduction || (known?.productionKnown ?? false) };
+            k.cities[city.id] = intel;
+        }
+    }
+    for (const enemy of game.units) {
+        if (enemy.owner === faction || enemy.aboard)
+            continue;
+        const isSeen = visible.has((0, world_js_1.index)(game, enemy.position)) && detectedBy(game, faction, enemy);
+        if (isSeen) {
+            freshEnemies.add(enemy.id);
+            previousSightings.set(enemy.id, { id: enemy.id, kind: enemy.kind, owner: enemy.owner,
+                position: { ...enemy.position }, observedRound: game.round });
+        }
+    }
+    for (const [id, sight] of previousSightings) {
+        // If this square is visible and the type is detectable, stale enemy reports are disproven.
+        const probe = { id, kind: sight.kind, owner: sight.owner, position: sight.position, damage: 0, spent: 0, fuel: null, order: { kind: 'none' }, aboard: null };
+        if (visible.has((0, world_js_1.index)(game, sight.position)) && detectedBy(game, faction, probe) && !freshEnemies.has(id))
+            previousSightings.delete(id);
+    }
+    k.visible = Array.from(visible).sort((a, b) => a - b);
+    k.freshEnemies = Array.from(freshEnemies);
+    k.sightings = Array.from(previousSightings.values()).sort((a, b) => a.id.localeCompare(b.id));
+}
+function updateAllKnowledge(game) {
+    for (const player of game.players)
+        updateKnowledge(game, player.id);
+}
+/** The sole reader contract for player UI and future AI. */
+function getPlayerView(game, faction) {
+    if (!game.players.some(p => p.id === faction))
+        throw new Error('Unknown faction');
+    const k = game.knowledge[faction];
+    const visible = new Set(k.visible);
+    const cells = k.terrain.map((terrain, i) => {
+        const x = i % game.width, y = Math.floor(i / game.width);
+        const actual = (0, world_js_1.cityAt)(game, { x, y });
+        const intel = actual ? (k.cities[actual.id] ?? null) : null;
+        // City lookup only checks whether a known city exists; never reads live city properties.
+        return { terrain, visible: visible.has(i), city: terrain === null ? null : (intel ? { ...intel } : null) };
+    });
+    return { width: game.width, height: game.height, active: game.active, round: game.round, cells,
+        ownCities: game.cities.filter(c => c.owner === faction).map(c => structuredClone(c)),
+        ownUnits: game.units.filter(u => u.owner === faction).map(u => structuredClone(u)),
+        enemies: k.sightings.map(s => ({ ...structuredClone(s), stale: !k.freshEnemies.includes(s.id) })),
+        events: game.events.filter(e => e.recipient === null || e.recipient === faction).slice(-30).map(e => ({ ...e })) };
+}
+
+};
+__modules["engine/rng.js"] = function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.nextRandom = nextRandom;
+function nextRandom(input) {
+    let x = input.seed >>> 0;
+    if (x === 0)
+        x = 0x6D2B79F5;
+    x ^= x << 13;
+    x ^= x >>> 17;
+    x ^= x << 5;
+    x >>>= 0;
+    return { next: { seed: x, draws: input.draws + 1 }, value: x / 4294967296 };
+}
+
+};
+__modules["engine/save.js"] = function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.exportSave = exportSave;
+exports.importSave = importSave;
+exports.saveLocally = saveLocally;
+exports.loadLocal = loadLocal;
+const knowledge_js_1 = require("./knowledge.js");
+const DATABASE = 'empirata-rules-lab';
+const STORE = 'saves';
+function exportSave(game) {
+    return JSON.stringify(game, null, 2);
+}
+function importSave(json) {
+    const data = JSON.parse(json);
+    if (typeof data !== 'object' || data === null)
+        throw new Error('Invalid save file.');
+    const g = data;
+    if (g.schema !== 1 || g.ruleset !== 'interstel-2.05' || g.mode !== 'rules-lab')
+        throw new Error('Save version or ruleset is not supported.');
+    if (g.width !== 100 || g.height !== 60 || !Array.isArray(g.tiles) || g.tiles.length !== 6000 ||
+        !g.tiles.every(t => t === 'land' || t === 'sea'))
+        throw new Error('Invalid world dimensions or terrain.');
+    if (!Array.isArray(g.players) || !Array.isArray(g.units) || !Array.isArray(g.cities) ||
+        typeof g.active !== 'string' || !g.players.some(p => p?.id === g.active) ||
+        !Number.isInteger(g.round) || !Number.isInteger(g.nextId) || !Number.isInteger(g.nextEventId) ||
+        !g.knowledge || !g.rng || !Array.isArray(g.events))
+        throw new Error('Invalid game structure.');
+    for (const p of g.players) {
+        if (!p || p.productionEfficiency !== 50 || p.combatEfficiency !== 50)
+            throw new Error('Unsupported faction efficiencies.');
+    }
+    for (const city of g.cities) {
+        if (!city || !city.position || !Number.isInteger(city.position.x) || !Number.isInteger(city.position.y) ||
+            typeof city.progress !== 'number' || city.progress < 0 || typeof city.firstCycle !== 'boolean')
+            throw new Error('Invalid city entry.');
+    }
+    for (const u of g.units) {
+        if (!u || !u.position || !Number.isInteger(u.position.x) || !Number.isInteger(u.position.y) ||
+            typeof u.spent !== 'number' || u.spent < 0 || typeof u.damage !== 'number' || u.damage < 0)
+            throw new Error('Invalid unit entry.');
+    }
+    const result = structuredClone(g);
+    // Rebuild known visibility from current authoritative state while retaining remembered terrain and sightings.
+    (0, knowledge_js_1.updateAllKnowledge)(result);
+    return result;
+}
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DATABASE, 1);
+        req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(STORE))
+            req.result.createObjectStore(STORE); };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+async function saveLocally(game) {
+    const db = await openDB();
+    try {
+        await new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE, 'readwrite');
+            tx.objectStore(STORE).put(exportSave(game), 'autosave');
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    }
+    finally {
+        db.close();
+    }
+}
+async function loadLocal() {
+    const db = await openDB();
+    try {
+        return await new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE, 'readonly');
+            const req = tx.objectStore(STORE).get('autosave');
+            req.onsuccess = () => { try {
+                resolve(typeof req.result === 'string' ? importSave(req.result) : null);
+            }
+            catch (err) {
+                reject(err);
+            } };
+            req.onerror = () => reject(req.error);
+        });
+    }
+    finally {
+        db.close();
+    }
+}
+
+};
+__modules["engine/types.js"] = function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+
+};
+__modules["engine/units.js"] = function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MAX_FIGHTER_FUEL = exports.UNIT_TYPES = exports.STATS = void 0;
+exports.movementAllowance = movementAllowance;
+exports.capacity = capacity;
+exports.requiredProductionTurns = requiredProductionTurns;
+/** Standard efficiency (50%): verified table from specification v0.1, section 4. */
+exports.STATS = Object.freeze({
+    army: { name: 'Army', movement: 1, hitPoints: 1, hitDamage: 1, first: 6, repeat: 5, domain: 'land' },
+    fighter: { name: 'Fighter', movement: 5, hitPoints: 1, hitDamage: 1, first: 12, repeat: 10, domain: 'air' },
+    destroyer: { name: 'Destroyer', movement: 3, hitPoints: 3, hitDamage: 1, first: 24, repeat: 20, domain: 'sea' },
+    transport: { name: 'Transport', movement: 2, hitPoints: 3, hitDamage: 1, first: 30, repeat: 25, domain: 'sea' },
+    submarine: { name: 'Submarine', movement: 2, hitPoints: 2, hitDamage: 3, first: 24, repeat: 20, domain: 'sea' },
+    cruiser: { name: 'Cruiser', movement: 2, hitPoints: 8, hitDamage: 2, first: 35, repeat: 30, domain: 'sea' },
+    carrier: { name: 'Carrier', movement: 2, hitPoints: 8, hitDamage: 1, first: 48, repeat: 40, domain: 'sea' },
+    battleship: { name: 'Battleship', movement: 2, hitPoints: 12, hitDamage: 3, first: 60, repeat: 50, domain: 'sea' }
+});
+exports.UNIT_TYPES = Object.freeze(Object.keys(exports.STATS));
+exports.MAX_FIGHTER_FUEL = 20;
+function movementAllowance(unit) {
+    const stats = exports.STATS[unit.kind];
+    return stats.domain === 'sea' && unit.damage * 2 >= stats.hitPoints ? 1 : stats.movement;
+}
+function capacity(unit) {
+    if (unit.kind === 'transport')
+        return Math.max(0, 6 - 2 * unit.damage);
+    if (unit.kind === 'carrier')
+        return Math.max(0, 8 - unit.damage);
+    return null;
+}
+function requiredProductionTurns(kind, firstCycle, efficiency = 50) {
+    if (efficiency !== 50)
+        throw new Error('Production efficiency rounding is not verified; only 50% is enabled.');
+    return firstCycle ? exports.STATS[kind].first : exports.STATS[kind].repeat;
+}
+
+};
+__modules["engine/world.js"] = function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.index = exports.equal = exports.directions = exports.MAP_HEIGHT = exports.MAP_WIDTH = void 0;
+exports.inMap = inMap;
+exports.playable = playable;
+exports.terrainAt = terrainAt;
+exports.cityAt = cityAt;
+exports.isCoastal = isCoastal;
+exports.requiredPosition = requiredPosition;
+exports.makeTestTerrain = makeTestTerrain;
+exports.MAP_WIDTH = 100;
+exports.MAP_HEIGHT = 60;
+exports.directions = Object.freeze([
+    { x: -1, y: -1 }, { x: 0, y: -1 }, { x: 1, y: -1 }, { x: -1, y: 0 },
+    { x: 1, y: 0 }, { x: -1, y: 1 }, { x: 0, y: 1 }, { x: 1, y: 1 }
+]);
+const equal = (a, b) => a.x === b.x && a.y === b.y;
+exports.equal = equal;
+const index = (world, p) => p.y * world.width + p.x;
+exports.index = index;
+function inMap(world, p) {
+    return Number.isInteger(p.x) && Number.isInteger(p.y) && p.x >= 0 && p.y >= 0 && p.x < world.width && p.y < world.height;
+}
+function playable(world, p) {
+    return inMap(world, p) && p.x > 0 && p.y > 0 && p.x < world.width - 1 && p.y < world.height - 1;
+}
+function terrainAt(world, p) {
+    return inMap(world, p) ? (world.tiles[(0, exports.index)(world, p)] ?? null) : null;
+}
+function cityAt(world, p) {
+    return world.cities.find(c => (0, exports.equal)(c.position, p));
+}
+/** Provisional: definition of coastal adjacency (8-way) requires DOS validation. */
+function isCoastal(world, p) {
+    return exports.directions.some(d => terrainAt(world, { x: p.x + d.x, y: p.y + d.y }) === 'sea');
+}
+function requiredPosition(world, p) {
+    if (!playable(world, p))
+        throw new Error('Movement onto the impassable outer border is not legal.');
+}
+/** An ORIGINAL test fixture, never represented as an Interstel .MAP file. */
+function makeTestTerrain() {
+    const tile = Array.from({ length: exports.MAP_WIDTH * exports.MAP_HEIGHT }, () => 'sea');
+    const ellipse = (x, y, cx, cy, rx, ry) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 < 1;
+    for (let y = 1; y < exports.MAP_HEIGHT - 1; y++)
+        for (let x = 1; x < exports.MAP_WIDTH - 1; x++) {
+            if (ellipse(x, y, 24, 29, 20, 18) || ellipse(x, y, 76, 30, 18, 20) || ellipse(x, y, 51, 10, 11, 7) || ellipse(x, y, 49, 50, 11, 6))
+                tile[y * exports.MAP_WIDTH + x] = 'land';
+        }
+    // Purpose-built bays ensure test ports exist; this is not authentic map generation.
+    tile[25 * exports.MAP_WIDTH + 8] = 'land';
+    for (let x = 1; x <= 7; x++)
+        for (let y = 24; y <= 26; y++)
+            tile[y * exports.MAP_WIDTH + x] = 'sea';
+    tile[36 * exports.MAP_WIDTH + 80] = 'land';
+    tile[36 * exports.MAP_WIDTH + 81] = 'sea';
+    for (const [x, y] of [[20, 16], [24, 40], [33, 24], [53, 11], [67, 24], [69, 40], [52, 50], [83, 20]])
+        tile[y * exports.MAP_WIDTH + x] = 'land';
+    return tile;
+}
+
+};
+__modules["ui/main.js"] = function(module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const index_js_1 = require("../engine/index.js");
+const el = (id) => document.getElementById(id);
+const canvas = el('map');
+const context = canvas.getContext('2d');
+if (!context)
+    throw new Error('Canvas 2D is unavailable.');
+const ctx = context;
+let game = (0, index_js_1.makeRulesLab)();
+let view = (0, index_js_1.getPlayerView)(game, 'blue');
+let selectedUnit = null, selectedCity = null;
+let tileSize = 30, cameraX = 0, cameraY = 0;
+let down = null;
+let hydrated = false;
+const colors = { sea: '#23485f', land: '#516e50', unseen: '#0b1821', blue: '#68c4f1', red: '#f47c73', neutral: '#e2c37c' };
+function uiMessage(message) { el('toast').textContent = message; }
+function dispatch(operation) {
+    try {
+        game = operation();
+        view = (0, index_js_1.getPlayerView)(game, 'blue');
+        refresh();
+        void (0, index_js_1.saveLocally)(game).catch(() => uiMessage('Local save unavailable; use Export JSON.'));
+    }
+    catch (error) {
+        uiMessage(error instanceof Error ? error.message : String(error));
+    }
+}
+function resize() {
+    const rect = canvas.getBoundingClientRect(), ratio = window.devicePixelRatio || 1;
+    canvas.width = Math.max(1, Math.floor(rect.width * ratio));
+    canvas.height = Math.max(1, Math.floor(rect.height * ratio));
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    clamp();
+    paint();
+}
+function clamp() {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    cameraX = Math.max(0, Math.min(cameraX, Math.max(0, game.width * tileSize - w)));
+    cameraY = Math.max(0, Math.min(cameraY, Math.max(0, game.height * tileSize - h)));
+}
+function focus(p) {
+    cameraX = p.x * tileSize - canvas.clientWidth / 2;
+    cameraY = p.y * tileSize - canvas.clientHeight / 2;
+    clamp();
+    paint();
+}
+function zoom(change) {
+    const old = tileSize;
+    tileSize = Math.max(11, Math.min(45, tileSize + change));
+    cameraX = (cameraX + canvas.clientWidth / 2) * (tileSize / old) - canvas.clientWidth / 2;
+    cameraY = (cameraY + canvas.clientHeight / 2) * (tileSize / old) - canvas.clientHeight / 2;
+    clamp();
+    paint();
+}
+function paint() {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#08131b';
+    ctx.fillRect(0, 0, w, h);
+    const sx = Math.max(0, Math.floor(cameraX / tileSize)), ex = Math.min(game.width, Math.ceil((cameraX + w) / tileSize));
+    const sy = Math.max(0, Math.floor(cameraY / tileSize)), ey = Math.min(game.height, Math.ceil((cameraY + h) / tileSize));
+    for (let y = sy; y < ey; y++)
+        for (let x = sx; x < ex; x++) {
+            const i = y * game.width + x, c = view.cells[i];
+            const px = x * tileSize - cameraX, py = y * tileSize - cameraY;
+            ctx.fillStyle = c.terrain === null ? colors.unseen : c.terrain === 'land' ? colors.land : colors.sea;
+            ctx.fillRect(px, py, tileSize + 0.25, tileSize + 0.25);
+            if (c.terrain !== null && !c.visible) {
+                ctx.fillStyle = 'rgba(3,13,22,.52)';
+                ctx.fillRect(px, py, tileSize, tileSize);
+            }
+            ctx.strokeStyle = 'rgba(120,159,166,.12)';
+            ctx.lineWidth = .65;
+            ctx.strokeRect(px + .3, py + .3, tileSize - .6, tileSize - .6);
+            if (c.city) {
+                const ink = c.city.owner === 'blue' ? colors.blue : c.city.owner === 'red' ? colors.red : colors.neutral;
+                ctx.fillStyle = ink;
+                const r = Math.max(3, tileSize * .29);
+                ctx.fillRect(px + tileSize / 2 - r, py + tileSize / 2 - r, r * 2, r * 2);
+                ctx.fillStyle = '#122432';
+                ctx.fillRect(px + tileSize / 2 - 1.5, py + tileSize / 2 - 1.5, 3, 3);
+                if (c.city.id === selectedCity) {
+                    ctx.strokeStyle = '#fff7c4';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(px + 2, py + 2, tileSize - 4, tileSize - 4);
+                }
+            }
+        }
+    const displayUnits = [...view.enemies.map(e => ({ id: e.id, kind: e.kind, position: e.position, owner: e.owner, stale: e.stale })),
+        ...view.ownUnits.filter(u => !u.aboard).map(u => ({ id: u.id, kind: u.kind, position: u.position, owner: u.owner, stale: false }))];
+    for (const u of displayUnits) {
+        const x = u.position.x * tileSize - cameraX, y = u.position.y * tileSize - cameraY;
+        if (x < -tileSize || y < -tileSize || x > w || y > h)
+            continue;
+        const inset = tileSize * .08, side = tileSize * .84;
+        ctx.globalAlpha = u.stale ? .48 : 1;
+        ctx.fillStyle = u.owner === 'blue' ? '#173f65' : '#652923';
+        ctx.fillRect(x + inset, y + inset, side, side);
+        ctx.strokeStyle = u.owner === 'blue' ? colors.blue : colors.red;
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(x + inset, y + inset, side, side);
+        ctx.fillStyle = u.owner === 'blue' ? '#b6e5ff' : '#ffc5be';
+        ctx.font = `bold ${Math.max(10, tileSize * .52)}px ui-monospace, monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText({ army: 'A', fighter: 'F', destroyer: 'D', transport: 'T', submarine: 'S', cruiser: 'C', carrier: 'V', battleship: 'B' }[u.kind], x + tileSize / 2, y + tileSize / 2 + .5);
+        ctx.globalAlpha = 1;
+        if (u.id === selectedUnit) {
+            ctx.strokeStyle = '#fff0a4';
+            ctx.lineWidth = 2.3;
+            ctx.strokeRect(x + 1, y + 1, tileSize - 2, tileSize - 2);
+        }
+    }
+}
+function cellFromPointer(ev) {
+    const rect = canvas.getBoundingClientRect();
+    return { x: Math.floor((ev.clientX - rect.left + cameraX) / tileSize), y: Math.floor((ev.clientY - rect.top + cameraY) / tileSize) };
+}
+function tapTile(pos) {
+    if (pos.x < 0 || pos.y < 0 || pos.x >= game.width || pos.y >= game.height)
+        return;
+    const units = view.ownUnits.filter(u => !u.aboard && u.position.x === pos.x && u.position.y === pos.y);
+    const cityHere = view.ownCities.find(c => c.position.x === pos.x && c.position.y === pos.y);
+    if (units.length) {
+        // Cycling reaches the production screen even when friendly units occupy a city.
+        if (cityHere && selectedUnit === units[units.length - 1]?.id) {
+            selectedUnit = null;
+            selectedCity = cityHere.id;
+            refresh();
+            return;
+        }
+        const last = units.findIndex(u => u.id === selectedUnit);
+        selectedUnit = units[(last + 1) % units.length].id;
+        selectedCity = null;
+        refresh();
+        return;
+    }
+    const cell = view.cells[pos.y * game.width + pos.x];
+    if (selectedUnit) {
+        const unit = view.ownUnits.find(u => u.id === selectedUnit);
+        if (unit && Math.max(Math.abs(unit.position.x - pos.x), Math.abs(unit.position.y - pos.y)) === 1) {
+            dispatch(() => (0, index_js_1.moveUnit)(game, selectedUnit, pos));
+            return;
+        }
+    }
+    const city = view.ownCities.find(c => c.position.x === pos.x && c.position.y === pos.y);
+    if (city) {
+        selectedCity = city.id;
+        selectedUnit = null;
+        refresh();
+        return;
+    }
+    if (cell?.city) {
+        selectedCity = null;
+        selectedUnit = null;
+        uiMessage(`City ${cell.city.id} · ${cell.city.owner ?? 'neutral'} (read-only)`);
+        refresh();
+        return;
+    }
+    selectedCity = null;
+    selectedUnit = null;
+    refresh();
+}
+function text(value) { return String(value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])); }
+function selectedUnitBlock(unit) {
+    const allowance = (0, index_js_1.movementAllowance)(unit), stats = index_js_1.STATS[unit.kind], possible = (0, index_js_1.capacity)(unit);
+    return `<div class="selection-title">${text(stats.name)} <span class="subtle">#${text(unit.id)}</span></div>
+  <div class="subtle">${unit.position.x}, ${unit.position.y} · ${unit.order.kind === 'sentry' ? 'Sentry' : 'Awaiting orders'}</div>
+  <div class="data"><div class="datum"><small>Movement</small><strong>${Math.max(0, allowance - unit.spent)} / ${allowance}</strong></div>
+  <div class="datum"><small>Damage</small><strong>${unit.damage} / ${stats.hitPoints}</strong></div>
+  ${unit.kind === 'fighter' ? `<div class="datum"><small>Fuel</small><strong>${unit.fuel} / 20</strong></div>` : ''}
+  ${possible !== null ? `<div class="datum"><small>Cargo capacity</small><strong>${possible}</strong></div>` : ''}</div>
+  <div class="actions"><button id="sentryButton">Sentry</button><button id="clearButton">Clear</button><button id="skipButton">Skip move</button></div>
+  <p class="stat-note" style="margin-top:12px">Tap an adjacent tile, use arrow keys, or Q/E/Z/C for diagonal movement. Standing travel orders, cargo, capture, and combat are not yet implemented.</p>`;
+}
+function selectedCityBlock(city) {
+    const coastal = (0, index_js_1.isCoastal)(game, city.position);
+    const choices = index_js_1.UNIT_TYPES.filter(kind => coastal || index_js_1.STATS[kind].domain !== 'sea');
+    const turns = city.production ? (0, index_js_1.requiredProductionTurns)(city.production, city.firstCycle) : null;
+    return `<div class="selection-title">City ${text(city.id)}</div><div class="subtle">${coastal ? 'Coastal port' : 'Inland'} · ${city.position.x}, ${city.position.y}</div>
+  <label class="subtle" for="productionSelect">Production</label>
+  <select id="productionSelect"><option value="">Choose a unit…</option>${choices.map(kind => `<option value="${kind}" ${city.production === kind ? 'selected' : ''}>${index_js_1.STATS[kind].name} · ${city.firstCycle ? index_js_1.STATS[kind].first : index_js_1.STATS[kind].repeat} turns</option>`).join('')}</select>
+  <div class="data"><div class="datum"><small>Factory progress</small><strong>${city.progress} / ${turns ?? '—'}</strong></div>
+  <div class="datum"><small>Production phase</small><strong>${city.firstCycle ? 'Setup' : 'Repeat'}</strong></div></div>
+  <p class="stat-note">Changing unit types discards unfinished production. Production advances at the beginning of your faction's turn.</p>`;
+}
+function refresh() {
+    view = (0, index_js_1.getPlayerView)(game, 'blue');
+    el('round').textContent = `ROUND ${game.round}`;
+    el('cityCount').textContent = String(view.ownCities.length);
+    el('unitCount').textContent = String(view.ownUnits.length);
+    const unit = view.ownUnits.find(u => u.id === selectedUnit);
+    const city = view.ownCities.find(c => c.id === selectedCity);
+    const inspector = el('inspector');
+    if (unit)
+        inspector.innerHTML = selectedUnitBlock(unit);
+    else if (city)
+        inspector.innerHTML = selectedCityBlock(city);
+    else
+        inspector.innerHTML = '<p>Select a blue unit or city on the map to see its details and available orders.</p><p class="stat-note" style="margin-top:12px">This test map contains extra starting units for engineering validation; it is not a historical opening position.</p>';
+    const productionSelect = document.getElementById('productionSelect');
+    if (productionSelect && city)
+        productionSelect.addEventListener('change', () => {
+            if (productionSelect.value)
+                dispatch(() => (0, index_js_1.selectProduction)(game, city.id, productionSelect.value));
+        });
+    for (const [button, kind] of [['sentryButton', 'sentry'], ['clearButton', 'none'], ['skipButton', 'skip']]) {
+        const target = document.getElementById(button);
+        if (target && unit)
+            target.addEventListener('click', () => dispatch(() => (0, index_js_1.setOrder)(game, unit.id, { kind })));
+    }
+    el('events').innerHTML = [...view.events].reverse().slice(0, 8).map(e => `<div class="report"><span>ROUND ${e.round} / ${e.kind.toUpperCase()}</span>${text(e.message)}</div>`).join('') || '<p>No reports.</p>';
+    paint();
+}
+canvas.addEventListener('pointerdown', ev => {
+    if (ev.button !== 0)
+        return;
+    canvas.setPointerCapture(ev.pointerId);
+    down = { x: ev.clientX, y: ev.clientY, cameraX, cameraY, moved: false };
+    canvas.focus({ preventScroll: true });
+});
+canvas.addEventListener('pointermove', ev => {
+    if (!down)
+        return;
+    const dx = ev.clientX - down.x, dy = ev.clientY - down.y;
+    if (Math.abs(dx) + Math.abs(dy) > 6)
+        down.moved = true;
+    if (down.moved) {
+        cameraX = down.cameraX - dx;
+        cameraY = down.cameraY - dy;
+        clamp();
+        paint();
+    }
+});
+canvas.addEventListener('pointerup', ev => {
+    if (!down)
+        return;
+    const wasMoved = down.moved;
+    down = null;
+    if (!wasMoved)
+        tapTile(cellFromPointer(ev));
+});
+canvas.addEventListener('pointercancel', () => { down = null; });
+canvas.addEventListener('wheel', ev => { ev.preventDefault(); zoom(ev.deltaY < 0 ? 2 : -2); }, { passive: false });
+document.addEventListener('keydown', ev => {
+    if (ev.ctrlKey || ev.metaKey || ev.altKey)
+        return;
+    const target = ev.target;
+    if (target.matches('input,textarea,select,button,[contenteditable="true"]'))
+        return;
+    const moves = { ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 }, ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 },
+        q: { x: -1, y: -1 }, e: { x: 1, y: -1 }, z: { x: -1, y: 1 }, c: { x: 1, y: 1 } };
+    if (ev.key === 'Escape') {
+        selectedUnit = null;
+        selectedCity = null;
+        refresh();
+        return;
+    }
+    if (ev.key === '+' || ev.key === '=') {
+        zoom(3);
+        return;
+    }
+    if (ev.key === '-') {
+        zoom(-3);
+        return;
+    }
+    const delta = moves[ev.key];
+    if (!delta || !selectedUnit)
+        return;
+    const u = view.ownUnits.find(u => u.id === selectedUnit);
+    if (!u)
+        return;
+    ev.preventDefault();
+    dispatch(() => (0, index_js_1.moveUnit)(game, selectedUnit, { x: u.position.x + delta.x, y: u.position.y + delta.y }));
+});
+el('nextRound').addEventListener('click', () => { dispatch(() => (0, index_js_1.advanceLabRound)(game)); uiMessage(`Round ${game.round}. Opponent passed; no AI is implemented yet.`); });
+el('zoomIn').addEventListener('click', () => zoom(4));
+el('zoomOut').addEventListener('click', () => zoom(-4));
+el('recenter').addEventListener('click', () => focus(view.ownUnits.find(u => u.id === selectedUnit)?.position ?? view.ownCities[0]?.position ?? { x: 8, y: 25 }));
+el('exportSave').addEventListener('click', () => {
+    const data = new Blob([(0, index_js_1.exportSave)(game)], { type: 'application/json' }), url = URL.createObjectURL(data);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `empirata-lab-round-${game.round}.json`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+el('importSave').addEventListener('click', () => el('saveFile').click());
+el('saveFile').addEventListener('change', async () => {
+    const input = el('saveFile'), file = input.files?.[0];
+    if (!file)
+        return;
+    try {
+        const loaded = (0, index_js_1.importSave)(await file.text());
+        if (loaded.active !== 'blue')
+            throw new Error('This lab UI only supports saves during the blue faction turn.');
+        game = loaded;
+        selectedUnit = null;
+        selectedCity = null;
+        refresh();
+        void (0, index_js_1.saveLocally)(game);
+        uiMessage('Saved game imported.');
+    }
+    catch (error) {
+        uiMessage(error instanceof Error ? error.message : 'Save could not be loaded.');
+    }
+    finally {
+        input.value = '';
+    }
+});
+el('newGame').addEventListener('click', () => {
+    if (!window.confirm('Reset this lab? Your saved progress will be replaced.'))
+        return;
+    game = (0, index_js_1.makeRulesLab)();
+    selectedUnit = null;
+    selectedCity = null;
+    refresh();
+    focus({ x: 8, y: 25 });
+    void (0, index_js_1.saveLocally)(game);
+    uiMessage('Rules lab reset.');
+});
+new ResizeObserver(resize).observe(canvas);
+async function boot() {
+    try {
+        const saved = await (0, index_js_1.loadLocal)();
+        if (saved?.active === 'blue')
+            game = saved;
+    }
+    catch {
+        uiMessage('Could not load local autosave; use Import JSON if needed.');
+    }
+    if (hydrated)
+        return;
+    hydrated = true;
+    refresh();
+    focus({ x: 8, y: 25 });
+}
+void boot();
+
+};
+
+function __load(id){
+ if(Object.hasOwn(__cache,id))return __cache[id].exports;
+ const factory=__modules[id];if(!factory)throw new Error('Missing Empirata module: '+id);
+ const module={exports:{}};__cache[id]=module;
+ factory(module,module.exports,(request)=>{
+   if(!request.startsWith('.'))throw new Error('Unexpected external module: '+request);
+   const parts=id.split('/');parts.pop();
+   for(const part of request.split('/')){if(part==='.'||part==='')continue;if(part==='..')parts.pop();else parts.push(part)}
+   return __load(parts.join('/'));
+ });
+ return module.exports;
+}
+__load('ui/main.js');
+})();
+
+</script></body></html>
