@@ -25,3 +25,33 @@
 We located archive listings, but have **not obtained the binary bytes** for static or dynamic inspection. There is therefore **no verified seed, recurrence, output transform, or timing dependency** yet. Keep the current manual-probability combat and deterministic saved RNG state unchanged until evidence supports replacement.
 
 Reference notes: https://oldgamesdownload.com/manual/empire-wargame-of-the-century-dos-manual-english/
+
+## Follow-up investigation (2026-10-22)
+
+### Exact archived download identified
+
+The Old Games Download file entry explicitly identifies **Interstel DOS v2.05C**, with a 161.3 KB archive:
+
+- [Archive entry](https://oldgamesdownload.com/file/eecd488e-851f-47bb-8118-e19365ea63b6/)
+- [MediaFire / MEGA mirrors listed there](https://oldgamesdownload.com/file/eecd488e-851f-47bb-8118-e19365ea63b6/)
+- [Independent archive listing](https://www.myabandonware.com/game/empire-wargame-of-the-century-ap) (the original DOS version must not be confused with the downloadable earlier version 5.0).
+
+The v2.05C disk listing provides a concrete expected **EMPIRE.EXE length of 222,673 bytes**. This is a useful screening check, not authentication.
+
+### Retrieval result
+
+The archive's file page and mirror selections were identified via text-based browsing. The extraction environment cannot resolve the download host, and the archive mirrors are interactive, so **no executable bytes have been retrieved or examined**. No disassembly, generator recurrence, or time-seeding mechanism has therefore been established.
+
+The archive may be obtainable by downloading its ZIP to a personal computer or iPad and attaching it privately to the analysis conversation. The binary should not be added to this public repository.
+
+### Focused executable-analysis checklist
+
+- Validate ZIP member list and EMPIRE.EXE size; hash every candidate to distinguish release builds.
+- Detect executable packing before trusting disassembly addresses.
+- Locate calls into timer APIs (BIOS INT 1Ah, DOS INT 21h/AH 2Ch, BIOS tick at 0040:006C) and identify when they execute.
+- Trace **combat**, **city attack**, and **AI decision** sites *backward* into random-number calls rather than assuming every timer call is seeding.
+- Distinguish seed-at-startup, seed-at-each-attack, and timer-as-random-output hypotheses.
+- Use repeated save-state tests, both without pauses and with timed delays, to falsify hypotheses.
+- Do not switch Empirata's RNG until an observed sequence and call order can be matched.
+
+A player's report about attack timing is an observation only; it is not sufficient proof of a clock-based generator.
