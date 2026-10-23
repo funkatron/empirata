@@ -42,3 +42,31 @@ No exact `MOV AH,2Ch; INT 21h` byte signature appeared. Simple scans for several
 4. Reproduce the identified generator and random-draw consumption in TypeScript, verifying sequences before changing gameplay.
 
 **Status: authentic binary obtained and statically inspected; exact RNG not recovered.** The existing Empirata PRNG remains unchanged.
+
+## Follow-up: the BIOS timer helper is used by the PC speaker (2026-10-22)
+
+A caller trace of the raw 16-bit code found a single direct same-segment relative call to `0x1AB15`, at `0x1ABB8`. The immediately following call at `0x1ABBB` targets `0x1AB01`, which scales `CX` into a range stored in `DS:[0x10]` and `DS:[0x12]`.
+
+Disassembly of the enclosing function (`0x1ABAF`) shows:
+
+```asm
+mov al, 0xB6
+out 0x43, al         ; configure PIT channel 2
+call 0x1AB15        ; obtain timer-derived CX
+call 0x1AB01        ; transform/scale CX
+mov di, cx
+mov dx, 0x0014
+mov ax, 0x4F38
+div di                ; speaker frequency divisor
+out 0x42, al         ; write PIT channel 2 divisor (low byte)
+mov al, ah
+out 0x42, al         ; high byte
+in  al, 0x61
+or  al, 3
+out 0x61, al         ; enable PC speaker
+; subsequent delay-loop and speaker disable omitted
+```
+
+The surrounding entry (`0x1AB85`) sets up range variables and plays this sequence five times. This makes **sound generation** substantially more likely than combat random-number generation as the purpose of the clock helper. Do not interpret the `0x1AB15` transformation as the original combat RNG. Caller scanning only covers direct near calls and cannot rule out indirect dispatch, but the positive hardware evidence is strong.
+
+**Updated RNG status:** The verified original executable is available for further offline inspection; the original combat RNG remains **unknown**. Focus next on locating the combat resolver independently (call graph, unit hit-point updates, city capture, traces under DOSBox debugger) and then tracing its entropy/random calls.
