@@ -1,5 +1,7 @@
 import type { Game } from './types.js';
 import { updateAllKnowledge } from './knowledge.js';
+import { STATS } from './units.js';
+import { playable, equal } from './world.js';
 const DATABASE='empirata-rules-lab';
 const STORE='saves';
 export function exportSave(game:Game):string {
@@ -16,14 +18,64 @@ export function importSave(json:string):Game {
     typeof g.active!=='string'||!g.players.some(p=>p?.id===g.active)||
     !Number.isInteger(g.round)||!Number.isInteger(g.nextId)||!Number.isInteger(g.nextEventId)||
     !g.knowledge||!g.rng||!Array.isArray(g.events))throw new Error('Invalid game structure.');
-  for(const p of g.players){if(!p||p.productionEfficiency!==50||p.combatEfficiency!==50)throw new Error('Unsupported faction efficiencies.');}
+  const validFaction=(id:unknown)=>id==='blue'||id==='red'||id==='green';
+  const finiteInt=(value:unknown)=>Number.isSafeInteger(value)&&Number.isFinite(value);
+  const validPosition=(pos:any)=>pos&&finiteInt(pos.x)&&finiteInt(pos.y)&&playable(g as Game,pos);
+  if(!finiteInt(g.round)||g.round!<1||!finiteInt(g.nextId)||g.nextId!<1||
+    !finiteInt(g.nextEventId)||g.nextEventId!<1)throw new Error('Invalid counters.');
+  if(!g.rng||!finiteInt(g.rng.seed)||g.rng.seed<0||g.rng.seed>0xffffffff||
+    !finiteInt(g.rng.draws)||g.rng.draws<0)throw new Error('Invalid random state.');
+  const playerIds=new Set<string>();
+  for(const p of g.players){
+    if(!p||!validFaction(p.id)||playerIds.has(p.id)||p.productionEfficiency!==50||p.combatEfficiency!==50)
+      throw new Error('Invalid faction settings.');
+    playerIds.add(p.id);
+  }
+  const validOwner=(owner:unknown)=>owner===null||(typeof owner==='string'&&playerIds.has(owner));
+  const cityIds=new Set<string>();
+  const cityPositions=new Set<number>();
   for(const city of g.cities){
-    if(!city||!city.position||!Number.isInteger(city.position.x)||!Number.isInteger(city.position.y)||
-      typeof city.progress!=='number'||city.progress<0||typeof city.firstCycle!=='boolean') throw new Error('Invalid city entry.');
+    if(!city||typeof city.id!=='string'||!city.id||cityIds.has(city.id)||!validPosition(city.position)||
+      !validOwner(city.owner)||!(city.production===null||Object.hasOwn(STATS,city.production))||
+      !finiteInt(city.progress)||city.progress<0||typeof city.firstCycle!=='boolean')throw new Error('Invalid city entry.');
+    const tile=city.position.y*100+city.position.x;
+    if(cityPositions.has(tile))throw new Error('Duplicate city position.');
+    cityIds.add(city.id);cityPositions.add(tile);
+  }
+  const unitIds=new Set<string>();
+  for(const u of g.units){
+    if(!u||typeof u.id!=='string'||!u.id||unitIds.has(u.id)||!playerIds.has(u.owner)||
+      !Object.hasOwn(STATS,u.kind)||!validPosition(u.position)||
+      !finiteInt(u.spent)||u.spent<0||!finiteInt(u.damage)||u.damage<0||
+      !(u.fuel===null||(finiteInt(u.fuel)&&u.fuel>=0)))throw new Error('Invalid unit entry.');
+    const kind=u.order?.kind;
+    if(!['none','skip','sentry','move-to','go-direction','patrol'].includes(kind))throw new Error('Invalid unit order.');
+    if(kind==='move-to'&&!validPosition((u.order as any).destination))throw new Error('Invalid Move To destination.');
+    if(kind==='go-direction'){
+      const d=(u.order as any).direction;
+      if(!d||!finiteInt(d.x)||!finiteInt(d.y)||Math.max(Math.abs(d.x),Math.abs(d.y))!==1)
+        throw new Error('Invalid direction.');
+    }
+    if(kind==='patrol'){
+      const o=u.order as any;
+      if(!validPosition(o.from)||!validPosition(o.to)||equal(o.from,o.to)||typeof o.outbound!=='boolean')
+        throw new Error('Invalid patrol route.');
+    }
+    unitIds.add(u.id);
   }
   for(const u of g.units){
-    if(!u||!u.position||!Number.isInteger(u.position.x)||!Number.isInteger(u.position.y)||
-      typeof u.spent!=='number'||u.spent<0||typeof u.damage!=='number'||u.damage<0)throw new Error('Invalid unit entry.');
+    if(u.aboard!==null){
+      const parent=g.units.find(v=>v.id===u.aboard);
+      if(!parent||parent.id===u.id||parent.owner!==u.owner||!['transport','carrier'].includes(parent.kind))
+        throw new Error('Invalid embarked unit.');
+    }
+  }
+  for(const faction of playerIds){
+    const k=g.knowledge?.[faction as keyof Game['knowledge']];
+    if(!k||!Array.isArray(k.terrain)||k.terrain.length!==6000||
+      !k.terrain.every(t=>t===null||t==='land'||t==='sea')||
+      !Array.isArray(k.visible)||!Array.isArray(k.sightings)||!Array.isArray(k.freshEnemies)||
+      !k.cities||typeof k.cities!=='object')throw new Error('Invalid faction knowledge.');
   }
   const result=structuredClone(g as Game);
   // Rebuild known visibility from current authoritative state while retaining remembered terrain and sightings.
