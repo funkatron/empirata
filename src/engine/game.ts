@@ -123,7 +123,7 @@ function routeStep(game:Game,unit:Unit,destination:Coord):Coord|null {
   const visibleEnemies=new Set(game.knowledge[unit.owner].sightings
     .filter(s=>knowledge.freshEnemies.includes(s.id)).map(s=>index(game,s.position)));
   const friendly=new Set(game.units.filter(u=>!u.aboard&&u.owner===unit.owner&&u.id!==unit.id).map(u=>index(game,u.position)));
-  const cities=new Map(game.cities.map(c=>[index(game,c.position),c]));
+  const cities=new Map(game.cities.filter(c=>knowledge.cities[c.id]!==undefined).map(c=>[index(game,c.position),c]));
   const domain=STATS[unit.kind].domain;
   for(let head=0;head<queue.length;head++){
     const here=queue[head]!;if(here===goal)break;
@@ -140,7 +140,7 @@ function routeStep(game:Game,unit:Unit,destination:Coord):Coord|null {
       if(terrain!==null){
         if(domain==='land'&&terrain!=='land'&&!city)continue;
         if(domain==='sea'&&terrain!=='sea'&&!city)continue;
-        if(domain==='sea'&&city&&!isCoastal(game,pos))continue;
+        if(domain==='sea'&&city&&!directions.some(d=>knowledge.terrain[index(game,{x:pos.x+d.x,y:pos.y+d.y})]==='sea'))continue;
       }
       visited.add(k);parent.set(k,here);queue.push(k);
     }
