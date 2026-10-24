@@ -91,3 +91,11 @@ test('128 city assaults match exact first DOS draw threshold',()=>{
   assert.equal(unit(result,'u1'),undefined);
  }
 });
+
+test('Zero-seed DOS RNG has its own stable golden sequence',()=>{
+ let state={seed:0,draws:0};
+ for(const value of [38,7719,21238]){
+  const draw=nextRandom15(state);assert.equal(draw.value,value);state=draw.next;
+ }
+ assert.equal(state.draws,3);
+});
