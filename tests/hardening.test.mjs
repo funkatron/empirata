@@ -67,3 +67,27 @@ test('Standing orders stop before city assault without rolling RNG',()=>{
  const result=runMoveToOrders(setOrder(g,'u1',{kind:'go-direction',direction:{x:1,y:0}}));
  assert.equal(result.rng.draws,0);assert.deepEqual(unit(result).position,{x:9,y:25});
 });
+
+test('128 combat seeds preserve determinism, legal survivors and RNG accounting',()=>{
+ for(let seed=0;seed<128;seed++){
+  const state=makeRulesLab();state.rng={seed,draws:0};state.units[2].position={x:10,y:25};updateAllKnowledge(state);
+  const replay=structuredClone(state);
+  const result=moveUnit(state,'u1',{x:10,y:25});
+  assert.deepEqual(result,moveUnit(replay,'u1',{x:10,y:25}));
+  const remaining=['u1','u3'].filter(id=>Boolean(unit(result,id)));
+  assert.equal(remaining.length,1,'Exactly one survivor');
+  assert.ok(result.rng.draws>=1&&result.rng.draws<=24);
+  assert.ok(result.rng.seed>=0&&result.rng.seed<=0xffffffff);
+ }
+});
+test('128 city assaults match exact first DOS draw threshold',()=>{
+ for(let seed=0;seed<128;seed++){
+  const g=makeRulesLab();g.rng={seed,draws:0};
+  g.cities.push({id:'target',position:{x:10,y:25},owner:null,production:null,progress:0,firstCycle:true});
+  const expectation=nextRandom15(g.rng);
+  const result=resolveCityAssault(g,'u1','target');
+  assert.equal(result.cities.at(-1).owner==='blue',expectation.value<16384);
+  assert.deepEqual(result.rng,expectation.next);
+  assert.equal(unit(result,'u1'),undefined);
+ }
+});
