@@ -49,13 +49,20 @@ export function selectProduction(game:Game,cityId:string,kind:UnitType):Game {
   updateAllKnowledge(g);return g;
 }
 export function setOrder(game:Game,unitId:string,order:UnitOrder):Game {
-  if(!['sentry','skip','none','move-to'].includes(order.kind)) throw new RuleNotImplemented('STANDING_ORDERS','This standing order is not implemented yet.');
+  if(!['sentry','skip','none','move-to','go-direction','patrol'].includes(order.kind)) throw new RuleNotImplemented('STANDING_ORDERS','This standing order is not implemented yet.');
   const g=clone(game),unit=g.units.find(u=>u.id===unitId);
   if(!unit||unit.owner!==g.active) throw new Error('Unit not available to the active player.');
   if(order.kind==='move-to'){
     if(!playable(g,order.destination))throw new Error('Destination must be inside the playable map.');
     if(equal(unit.position,order.destination))unit.order={kind:'none'};
     else unit.order={kind:'move-to',destination:{...order.destination}};
+  }else if(order.kind==='go-direction'){
+    const {x,y}=order.direction;
+    if(!Number.isInteger(x)||!Number.isInteger(y)||Math.max(Math.abs(x),Math.abs(y))!==1)throw new Error('Choose one of eight compass directions.');
+    unit.order={kind:'go-direction',direction:{x,y}};
+  }else if(order.kind==='patrol'){
+    if(!playable(g,order.to)||!playable(g,order.from)||!equal(order.from,unit.position)||equal(order.to,order.from))throw new Error('Patrol requires a different playable destination and current starting position.');
+    unit.order={kind:'patrol',from:{...order.from},to:{...order.to},outbound:true};
   }else unit.order={kind:order.kind};
   if(order.kind==='skip') unit.spent=movementAllowance(unit);
   return g;
@@ -93,7 +100,7 @@ export function moveUnit(game:Game,id:string,to:Coord):Game {
   if(enemy)return resolveCombat(game,id,enemy.id);
   if(occupants.some(u=>u.owner===unit.owner)&&!city) throw new RuleNotImplemented('CARGO','Loading and same-cell stacking require verified original mechanics.');
   unit.position={...to}; unit.spent++;
-  if(unit.order.kind==='move-to')unit.order={kind:'none'};
+  if(unit.order.kind!=='none'&&unit.order.kind!=='skip')unit.order={kind:'none'};
   if(unit.kind==='fighter') {
     unit.fuel=(unit.fuel??MAX_FIGHTER_FUEL)-1;
     if(city?.owner===unit.owner) unit.fuel=MAX_FIGHTER_FUEL; // Timing to be verified.
@@ -143,39 +150,61 @@ function routeStep(game:Game,unit:Unit,destination:Coord):Coord|null {
   while(parent.get(cursor)!==start){const previous=parent.get(cursor);if(previous===undefined)return null;cursor=previous;}
   return {x:cursor%game.width,y:Math.floor(cursor/game.width)};
 }
-/** Automatically execute existing Move To orders, never attacking on behalf of a player. */
-function executeMoveToOrders(game:Game):Game {
+/** Execute passive standing orders, never attacking or assaulting cities automatically. */
+function executeStandingOrders(game:Game):Game {
   let g=game;
-  for(const id of g.units.filter(u=>u.owner===g.active&&u.order.kind==='move-to').map(u=>u.id)){
+  const ordered=g.units.filter(u=>u.owner===g.active&&['move-to','go-direction','patrol'].includes(u.order.kind)).map(u=>u.id);
+  for(const id of ordered){
     for(let attempt=0;attempt<10;attempt++){
       const unit=g.units.find(u=>u.id===id);
-      if(!unit||unit.order.kind!=='move-to'||unit.spent>=movementAllowance(unit))break;
-      const destination=unit.order.destination;
-      if(equal(unit.position,destination)){
-        unit.order={kind:'none'};break;
+      if(!unit||unit.spent>=movementAllowance(unit))break;
+      const order=unit.order;
+      if(order.kind!=='move-to'&&order.kind!=='go-direction'&&order.kind!=='patrol')break;
+      let step:Coord|null=null;
+      let nextOrder:UnitOrder=structuredClone(order);
+      if(order.kind==='go-direction'){
+        step={x:unit.position.x+order.direction.x,y:unit.position.y+order.direction.y};
+      }else{
+        let destination=order.kind==='move-to'?order.destination:(order.outbound?order.to:order.from);
+        if(equal(unit.position,destination)){
+          if(order.kind==='move-to'){unit.order={kind:'none'};break;}
+          nextOrder={...order,outbound:!order.outbound};
+          destination=order.outbound?order.from:order.to;
+        }
+        step=routeStep(g,unit,destination);
       }
-      const step=routeStep(g,unit,destination);
-      if(!step){unit.order={kind:'none'};log(g,unit.owner,'movement',`${unit.id}: no known safe route; orders cleared.`);break;}
-      // Never initiate combat or city conquest automatically, including hidden contact.
-      const hostile=g.units.some(e=>!e.aboard&&e.owner!==unit.owner&&equal(e.position,step));
+      if(!step||!playable(g,step)){
+        unit.order={kind:'none'};
+        log(g,unit.owner,'movement',`${id}: no safe route; standing order cleared.`);
+        break;
+      }
+      // Inspection of actual next-step occupancy is a movement collision check,
+      // not an AI navigation hint. Never resolve a hostile contact automatically.
+      const hostile=g.units.some(u=>!u.aboard&&u.owner!==unit.owner&&equal(u.position,step));
       const city=cityAt(g,step);
       if(hostile||(city&&city.owner!==unit.owner)){
         unit.order={kind:'none'};
-        log(g,unit.owner,'movement',`${unit.id}: contact or city requires manual orders.`);break;
+        log(g,unit.owner,'movement',`${id}: contact requires manual orders.`);
+        break;
       }
-      try {
-        g=moveUnit(g,id,step);
-        const moved=g.units.find(u=>u.id===id);
-        if(moved){moved.order=equal(moved.position,destination)?{kind:'none'}:{kind:'move-to',destination:{...destination}};}
-      }catch(error){
+      try{
+        const moved=moveUnit(g,id,step);
+        const newUnit=moved.units.find(u=>u.id===id);
+        if(newUnit){
+          if(nextOrder.kind==='move-to'&&equal(newUnit.position,nextOrder.destination))newUnit.order={kind:'none'};
+          else newUnit.order=nextOrder;
+        }
+        g=moved;
+      }catch{
         unit.order={kind:'none'};
-        log(g,unit.owner,'movement',`${unit.id}: route interrupted; orders cleared.`);break;
+        log(g,unit.owner,'movement',`${id}: route interrupted; standing order cleared.`);
+        break;
       }
     }
   }
   return g;
 }
-export function runMoveToOrders(game:Game):Game {return executeMoveToOrders(clone(game));}
+export function runMoveToOrders(game:Game):Game {return executeStandingOrders(clone(game));}
 function beginTurn(g:Game):void {
   for(const unit of g.units.filter(u=>u.owner===g.active)){
     unit.spent=0;
@@ -206,7 +235,7 @@ export function endTurn(game:Game):Game {
   if(next===0)g.round++;
   g.active=g.players[next]!.id;
   beginTurn(g);
-  return executeMoveToOrders(g);
+  return executeStandingOrders(g);
 }
 /**
  * Close Quarters' preliminary computer opponent. It sees only its own PlayerView,

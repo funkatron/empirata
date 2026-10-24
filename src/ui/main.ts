@@ -15,6 +15,7 @@ let tileSize=30,cameraX=0,cameraY=0;
 let down:{x:number;y:number;cameraX:number;cameraY:number;moved:boolean}|null=null;
 let hydrated=false;
 let choosingDestination=false;
+let choosingOrder:'move-to'|'patrol'|'go-direction'='move-to';
 const colors={sea:'#23485f',land:'#516e50',unseen:'#0b1821',blue:'#68c4f1',red:'#f47c73',neutral:'#e2c37c'};
 function uiMessage(message:string):void {el('toast').textContent=message;}
 function dispatch(operation:()=>Game):boolean {
@@ -99,8 +100,15 @@ function tapTile(pos:Coord):void {
   if(choosingDestination&&selectedUnit){
     choosingDestination=false;
     const id=selectedUnit;
-    if(dispatch(()=>runMoveToOrders(setOrder(game,id,{kind:'move-to',destination:pos}))))
-      uiMessage(`Move To order assigned for ${id}. It will continue each round.`);
+    const origin=view.ownUnits.find(u=>u.id===id)?.position;
+    if(!origin)return;
+    const dx=pos.x-origin.x,dy=pos.y-origin.y;
+    const order=choosingOrder==='go-direction'?
+      {kind:'go-direction' as const,direction:{x:Math.sign(dx),y:Math.sign(dy)}}:
+      choosingOrder==='patrol'?{kind:'patrol' as const,from:{...origin},to:pos,outbound:true}:
+      {kind:'move-to' as const,destination:pos};
+    if(dispatch(()=>runMoveToOrders(setOrder(game,id,order))))
+      uiMessage(`${choosingOrder} order assigned for ${id}.`);
     return;
   }
   if(pos.x<0||pos.y<0||pos.x>=game.width||pos.y>=game.height)return;
@@ -136,12 +144,12 @@ function text(value:unknown):string{return String(value).replace(/[&<>"']/g,ch=>
 function selectedUnitBlock(unit:Unit):string {
   const allowance=movementAllowance(unit),stats=STATS[unit.kind],possible=capacity(unit);
   return `<div class="selection-title">${text(stats.name)} <span class="subtle">#${text(unit.id)}</span></div>
-  <div class="subtle">${unit.position.x}, ${unit.position.y} · ${unit.order.kind==='sentry'?'Sentry':unit.order.kind==='move-to'?`Moving to ${unit.order.destination.x}, ${unit.order.destination.y}`:'Awaiting orders'}</div>
+  <div class="subtle">${unit.position.x}, ${unit.position.y} · ${unit.order.kind==='sentry'?'Sentry':unit.order.kind==='move-to'?`Moving to ${unit.order.destination.x}, ${unit.order.destination.y}`:unit.order.kind==='go-direction'?`Continuing ${unit.order.direction.x},${unit.order.direction.y}`:unit.order.kind==='patrol'?`Patrolling ${unit.order.from.x},${unit.order.from.y} ↔ ${unit.order.to.x},${unit.order.to.y}`:'Awaiting orders'}</div>
   <div class="data"><div class="datum"><small>Movement</small><strong>${Math.max(0,allowance-unit.spent)} / ${allowance}</strong></div>
   <div class="datum"><small>Damage</small><strong>${unit.damage} / ${stats.hitPoints}</strong></div>
   ${unit.kind==='fighter'?`<div class="datum"><small>Fuel</small><strong>${unit.fuel} / 20</strong></div>`:''}
   ${possible!==null?`<div class="datum"><small>Cargo capacity</small><strong>${possible}</strong></div>`:''}</div>
-  <div class="actions"><button id="moveToButton">Move To</button><button id="sentryButton">Sentry</button><button id="clearButton">Clear</button><button id="skipButton">Skip move</button></div>
+  <div class="actions"><button id="moveToButton">Move To</button><button id="directionButton">Go Direction</button><button id="patrolButton">Patrol</button><button id="sentryButton">Sentry</button><button id="clearButton">Clear</button><button id="skipButton">Skip move</button></div>
   <p class="stat-note" style="margin-top:12px">Tap an adjacent tile for manual movement, or choose Move To and tap a distant destination. Armies can assault neutral or enemy cities. Combat uses the original manual's normal-efficiency odds with a seeded random stream.</p>`;
 }
 function selectedCityBlock(city:City):string {
@@ -169,7 +177,10 @@ function refresh():void {
   else if(city)inspector.innerHTML=selectedCityBlock(city);
   else inspector.innerHTML='<p>Select a blue unit, then tap an adjacent enemy to attack. Select a city to assign production. Red will respond on the next round using a preliminary rules-bound AI.</p>';
   const moveButton=document.getElementById('moveToButton');
-  if(moveButton&&unit)moveButton.addEventListener('click',()=>{choosingDestination=true;uiMessage('Tap a map tile to set destination. Drag to pan.');});
+  if(moveButton&&unit)moveButton.addEventListener('click',()=>{choosingOrder='move-to';choosingDestination=true;uiMessage('Tap a map tile to set destination. Drag to pan.');});
+  for(const [button,kind,hint] of [['directionButton','go-direction','Tap an adjacent tile to choose a compass bearing.'],['patrolButton','patrol','Tap a destination for the patrol route.']] as const){
+    document.getElementById(button)?.addEventListener('click',()=>{choosingOrder=kind;choosingDestination=true;uiMessage(hint);});
+  }
   const productionSelect=document.getElementById('productionSelect') as HTMLSelectElement | null;
   if(productionSelect&&city)productionSelect.addEventListener('change',()=>{
     if(productionSelect.value)dispatch(()=>selectProduction(game,city.id,productionSelect.value as UnitType));

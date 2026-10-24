@@ -2,7 +2,7 @@ export type FactionId = 'blue' | 'red' | 'green';
 export type Terrain = 'land' | 'sea';
 export type UnitType = 'army' | 'fighter' | 'destroyer' | 'transport' | 'submarine' | 'cruiser' | 'carrier' | 'battleship';
 export type Coord = { x: number; y: number };
-export type UnitOrder = { kind: 'none' | 'sentry' | 'skip' } | {kind:'move-to'; destination:Coord};
+export type UnitOrder = { kind: 'none' | 'sentry' | 'skip' } | {kind:'move-to'; destination:Coord} | {kind:'go-direction'; direction:Coord} | {kind:'patrol'; from:Coord; to:Coord; outbound:boolean};
 export type Player = { id: FactionId; label: string; productionEfficiency: 50; combatEfficiency: 50 };
 export type City = {
   id: string; position: Coord; owner: FactionId | null;
