@@ -9,7 +9,7 @@
     "test": "npm run build && node --test tests/*.test.mjs",
     "start": "node scripts/server.mjs",
     "dev": "npm run build && npm run start",
-    "test:coverage": "npm run build && node --experimental-test-coverage --test tests/*.test.mjs"
+    "test:coverage": "npm run build && node --experimental-test-coverage --test --test-coverage-include='dist/engine/*.js' --test-coverage-lines=85 --test-coverage-branches=80 tests/*.test.mjs"
   },
   "devDependencies": {
     "typescript": "^5.8.3"
