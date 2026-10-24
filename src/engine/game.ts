@@ -49,10 +49,14 @@ export function selectProduction(game:Game,cityId:string,kind:UnitType):Game {
   updateAllKnowledge(g);return g;
 }
 export function setOrder(game:Game,unitId:string,order:UnitOrder):Game {
-  if(!['sentry','skip','none'].includes(order.kind)) throw new RuleNotImplemented('STANDING_ORDERS','Only Sentry, Skip, and Clear are active in v0.2.');
+  if(!['sentry','skip','none','move-to'].includes(order.kind)) throw new RuleNotImplemented('STANDING_ORDERS','This standing order is not implemented yet.');
   const g=clone(game),unit=g.units.find(u=>u.id===unitId);
   if(!unit||unit.owner!==g.active) throw new Error('Unit not available to the active player.');
-  unit.order={kind:order.kind};
+  if(order.kind==='move-to'){
+    if(!playable(g,order.destination))throw new Error('Destination must be inside the playable map.');
+    if(equal(unit.position,order.destination))unit.order={kind:'none'};
+    else unit.order={kind:'move-to',destination:{...order.destination}};
+  }else unit.order={kind:order.kind};
   if(order.kind==='skip') unit.spent=movementAllowance(unit);
   return g;
 }
@@ -89,6 +93,7 @@ export function moveUnit(game:Game,id:string,to:Coord):Game {
   if(enemy)return resolveCombat(game,id,enemy.id);
   if(occupants.some(u=>u.owner===unit.owner)&&!city) throw new RuleNotImplemented('CARGO','Loading and same-cell stacking require verified original mechanics.');
   unit.position={...to}; unit.spent++;
+  if(unit.order.kind==='move-to')unit.order={kind:'none'};
   if(unit.kind==='fighter') {
     unit.fuel=(unit.fuel??MAX_FIGHTER_FUEL)-1;
     if(city?.owner===unit.owner) unit.fuel=MAX_FIGHTER_FUEL; // Timing to be verified.
@@ -100,6 +105,77 @@ export function moveUnit(game:Game,id:string,to:Coord):Game {
   updateAllKnowledge(g);
   return g;
 }
+/** Route through the player's remembered map, not the real hidden terrain.
+ * Unknown cells are considered for exploration and validated one step at a time.
+ * No automated combat, assault or cargo loading is permitted.
+ */
+function routeStep(game:Game,unit:Unit,destination:Coord):Coord|null {
+  const knowledge=game.knowledge[unit.owner];
+  const goal=index(game,destination),start=index(game,unit.position);
+  const visited=new Set<number>([start]),queue=[start],parent=new Map<number,number>();
+  const visibleEnemies=new Set(game.knowledge[unit.owner].sightings
+    .filter(s=>knowledge.freshEnemies.includes(s.id)).map(s=>index(game,s.position)));
+  const friendly=new Set(game.units.filter(u=>!u.aboard&&u.owner===unit.owner&&u.id!==unit.id).map(u=>index(game,u.position)));
+  const cities=new Map(game.cities.map(c=>[index(game,c.position),c]));
+  const domain=STATS[unit.kind].domain;
+  for(let head=0;head<queue.length;head++){
+    const here=queue[head]!;if(here===goal)break;
+    const x=here%game.width,y=Math.floor(here/game.width);
+    for(const direction of directions){
+      const pos={x:x+direction.x,y:y+direction.y};
+      if(!playable(game,pos))continue;
+      const k=index(game,pos);
+      if(visited.has(k)||visibleEnemies.has(k)||friendly.has(k))continue;
+      const terrain=knowledge.terrain[k];
+      const city=knowledge.terrain[k]!==null?cities.get(k):undefined;
+      // Only use ownership learned from this player's knowledge.
+      if(city&&(!knowledge.cities[city.id]||knowledge.cities[city.id]!.owner!==unit.owner))continue;
+      if(terrain!==null){
+        if(domain==='land'&&terrain!=='land'&&!city)continue;
+        if(domain==='sea'&&terrain!=='sea'&&!city)continue;
+        if(domain==='sea'&&city&&!isCoastal(game,pos))continue;
+      }
+      visited.add(k);parent.set(k,here);queue.push(k);
+    }
+  }
+  if(!visited.has(goal))return null;
+  let cursor=goal;
+  while(parent.get(cursor)!==start){const previous=parent.get(cursor);if(previous===undefined)return null;cursor=previous;}
+  return {x:cursor%game.width,y:Math.floor(cursor/game.width)};
+}
+/** Automatically execute existing Move To orders, never attacking on behalf of a player. */
+function executeMoveToOrders(game:Game):Game {
+  let g=game;
+  for(const id of g.units.filter(u=>u.owner===g.active&&u.order.kind==='move-to').map(u=>u.id)){
+    for(let attempt=0;attempt<10;attempt++){
+      const unit=g.units.find(u=>u.id===id);
+      if(!unit||unit.order.kind!=='move-to'||unit.spent>=movementAllowance(unit))break;
+      const destination=unit.order.destination;
+      if(equal(unit.position,destination)){
+        unit.order={kind:'none'};break;
+      }
+      const step=routeStep(g,unit,destination);
+      if(!step){unit.order={kind:'none'};log(g,unit.owner,'movement',`${unit.id}: no known safe route; orders cleared.`);break;}
+      // Never initiate combat or city conquest automatically, including hidden contact.
+      const hostile=g.units.some(e=>!e.aboard&&e.owner!==unit.owner&&equal(e.position,step));
+      const city=cityAt(g,step);
+      if(hostile||(city&&city.owner!==unit.owner)){
+        unit.order={kind:'none'};
+        log(g,unit.owner,'movement',`${unit.id}: contact or city requires manual orders.`);break;
+      }
+      try {
+        g=moveUnit(g,id,step);
+        const moved=g.units.find(u=>u.id===id);
+        if(moved){moved.order=equal(moved.position,destination)?{kind:'none'}:{kind:'move-to',destination:{...destination}};}
+      }catch(error){
+        unit.order={kind:'none'};
+        log(g,unit.owner,'movement',`${unit.id}: route interrupted; orders cleared.`);break;
+      }
+    }
+  }
+  return g;
+}
+export function runMoveToOrders(game:Game):Game {return executeMoveToOrders(clone(game));}
 function beginTurn(g:Game):void {
   for(const unit of g.units.filter(u=>u.owner===g.active)){
     unit.spent=0;
@@ -130,7 +206,7 @@ export function endTurn(game:Game):Game {
   if(next===0)g.round++;
   g.active=g.players[next]!.id;
   beginTurn(g);
-  return g;
+  return executeMoveToOrders(g);
 }
 /**
  * Close Quarters' preliminary computer opponent. It sees only its own PlayerView,

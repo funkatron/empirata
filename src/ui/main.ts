@@ -1,5 +1,5 @@
 import {advanceLabRound,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,
-  moveUnit,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
+  moveUnit,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
   STATS,UNIT_TYPES,isCoastal} from '../engine/index.js';
 import type {City,Coord,Game,Unit,UnitType,PlayerView} from '../engine/index.js';
 
@@ -14,6 +14,7 @@ let selectedUnit:string|null='u1',selectedCity:string|null=null;
 let tileSize=30,cameraX=0,cameraY=0;
 let down:{x:number;y:number;cameraX:number;cameraY:number;moved:boolean}|null=null;
 let hydrated=false;
+let choosingDestination=false;
 const colors={sea:'#23485f',land:'#516e50',unseen:'#0b1821',blue:'#68c4f1',red:'#f47c73',neutral:'#e2c37c'};
 function uiMessage(message:string):void {el('toast').textContent=message;}
 function dispatch(operation:()=>Game):boolean {
@@ -95,6 +96,13 @@ function cellFromPointer(ev:PointerEvent):Coord {
   return {x:Math.floor((ev.clientX-rect.left+cameraX)/tileSize),y:Math.floor((ev.clientY-rect.top+cameraY)/tileSize)};
 }
 function tapTile(pos:Coord):void {
+  if(choosingDestination&&selectedUnit){
+    choosingDestination=false;
+    const id=selectedUnit;
+    if(dispatch(()=>runMoveToOrders(setOrder(game,id,{kind:'move-to',destination:pos}))))
+      uiMessage(`Move To order assigned for ${id}. It will continue each round.`);
+    return;
+  }
   if(pos.x<0||pos.y<0||pos.x>=game.width||pos.y>=game.height)return;
   const units=view.ownUnits.filter(u=>!u.aboard&&u.position.x===pos.x&&u.position.y===pos.y);
   const cityHere=view.ownCities.find(c=>c.position.x===pos.x&&c.position.y===pos.y);
@@ -128,13 +136,13 @@ function text(value:unknown):string{return String(value).replace(/[&<>"']/g,ch=>
 function selectedUnitBlock(unit:Unit):string {
   const allowance=movementAllowance(unit),stats=STATS[unit.kind],possible=capacity(unit);
   return `<div class="selection-title">${text(stats.name)} <span class="subtle">#${text(unit.id)}</span></div>
-  <div class="subtle">${unit.position.x}, ${unit.position.y} · ${unit.order.kind==='sentry'?'Sentry':'Awaiting orders'}</div>
+  <div class="subtle">${unit.position.x}, ${unit.position.y} · ${unit.order.kind==='sentry'?'Sentry':unit.order.kind==='move-to'?`Moving to ${unit.order.destination.x}, ${unit.order.destination.y}`:'Awaiting orders'}</div>
   <div class="data"><div class="datum"><small>Movement</small><strong>${Math.max(0,allowance-unit.spent)} / ${allowance}</strong></div>
   <div class="datum"><small>Damage</small><strong>${unit.damage} / ${stats.hitPoints}</strong></div>
   ${unit.kind==='fighter'?`<div class="datum"><small>Fuel</small><strong>${unit.fuel} / 20</strong></div>`:''}
   ${possible!==null?`<div class="datum"><small>Cargo capacity</small><strong>${possible}</strong></div>`:''}</div>
-  <div class="actions"><button id="sentryButton">Sentry</button><button id="clearButton">Clear</button><button id="skipButton">Skip move</button></div>
-  <p class="stat-note" style="margin-top:12px">Tap an adjacent tile to move or attack. Armies can assault neutral or enemy cities. Combat uses the original manual's normal-efficiency odds with a seeded random stream.</p>`;
+  <div class="actions"><button id="moveToButton">Move To</button><button id="sentryButton">Sentry</button><button id="clearButton">Clear</button><button id="skipButton">Skip move</button></div>
+  <p class="stat-note" style="margin-top:12px">Tap an adjacent tile for manual movement, or choose Move To and tap a distant destination. Armies can assault neutral or enemy cities. Combat uses the original manual's normal-efficiency odds with a seeded random stream.</p>`;
 }
 function selectedCityBlock(city:City):string {
   const coastal=isCoastal(game,city.position);
@@ -160,6 +168,8 @@ function refresh():void {
   if(unit)inspector.innerHTML=selectedUnitBlock(unit);
   else if(city)inspector.innerHTML=selectedCityBlock(city);
   else inspector.innerHTML='<p>Select a blue unit, then tap an adjacent enemy to attack. Select a city to assign production. Red will respond on the next round using a preliminary rules-bound AI.</p>';
+  const moveButton=document.getElementById('moveToButton');
+  if(moveButton&&unit)moveButton.addEventListener('click',()=>{choosingDestination=true;uiMessage('Tap a map tile to set destination. Drag to pan.');});
   const productionSelect=document.getElementById('productionSelect') as HTMLSelectElement | null;
   if(productionSelect&&city)productionSelect.addEventListener('change',()=>{
     if(productionSelect.value)dispatch(()=>selectProduction(game,city.id,productionSelect.value as UnitType));
@@ -186,7 +196,7 @@ document.addEventListener('keydown',ev=>{
   if(target.matches('input,textarea,select,button,[contenteditable="true"]'))return;
   const moves:Record<string,Coord>={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},
     q:{x:-1,y:-1},e:{x:1,y:-1},z:{x:-1,y:1},c:{x:1,y:1}};
-  if(ev.key==='Escape'){selectedUnit=null;selectedCity=null;refresh();return;}
+  if(ev.key==='Escape'){choosingDestination=false;selectedUnit=null;selectedCity=null;refresh();return;}
   if(ev.key==='+'||ev.key==='='){zoom(3);return;}if(ev.key==='-'){zoom(-3);return;}
   const delta=moves[ev.key];if(!delta||!selectedUnit)return;
   const u=view.ownUnits.find(u=>u.id===selectedUnit);if(!u)return;
@@ -204,12 +214,12 @@ el('importSave').addEventListener('click',()=>(el('saveFile') as HTMLInputElemen
 el('saveFile').addEventListener('change',async()=>{
   const input=el('saveFile') as HTMLInputElement,file=input.files?.[0];if(!file)return;
   try{const loaded=importSave(await file.text());if(loaded.active!=='blue')throw new Error('This lab UI only supports saves during the blue faction turn.');
-    game=loaded;selectedUnit=null;selectedCity=null;refresh();void saveLocally(game);uiMessage('Saved game imported.');}
+    choosingDestination=false;game=loaded;selectedUnit=null;selectedCity=null;refresh();void saveLocally(game);uiMessage('Saved game imported.');}
   catch(error){uiMessage(error instanceof Error?error.message:'Save could not be loaded.');}finally{input.value='';}
 });
 function startScenario(kind:'close-quarters'|'classic-lab'):void{
   if(!window.confirm('Start a new test scenario? This will replace the current local autosave. Export JSON first if you want to keep it.'))return;
-  game=kind==='close-quarters'?makeCloseQuartersLab():makeRulesLab();
+  choosingDestination=false;game=kind==='close-quarters'?makeCloseQuartersLab():makeRulesLab();
   selectedUnit='u1';selectedCity=null;refresh();focus({x:9,y:25});
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; export JSON.'));
   uiMessage(kind==='close-quarters'?'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.':'Classic rules lab reset.');

@@ -275,6 +275,7 @@ exports.makeRulesLab = makeRulesLab;
 exports.selectProduction = selectProduction;
 exports.setOrder = setOrder;
 exports.moveUnit = moveUnit;
+exports.runMoveToOrders = runMoveToOrders;
 exports.endTurn = endTurn;
 exports.advanceLabRound = advanceLabRound;
 const units_js_1 = require("./units.js");
@@ -341,12 +342,21 @@ function selectProduction(game, cityId, kind) {
     return g;
 }
 function setOrder(game, unitId, order) {
-    if (!['sentry', 'skip', 'none'].includes(order.kind))
-        throw new RuleNotImplemented('STANDING_ORDERS', 'Only Sentry, Skip, and Clear are active in v0.2.');
+    if (!['sentry', 'skip', 'none', 'move-to'].includes(order.kind))
+        throw new RuleNotImplemented('STANDING_ORDERS', 'This standing order is not implemented yet.');
     const g = clone(game), unit = g.units.find(u => u.id === unitId);
     if (!unit || unit.owner !== g.active)
         throw new Error('Unit not available to the active player.');
-    unit.order = { kind: order.kind };
+    if (order.kind === 'move-to') {
+        if (!(0, world_js_1.playable)(g, order.destination))
+            throw new Error('Destination must be inside the playable map.');
+        if ((0, world_js_1.equal)(unit.position, order.destination))
+            unit.order = { kind: 'none' };
+        else
+            unit.order = { kind: 'move-to', destination: { ...order.destination } };
+    }
+    else
+        unit.order = { kind: order.kind };
     if (order.kind === 'skip')
         unit.spent = (0, units_js_1.movementAllowance)(unit);
     return g;
@@ -393,6 +403,8 @@ function moveUnit(game, id, to) {
         throw new RuleNotImplemented('CARGO', 'Loading and same-cell stacking require verified original mechanics.');
     unit.position = { ...to };
     unit.spent++;
+    if (unit.order.kind === 'move-to')
+        unit.order = { kind: 'none' };
     if (unit.kind === 'fighter') {
         unit.fuel = (unit.fuel ?? units_js_1.MAX_FIGHTER_FUEL) - 1;
         if (city?.owner === unit.owner)
@@ -405,6 +417,104 @@ function moveUnit(game, id, to) {
     (0, knowledge_js_1.updateAllKnowledge)(g);
     return g;
 }
+/** Route through the player's remembered map, not the real hidden terrain.
+ * Unknown cells are considered for exploration and validated one step at a time.
+ * No automated combat, assault or cargo loading is permitted.
+ */
+function routeStep(game, unit, destination) {
+    const knowledge = game.knowledge[unit.owner];
+    const goal = (0, world_js_1.index)(game, destination), start = (0, world_js_1.index)(game, unit.position);
+    const visited = new Set([start]), queue = [start], parent = new Map();
+    const visibleEnemies = new Set(game.knowledge[unit.owner].sightings
+        .filter(s => knowledge.freshEnemies.includes(s.id)).map(s => (0, world_js_1.index)(game, s.position)));
+    const friendly = new Set(game.units.filter(u => !u.aboard && u.owner === unit.owner && u.id !== unit.id).map(u => (0, world_js_1.index)(game, u.position)));
+    const cities = new Map(game.cities.map(c => [(0, world_js_1.index)(game, c.position), c]));
+    const domain = units_js_1.STATS[unit.kind].domain;
+    for (let head = 0; head < queue.length; head++) {
+        const here = queue[head];
+        if (here === goal)
+            break;
+        const x = here % game.width, y = Math.floor(here / game.width);
+        for (const direction of world_js_1.directions) {
+            const pos = { x: x + direction.x, y: y + direction.y };
+            if (!(0, world_js_1.playable)(game, pos))
+                continue;
+            const k = (0, world_js_1.index)(game, pos);
+            if (visited.has(k) || visibleEnemies.has(k) || friendly.has(k))
+                continue;
+            const terrain = knowledge.terrain[k];
+            const city = knowledge.terrain[k] !== null ? cities.get(k) : undefined;
+            // Only use ownership learned from this player's knowledge.
+            if (city && (!knowledge.cities[city.id] || knowledge.cities[city.id].owner !== unit.owner))
+                continue;
+            if (terrain !== null) {
+                if (domain === 'land' && terrain !== 'land' && !city)
+                    continue;
+                if (domain === 'sea' && terrain !== 'sea' && !city)
+                    continue;
+                if (domain === 'sea' && city && !(0, world_js_1.isCoastal)(game, pos))
+                    continue;
+            }
+            visited.add(k);
+            parent.set(k, here);
+            queue.push(k);
+        }
+    }
+    if (!visited.has(goal))
+        return null;
+    let cursor = goal;
+    while (parent.get(cursor) !== start) {
+        const previous = parent.get(cursor);
+        if (previous === undefined)
+            return null;
+        cursor = previous;
+    }
+    return { x: cursor % game.width, y: Math.floor(cursor / game.width) };
+}
+/** Automatically execute existing Move To orders, never attacking on behalf of a player. */
+function executeMoveToOrders(game) {
+    let g = game;
+    for (const id of g.units.filter(u => u.owner === g.active && u.order.kind === 'move-to').map(u => u.id)) {
+        for (let attempt = 0; attempt < 10; attempt++) {
+            const unit = g.units.find(u => u.id === id);
+            if (!unit || unit.order.kind !== 'move-to' || unit.spent >= (0, units_js_1.movementAllowance)(unit))
+                break;
+            const destination = unit.order.destination;
+            if ((0, world_js_1.equal)(unit.position, destination)) {
+                unit.order = { kind: 'none' };
+                break;
+            }
+            const step = routeStep(g, unit, destination);
+            if (!step) {
+                unit.order = { kind: 'none' };
+                log(g, unit.owner, 'movement', `${unit.id}: no known safe route; orders cleared.`);
+                break;
+            }
+            // Never initiate combat or city conquest automatically, including hidden contact.
+            const hostile = g.units.some(e => !e.aboard && e.owner !== unit.owner && (0, world_js_1.equal)(e.position, step));
+            const city = (0, world_js_1.cityAt)(g, step);
+            if (hostile || (city && city.owner !== unit.owner)) {
+                unit.order = { kind: 'none' };
+                log(g, unit.owner, 'movement', `${unit.id}: contact or city requires manual orders.`);
+                break;
+            }
+            try {
+                g = moveUnit(g, id, step);
+                const moved = g.units.find(u => u.id === id);
+                if (moved) {
+                    moved.order = (0, world_js_1.equal)(moved.position, destination) ? { kind: 'none' } : { kind: 'move-to', destination: { ...destination } };
+                }
+            }
+            catch (error) {
+                unit.order = { kind: 'none' };
+                log(g, unit.owner, 'movement', `${unit.id}: route interrupted; orders cleared.`);
+                break;
+            }
+        }
+    }
+    return g;
+}
+function runMoveToOrders(game) { return executeMoveToOrders(clone(game)); }
 function beginTurn(g) {
     for (const unit of g.units.filter(u => u.owner === g.active)) {
         unit.spent = 0;
@@ -439,7 +549,7 @@ function endTurn(game) {
         g.round++;
     g.active = g.players[next].id;
     beginTurn(g);
-    return g;
+    return executeMoveToOrders(g);
 }
 /**
  * Close Quarters' preliminary computer opponent. It sees only its own PlayerView,
@@ -653,10 +763,13 @@ function nextRandom15(input) {
     const state = (Math.imul(input.seed >>> 0, 0x343FD) + 0x269EC3) >>> 0;
     return { next: { seed: state, draws: input.draws + 1 }, value: (state >>> 16) & 0x7FFF };
 }
+/** Normalized sample for the existing probability-based combat API. */
 function nextRandom(input) {
     const result = nextRandom15(input);
     return { next: result.next, value: result.value / 32768 };
 }
+
+};
 __modules["engine/save.js"] = function(module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -905,6 +1018,7 @@ let selectedUnit = 'u1', selectedCity = null;
 let tileSize = 30, cameraX = 0, cameraY = 0;
 let down = null;
 let hydrated = false;
+let choosingDestination = false;
 const colors = { sea: '#23485f', land: '#516e50', unseen: '#0b1821', blue: '#68c4f1', red: '#f47c73', neutral: '#e2c37c' };
 function uiMessage(message) { el('toast').textContent = message; }
 function dispatch(operation) {
@@ -1018,6 +1132,13 @@ function cellFromPointer(ev) {
     return { x: Math.floor((ev.clientX - rect.left + cameraX) / tileSize), y: Math.floor((ev.clientY - rect.top + cameraY) / tileSize) };
 }
 function tapTile(pos) {
+    if (choosingDestination && selectedUnit) {
+        choosingDestination = false;
+        const id = selectedUnit;
+        if (dispatch(() => (0, index_js_1.runMoveToOrders)((0, index_js_1.setOrder)(game, id, { kind: 'move-to', destination: pos }))))
+            uiMessage(`Move To order assigned for ${id}. It will continue each round.`);
+        return;
+    }
     if (pos.x < 0 || pos.y < 0 || pos.x >= game.width || pos.y >= game.height)
         return;
     const units = view.ownUnits.filter(u => !u.aboard && u.position.x === pos.x && u.position.y === pos.y);
@@ -1074,13 +1195,13 @@ function text(value) { return String(value).replace(/[&<>"']/g, ch => ({ '&': '&
 function selectedUnitBlock(unit) {
     const allowance = (0, index_js_1.movementAllowance)(unit), stats = index_js_1.STATS[unit.kind], possible = (0, index_js_1.capacity)(unit);
     return `<div class="selection-title">${text(stats.name)} <span class="subtle">#${text(unit.id)}</span></div>
-  <div class="subtle">${unit.position.x}, ${unit.position.y} · ${unit.order.kind === 'sentry' ? 'Sentry' : 'Awaiting orders'}</div>
+  <div class="subtle">${unit.position.x}, ${unit.position.y} · ${unit.order.kind === 'sentry' ? 'Sentry' : unit.order.kind === 'move-to' ? `Moving to ${unit.order.destination.x}, ${unit.order.destination.y}` : 'Awaiting orders'}</div>
   <div class="data"><div class="datum"><small>Movement</small><strong>${Math.max(0, allowance - unit.spent)} / ${allowance}</strong></div>
   <div class="datum"><small>Damage</small><strong>${unit.damage} / ${stats.hitPoints}</strong></div>
   ${unit.kind === 'fighter' ? `<div class="datum"><small>Fuel</small><strong>${unit.fuel} / 20</strong></div>` : ''}
   ${possible !== null ? `<div class="datum"><small>Cargo capacity</small><strong>${possible}</strong></div>` : ''}</div>
-  <div class="actions"><button id="sentryButton">Sentry</button><button id="clearButton">Clear</button><button id="skipButton">Skip move</button></div>
-  <p class="stat-note" style="margin-top:12px">Tap an adjacent tile to move or attack. Armies can assault neutral or enemy cities. Combat uses the original manual's normal-efficiency odds with a seeded random stream.</p>`;
+  <div class="actions"><button id="moveToButton">Move To</button><button id="sentryButton">Sentry</button><button id="clearButton">Clear</button><button id="skipButton">Skip move</button></div>
+  <p class="stat-note" style="margin-top:12px">Tap an adjacent tile for manual movement, or choose Move To and tap a distant destination. Armies can assault neutral or enemy cities. Combat uses the original manual's normal-efficiency odds with a seeded random stream.</p>`;
 }
 function selectedCityBlock(city) {
     const coastal = (0, index_js_1.isCoastal)(game, city.position);
@@ -1109,6 +1230,9 @@ function refresh() {
         inspector.innerHTML = selectedCityBlock(city);
     else
         inspector.innerHTML = '<p>Select a blue unit, then tap an adjacent enemy to attack. Select a city to assign production. Red will respond on the next round using a preliminary rules-bound AI.</p>';
+    const moveButton = document.getElementById('moveToButton');
+    if (moveButton && unit)
+        moveButton.addEventListener('click', () => { choosingDestination = true; uiMessage('Tap a map tile to set destination. Drag to pan.'); });
     const productionSelect = document.getElementById('productionSelect');
     if (productionSelect && city)
         productionSelect.addEventListener('change', () => {
@@ -1162,6 +1286,7 @@ document.addEventListener('keydown', ev => {
     const moves = { ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 }, ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 },
         q: { x: -1, y: -1 }, e: { x: 1, y: -1 }, z: { x: -1, y: 1 }, c: { x: 1, y: 1 } };
     if (ev.key === 'Escape') {
+        choosingDestination = false;
         selectedUnit = null;
         selectedCity = null;
         refresh();
@@ -1207,6 +1332,7 @@ el('saveFile').addEventListener('change', async () => {
         const loaded = (0, index_js_1.importSave)(await file.text());
         if (loaded.active !== 'blue')
             throw new Error('This lab UI only supports saves during the blue faction turn.');
+        choosingDestination = false;
         game = loaded;
         selectedUnit = null;
         selectedCity = null;
@@ -1224,6 +1350,7 @@ el('saveFile').addEventListener('change', async () => {
 function startScenario(kind) {
     if (!window.confirm('Start a new test scenario? This will replace the current local autosave. Export JSON first if you want to keep it.'))
         return;
+    choosingDestination = false;
     game = kind === 'close-quarters' ? (0, index_js_1.makeCloseQuartersLab)() : (0, index_js_1.makeRulesLab)();
     selectedUnit = 'u1';
     selectedCity = null;
