@@ -7,9 +7,9 @@
  * chances; hit strength is determined solely by unit type. Cities are captured
  * using the attacking faction's combat efficiency (50% in the default mode).
  *
- * The specific DOS PRNG and exact seed/call ordering are NOT documented.
- * Empirata deliberately uses a reproducible local PRNG instead, so the rule
- * probabilities match while the original program's random stream may differ.
+ * The Interstel DOS 2.05C RNG recurrence has been recovered and is now used.
+ * Exact original seeding and RNG call ordering remain unverified; outcomes
+ * are deterministic for an Empirata seed, but DOS turn-for-turn parity is not claimed.
  */
 import type {Game} from './types.js';
 import {nextRandom} from './rng.js';
