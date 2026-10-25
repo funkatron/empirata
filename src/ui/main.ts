@@ -15,7 +15,7 @@ let tileSize=30,cameraX=0,cameraY=0;
 let down:{x:number;y:number;cameraX:number;cameraY:number;moved:boolean}|null=null;
 let hydrated=false;
 let choosingDestination=false;
-let choosingOrder:'move-to'|'patrol'|'go-direction'='move-to';
+let choosingOrder:'move-to'|'patrol'|'go-direction'|'escort'='move-to';
 const colors={sea:'#23485f',land:'#516e50',unseen:'#0b1821',blue:'#68c4f1',red:'#f47c73',neutral:'#e2c37c'};
 function uiMessage(message:string):void {el('toast').textContent=message;}
 function dispatch(operation:()=>Game):boolean {
@@ -103,6 +103,13 @@ function tapTile(pos:Coord):void {
     const origin=view.ownUnits.find(u=>u.id===id)?.position;
     if(!origin)return;
     const dx=pos.x-origin.x,dy=pos.y-origin.y;
+    if(choosingOrder==='escort'){
+      const target=view.ownUnits.find(u=>u.id!==id&&!u.aboard&&u.position.x===pos.x&&u.position.y===pos.y);
+      if(!target){uiMessage('Tap a different friendly unit to escort.');return;}
+      if(dispatch(()=>runMoveToOrders(setOrder(game,id,{kind:'escort',targetId:target.id}))))
+        uiMessage(`${id} is escorting ${target.id}.`);
+      return;
+    }
     const order=choosingOrder==='go-direction'?
       {kind:'go-direction' as const,direction:{x:Math.sign(dx),y:Math.sign(dy)}}:
       choosingOrder==='patrol'?{kind:'patrol' as const,from:{...origin},to:pos,outbound:true}:
@@ -144,12 +151,12 @@ function text(value:unknown):string{return String(value).replace(/[&<>"']/g,ch=>
 function selectedUnitBlock(unit:Unit):string {
   const allowance=movementAllowance(unit),stats=STATS[unit.kind],possible=capacity(unit);
   return `<div class="selection-title">${text(stats.name)} <span class="subtle">#${text(unit.id)}</span></div>
-  <div class="subtle">${unit.position.x}, ${unit.position.y} · ${unit.order.kind==='sentry'?'Sentry':unit.order.kind==='move-to'?`Moving to ${unit.order.destination.x}, ${unit.order.destination.y}`:unit.order.kind==='go-direction'?`Continuing ${unit.order.direction.x},${unit.order.direction.y}`:unit.order.kind==='patrol'?`Patrolling ${unit.order.from.x},${unit.order.from.y} ↔ ${unit.order.to.x},${unit.order.to.y}`:'Awaiting orders'}</div>
+  <div class="subtle">${unit.position.x}, ${unit.position.y} · ${unit.order.kind==='sentry'?'Sentry':unit.order.kind==='move-to'?`Moving to ${unit.order.destination.x}, ${unit.order.destination.y}`:unit.order.kind==='go-direction'?`Continuing ${unit.order.direction.x},${unit.order.direction.y}`:unit.order.kind==='patrol'?`Patrolling ${unit.order.from.x},${unit.order.from.y} ↔ ${unit.order.to.x},${unit.order.to.y}`:unit.order.kind==='go-home'?'Returning home':unit.order.kind==='escort'?`Escorting ${text(unit.order.targetId)}`:'Awaiting orders'}</div>
   <div class="data"><div class="datum"><small>Movement</small><strong>${Math.max(0,allowance-unit.spent)} / ${allowance}</strong></div>
   <div class="datum"><small>Damage</small><strong>${unit.damage} / ${stats.hitPoints}</strong></div>
   ${unit.kind==='fighter'?`<div class="datum"><small>Fuel</small><strong>${unit.fuel} / 20</strong></div>`:''}
   ${possible!==null?`<div class="datum"><small>Cargo capacity</small><strong>${possible}</strong></div>`:''}</div>
-  <div class="actions"><button id="moveToButton">Move To</button><button id="directionButton">Go Direction</button><button id="patrolButton">Patrol</button><button id="sentryButton">Sentry</button><button id="clearButton">Clear</button><button id="skipButton">Skip move</button></div>
+  <div class="actions"><button id="moveToButton">Move To</button><button id="directionButton">Go Direction</button><button id="patrolButton">Patrol</button><button id="homeButton">Go Home</button><button id="escortButton">Escort</button><button id="sentryButton">Sentry</button><button id="clearButton">Clear</button><button id="skipButton">Skip move</button></div>
   <p class="stat-note" style="margin-top:12px">Tap an adjacent tile for manual movement, or choose Move To and tap a distant destination. Armies can assault neutral or enemy cities. Combat uses the original manual's normal-efficiency odds with a seeded random stream.</p>`;
 }
 function selectedCityBlock(city:City):string {
@@ -181,6 +188,14 @@ function refresh():void {
   for(const [button,kind,hint] of [['directionButton','go-direction','Tap an adjacent tile to choose a compass bearing.'],['patrolButton','patrol','Tap a destination for the patrol route.']] as const){
     document.getElementById(button)?.addEventListener('click',()=>{choosingOrder=kind;choosingDestination=true;uiMessage(hint);});
   }
+  document.getElementById('homeButton')?.addEventListener('click',()=>{
+    if(unit&&dispatch(()=>runMoveToOrders(setOrder(game,unit.id,{kind:'go-home'}))))
+      uiMessage(`${unit.id} returning to a friendly city.`);
+  });
+  document.getElementById('escortButton')?.addEventListener('click',()=>{
+    choosingOrder='escort';choosingDestination=true;
+    uiMessage('Tap another friendly unit to escort. Drag to pan.');
+  });
   const productionSelect=document.getElementById('productionSelect') as HTMLSelectElement | null;
   if(productionSelect&&city)productionSelect.addEventListener('change',()=>{
     if(productionSelect.value)dispatch(()=>selectProduction(game,city.id,productionSelect.value as UnitType));
