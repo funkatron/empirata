@@ -36,3 +36,15 @@ Updated 2026-10-23. The target is Interstel DOS v2.05C. Historical DOS binary as
 ## Policy
 
 Build new rules using a *failing red test → smallest rule change → green test* sequence. Prefer fixed, explainable expected states over permissive assertions. For uncertain mechanics, mark test expectations as provisional rather than presenting assumptions as original behavior.
+
+## Lightweight testing policy (2026-10-24)
+
+**No DOS emulator in normal tests or CI.** Original DOS behavior is researched separately, then captured as small, legally shareable expected-output fixtures (such as RNG vectors, turn transcripts, and input/output state snapshots). Normal tests compare against these fixtures without running the original executable.
+
+- **Default, on each commit:** Node unit/integration tests with fixed seeds and small scenarios; V8 engine coverage; TypeScript compilation. Favor bounded tests and simple in-memory fixtures.
+- **Browser smoke tests:** a handful of critical player flows using one headless browser engine, without screenshots or full campaigns by default. Browser-specific touch testing may be run separately when needed. No download-heavy mobile device emulation in the default CI path.
+- **Optional research tests:** DOS-emulator comparisons, long campaigns, extensive randomized fuzzing, mutation testing, and visual regression are manually triggered and never prerequisites for a normal commit or deployment.
+- **Execution budget targets:** aim for under 10 seconds of test execution for the engine suite on a typical development machine (excluding dependency installation and TypeScript compilation); aim for under 30 seconds for the default browser smoke suite after the browser is installed. Measure before enforcing timeouts.
+- **Growth control:** prefer representative table-driven cases, exact assertions and small seed sets. Avoid one test per rule permutation or thousands of randomized seeds on every commit. Any broader sweep should have an explicit optional test command.
+- **Fixture policy:** never commit the original DOS executable, unpacked binaries, copyrighted art, or save files containing proprietary assets.
+- **Historical status:** label each fixture as executable-verified, manual-derived, or provisional. Do not treat a provisional fixture as proof of original-game parity.
