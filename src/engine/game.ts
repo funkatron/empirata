@@ -49,7 +49,7 @@ export function selectProduction(game:Game,cityId:string,kind:UnitType):Game {
   updateAllKnowledge(g);return g;
 }
 export function setOrder(game:Game,unitId:string,order:UnitOrder):Game {
-  if(!['sentry','skip','none','move-to','go-direction','patrol'].includes(order.kind)) throw new RuleNotImplemented('STANDING_ORDERS','This standing order is not implemented yet.');
+  if(!['sentry','skip','none','move-to','go-direction','patrol','go-home','escort'].includes(order.kind)) throw new RuleNotImplemented('STANDING_ORDERS','This standing order is not implemented yet.');
   const g=clone(game),unit=g.units.find(u=>u.id===unitId);
   if(!unit||unit.owner!==g.active) throw new Error('Unit not available to the active player.');
   if(order.kind==='move-to'){
@@ -63,6 +63,14 @@ export function setOrder(game:Game,unitId:string,order:UnitOrder):Game {
   }else if(order.kind==='patrol'){
     if(!playable(g,order.to)||!playable(g,order.from)||!equal(order.from,unit.position)||equal(order.to,order.from))throw new Error('Patrol requires a different playable destination and current starting position.');
     unit.order={kind:'patrol',from:{...order.from},to:{...order.to},outbound:true};
+  }else if(order.kind==='escort'){
+    const target=g.units.find(u=>u.id===order.targetId);
+    if(!target||target.id===unit.id||target.owner!==unit.owner||target.aboard)
+      throw new Error('Escort requires another active friendly unit.');
+    unit.order={kind:'escort',targetId:target.id};
+  }else if(order.kind==='go-home'){
+    if(!g.cities.some(city=>city.owner===unit.owner))throw new Error('No friendly home city.');
+    unit.order={kind:'go-home'};
   }else unit.order={kind:order.kind};
   if(order.kind==='skip') unit.spent=movementAllowance(unit);
   return g;
@@ -153,17 +161,33 @@ function routeStep(game:Game,unit:Unit,destination:Coord):Coord|null {
 /** Execute passive standing orders, never attacking or assaulting cities automatically. */
 function executeStandingOrders(game:Game):Game {
   let g=game;
-  const ordered=g.units.filter(u=>u.owner===g.active&&['move-to','go-direction','patrol'].includes(u.order.kind)).map(u=>u.id);
+  const ordered=g.units.filter(u=>u.owner===g.active&&['move-to','go-direction','patrol','go-home','escort'].includes(u.order.kind)).map(u=>u.id);
   for(const id of ordered){
     for(let attempt=0;attempt<10;attempt++){
       const unit=g.units.find(u=>u.id===id);
       if(!unit||unit.spent>=movementAllowance(unit))break;
       const order=unit.order;
-      if(order.kind!=='move-to'&&order.kind!=='go-direction'&&order.kind!=='patrol')break;
+      if(!['move-to','go-direction','patrol','go-home','escort'].includes(order.kind))break;
       let step:Coord|null=null;
       let nextOrder:UnitOrder=structuredClone(order);
       if(order.kind==='go-direction'){
         step={x:unit.position.x+order.direction.x,y:unit.position.y+order.direction.y};
+      }else if(order.kind==='go-home'){
+        const homes=g.cities.filter(city=>city.owner===unit.owner)
+          .sort((a,b)=>Math.max(Math.abs(a.position.x-unit.position.x),Math.abs(a.position.y-unit.position.y))-
+            Math.max(Math.abs(b.position.x-unit.position.x),Math.abs(b.position.y-unit.position.y)));
+        if(homes.some(city=>equal(unit.position,city.position))){unit.order={kind:'none'};break;}
+        for(const home of homes){step=routeStep(g,unit,home.position);if(step)break;}
+      }else if(order.kind==='escort'){
+        const target=g.units.find(other=>other.id===order.targetId&&other.owner===unit.owner&&!other.aboard);
+        if(!target){unit.order={kind:'none'};log(g,unit.owner,'movement',`${id}: escort target unavailable.`);break;}
+        const distance=Math.max(Math.abs(target.position.x-unit.position.x),Math.abs(target.position.y-unit.position.y));
+        if(distance<=1)break; // stay beside the escorted unit; do not stack
+        const candidates=directions.map(d=>({x:target.position.x+d.x,y:target.position.y+d.y}))
+          .filter(p=>playable(g,p)).sort((a,b)=>
+            Math.max(Math.abs(a.x-unit.position.x),Math.abs(a.y-unit.position.y))-
+            Math.max(Math.abs(b.x-unit.position.x),Math.abs(b.y-unit.position.y)));
+        for(const p of candidates){step=routeStep(g,unit,p);if(step)break;}
       }else{
         let destination=order.kind==='move-to'?order.destination:(order.outbound?order.to:order.from);
         if(equal(unit.position,destination)){
@@ -192,6 +216,7 @@ function executeStandingOrders(game:Game):Game {
         const newUnit=moved.units.find(u=>u.id===id);
         if(newUnit){
           if(nextOrder.kind==='move-to'&&equal(newUnit.position,nextOrder.destination))newUnit.order={kind:'none'};
+          else if(nextOrder.kind==='go-home'&&g.cities.some(city=>city.owner===newUnit.owner&&equal(city.position,newUnit.position)))newUnit.order={kind:'none'};
           else newUnit.order=nextOrder;
         }
         g=moved;
