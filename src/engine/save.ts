@@ -74,7 +74,8 @@ export function importSave(json:string):Game {
   }
   for(const u of g.units){
     if(u.order.kind==='escort'){
-      const target=g.units.find(v=>v.id===u.order.targetId);
+      const escortId=u.order.targetId;
+      const target=g.units.find(v=>v.id===escortId);
       if(!target||target.id===u.id||target.owner!==u.owner||target.aboard)
         throw new Error('Invalid escort relationship.');
     }
