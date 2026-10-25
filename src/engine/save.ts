@@ -49,7 +49,7 @@ export function importSave(json:string):Game {
       !finiteInt(u.spent)||u.spent<0||!finiteInt(u.damage)||u.damage<0||
       !(u.fuel===null||(finiteInt(u.fuel)&&u.fuel>=0)))throw new Error('Invalid unit entry.');
     const kind=u.order?.kind;
-    if(!['none','skip','sentry','move-to','go-direction','patrol'].includes(kind))throw new Error('Invalid unit order.');
+    if(!['none','skip','sentry','move-to','go-direction','patrol','go-home','escort'].includes(kind))throw new Error('Invalid unit order.');
     if(kind==='move-to'&&!validPosition((u.order as any).destination))throw new Error('Invalid Move To destination.');
     if(kind==='go-direction'){
       const d=(u.order as any).direction;
@@ -61,6 +61,8 @@ export function importSave(json:string):Game {
       if(!validPosition(o.from)||!validPosition(o.to)||equal(o.from,o.to)||typeof o.outbound!=='boolean')
         throw new Error('Invalid patrol route.');
     }
+    if(kind==='escort'&&(typeof (u.order as any).targetId!=='string'||!(u.order as any).targetId))
+      throw new Error('Invalid escort target.');
     unitIds.add(u.id);
   }
   for(const u of g.units){
@@ -68,6 +70,13 @@ export function importSave(json:string):Game {
       const parent=g.units.find(v=>v.id===u.aboard);
       if(!parent||parent.id===u.id||parent.owner!==u.owner||!['transport','carrier'].includes(parent.kind))
         throw new Error('Invalid embarked unit.');
+    }
+  }
+  for(const u of g.units){
+    if(u.order.kind==='escort'){
+      const target=g.units.find(v=>v.id===u.order.targetId);
+      if(!target||target.id===u.id||target.owner!==u.owner||target.aboard)
+        throw new Error('Invalid escort relationship.');
     }
   }
   for(const faction of playerIds){
