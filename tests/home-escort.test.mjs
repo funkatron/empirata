@@ -60,3 +60,13 @@ test('Malformed escort references are rejected by save validation',()=>{
    assert.throws(()=>importSave(JSON.stringify(edited)),/escort/i);
  }
 });
+
+test('Go Home may enter an owned city containing another friendly unit',()=>{
+ let g=makeRulesLab();
+ const guard={...structuredClone(get(g,'u1')),id:'guard',position:{x:8,y:25}};
+ g.units.push(guard);updateAllKnowledge(g);
+ g=setOrder(g,'u1',{kind:'go-home'});
+ g=runMoveToOrders(g);
+ assert.deepEqual(get(g,'u1').position,{x:8,y:25});
+ assert.equal(get(g,'u1').order.kind,'none');
+});
