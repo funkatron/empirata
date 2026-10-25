@@ -167,7 +167,7 @@ function executeStandingOrders(game:Game):Game {
       const unit=g.units.find(u=>u.id===id);
       if(!unit||unit.spent>=movementAllowance(unit))break;
       const order=unit.order;
-      if(!['move-to','go-direction','patrol','go-home','escort'].includes(order.kind))break;
+      if(order.kind!=='move-to'&&order.kind!=='go-direction'&&order.kind!=='patrol'&&order.kind!=='go-home'&&order.kind!=='escort')break;
       let step:Coord|null=null;
       let nextOrder:UnitOrder=structuredClone(order);
       if(order.kind==='go-direction'){
