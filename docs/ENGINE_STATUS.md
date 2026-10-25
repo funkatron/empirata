@@ -36,8 +36,18 @@ Close Quarters includes additional blue armies so players can engage in multiple
 ## Follow-up work
 
 1. Naval transport loading and unloading, fighter carriers and fuel/refueling.
-2. Complete original standing orders (move-to, direction, patrol, escort, sentry waking), avoiding automatic attacks from orders.
+2. Validate the original stopping/waking semantics of implemented standing orders, and compare against DOS traces; automatic attacks remain disabled.
 3. Improve Red AI strategic behavior while preserving faction-specific knowledge.
 4. Historical map loading/selection, production capture details and timing, city vision, full detection matrix.
 5. Win/loss detection, multiple factions and game menus.
 6. Behavioral comparison with licensed/authentic DOS version to resolve unresolved details.
+
+
+## 2026-10-24 movement milestone
+
+- Added **Go Home**: select a known, owned city and move toward it using remembered terrain. Stop when docked/arrived, at an obstruction, or when no safe route exists.
+- Added **Escort**: follow a selected friendly unit; do not enter the leader's square or initiate combat. Lost targets clear the order.
+- Browser unit controls expose both orders; save-file imports validate Escort targets.
+- Covered home arrival, multi-round travel, occupied friendly cities, escort following, invalid/lost targets and persistence with lightweight Node tests.
+- Historical details of Go Home destination preference and Escort formation remain *provisional* pending an original-DOS behavior trace.
+- GitHub Actions compilation and Pages publication for this milestone must be verified separately; a source commit alone does not prove deployment.
