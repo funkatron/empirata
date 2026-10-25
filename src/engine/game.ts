@@ -140,7 +140,7 @@ function routeStep(game:Game,unit:Unit,destination:Coord):Coord|null {
       const pos={x:x+direction.x,y:y+direction.y};
       if(!playable(game,pos))continue;
       const k=index(game,pos);
-      if(visited.has(k)||visibleEnemies.has(k)||friendly.has(k))continue;
+      if(visited.has(k)||visibleEnemies.has(k)||(friendly.has(k)&&!game.cities.some(city=>knowledge.cities[city.id]?.owner===unit.owner&&equal(city.position,pos))))continue;
       const terrain=knowledge.terrain[k];
       const city=knowledge.terrain[k]!==null?cities.get(k):undefined;
       // Only use ownership learned from this player's knowledge.
