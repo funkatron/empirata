@@ -588,7 +588,7 @@ export function playRedOpponent(game:Game):Game {
 export function advanceLabRound(game:Game):Game {
   if(game.mode!=='rules-lab'||game.active!=='blue')throw new Error('Lab round advance requires blue player.');
   let g=endTurn(game);
-  if(g.scenario==='close-quarters'&&g.active==='red')g=playRedOpponent(g);
+  if((g.scenario==='close-quarters'||g.scenario==='ai-invasion')&&g.active==='red')g=playRedOpponent(g);
   while(g.active!=='blue')g=endTurn(g);
   return g;
 }
