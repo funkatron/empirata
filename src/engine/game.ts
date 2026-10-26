@@ -70,7 +70,7 @@ function fillShip(g:Game,ship:Unit,portOnly=false):number {
     occupied++;loaded++;
     log(g,ship.owner,'movement',`${candidate.id} loaded aboard ${ship.id}.`);
   }
-  if(occupied>=capacityNow)ship.order={kind:'none'};
+  if(occupied>=capacityNow&&ship.order.kind==='load-ship')ship.order={kind:'none'};
   return loaded;
 }
 /** Station a troop transport or carrier for automatic loading until full. */
