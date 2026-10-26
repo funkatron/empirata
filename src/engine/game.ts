@@ -747,7 +747,9 @@ export function playRedOpponent(game:Game):Game {
       // Keep one active ground scout per faction. Other armies stage at ports
       // for transport loading rather than clogging the island with wanderers.
       const firstArmy=view.ownUnits.find(u=>u.kind==='army'&&!u.aboard);
-      const isScout=unit.kind==='army'&&firstArmy?.id===unit.id;
+      const isScout=unit.kind==='army'&&firstArmy?.id===unit.id&&
+        view.ownUnits.filter(u=>u.kind==='army'&&!u.aboard).length>=3&&
+        view.ownUnits.some(u=>u.kind==='transport');
       if(unit.kind==='army'&&!isScout&&visibleEnemies.length===0&&groundPlan===null&&
          !knownCities.some(c=>distance(c.pos,unit.position)<=1)){
         const ports=view.ownCities.filter(c=>isCoastal(g,c.position))
