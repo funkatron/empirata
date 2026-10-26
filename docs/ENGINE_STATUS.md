@@ -111,3 +111,10 @@ Close Quarters includes additional blue armies so players can engage in multiple
 - A separate test verifies that the initial naval approach consumes no combat RNG draws.
 - Scenario is a QA demonstration, not a historical Empire map or evidence of the original AI algorithm.
 - Verify the latest CI test run and published page separately; source commits and a generated bundle are not themselves a CI pass report.
+
+## 2026-10-26 campaign AI routing and logistics loop
+
+- Red land units now use a deterministic, knowledge-limited breadth-first planner to move toward known non-Red cities, routing around observed sea and occupied cells rather than repeatedly selecting a blocked direct step. Attacks and city assaults remain normal game actions.
+- Empty Red transports return to a known friendly coastal city to reload; ships already at port wait rather than wandering away. Loaded transports retain their invasion routing.
+- Five lightweight ground-routing tests cover a forced detour, occupied tiles, absence of objectives, repeatability, and fog isolation. Three additional tests cover empty-transport return, waiting, and loaded-ship separation.
+- The campaign opponent remains heuristic. Historical AI strategy, long-term exploration and fleet coordination remain unverified and are not claimed as original Interstel behavior.
