@@ -61,9 +61,15 @@ function focus(p:Coord):void{
 }
 function zoom(change:number):void {
   const old=tileSize;
-  tileSize=Math.max(11,Math.min(45,tileSize+change));
+  tileSize=Math.max(Math.min(canvas.clientWidth/game.width,canvas.clientHeight/game.height),Math.min(45,tileSize+change));
   cameraX=(cameraX+canvas.clientWidth/2)*(tileSize/old)-canvas.clientWidth/2;
   cameraY=(cameraY+canvas.clientHeight/2)*(tileSize/old)-canvas.clientHeight/2;
+  clamp();paint();
+}
+function fitWorld():void {
+  tileSize=Math.min(canvas.clientWidth/game.width,canvas.clientHeight/game.height);
+  cameraX=(game.width*tileSize-canvas.clientWidth)/2;
+  cameraY=(game.height*tileSize-canvas.clientHeight)/2;
   clamp();paint();
 }
 function paint():void {
@@ -78,7 +84,7 @@ function paint():void {
     ctx.fillStyle=c.terrain===null?colors.unseen:c.terrain==='land'?colors.land:colors.sea;
     ctx.fillRect(px,py,tileSize+0.25,tileSize+0.25);
     if(c.terrain!==null&&!c.visible){ctx.fillStyle='rgba(3,13,22,.52)';ctx.fillRect(px,py,tileSize,tileSize);}
-    ctx.strokeStyle='rgba(120,159,166,.12)';ctx.lineWidth=.65;ctx.strokeRect(px+.3,py+.3,tileSize-.6,tileSize-.6);
+    if(tileSize>=9){ctx.strokeStyle='rgba(120,159,166,.12)';ctx.lineWidth=.65;ctx.strokeRect(px+.3,py+.3,tileSize-.6,tileSize-.6);
     if(c.city){
       const ink=c.city.owner==='blue'?colors.blue:c.city.owner==='red'?colors.red:colors.neutral;
       ctx.fillStyle=ink;const r=Math.max(3,tileSize*.29);
@@ -263,6 +269,7 @@ canvas.addEventListener('pointermove',ev=>{if(!down)return;
 canvas.addEventListener('pointerup',ev=>{if(!down)return;const wasMoved=down.moved;down=null;
   if(!wasMoved)tapTile(cellFromPointer(ev));});
 canvas.addEventListener('pointercancel',()=>{down=null;});
+el('fitWorld').addEventListener('click',fitWorld);
 canvas.addEventListener('wheel',ev=>{ev.preventDefault();zoom(ev.deltaY<0?2:-2);},{passive:false});
 document.addEventListener('keydown',ev=>{
   if(ev.ctrlKey||ev.metaKey||ev.altKey)return;
