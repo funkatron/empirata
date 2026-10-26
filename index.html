@@ -1924,6 +1924,7 @@ let spectatorMode = 'alternate';
 let playback = null;
 let view = (0, index_js_1.getPlayerView)(game, observer);
 let selectedUnit = 'u1', selectedCity = null;
+let spectatorContact = null, spectatorCity = null;
 let tileSize = 30, cameraX = 0, cameraY = 0;
 let down = null;
 const touches = new Map();
@@ -1953,6 +1954,8 @@ function dispatch(operation) {
             observer = (game.round - 1) % 2 === 0 ? 'blue' : 'red';
             selectedUnit = null;
             selectedCity = null;
+            spectatorContact = null;
+            spectatorCity = null;
         }
         view = (0, index_js_1.getPlayerView)(game, observer);
         if (selectedUnit && !view.ownUnits.some(u => u.id === selectedUnit))
@@ -2071,7 +2074,23 @@ function cellFromPointer(ev) {
 }
 function tapTile(pos) {
     if (game.scenario === 'ai-vs-ai') {
-        uiMessage('Spectator mode: use Play, Next round or +10 rounds.');
+        if (pos.x < 0 || pos.y < 0 || pos.x >= view.width || pos.y >= view.height)
+            return;
+        const own = view.ownUnits.filter(u => !u.aboard && u.position.x === pos.x && u.position.y === pos.y);
+        const enemies = view.enemies.filter(u => !u.stale && u.position.x === pos.x && u.position.y === pos.y);
+        const city = view.cells[pos.y * view.width + pos.x]?.city;
+        const candidates = [...own.map(u => ({ kind: 'unit', id: u.id })),
+            ...enemies.map(u => ({ kind: 'contact', id: u.id })),
+            ...(city ? [{ kind: 'city', id: city.id }] : [])];
+        const current = candidates.findIndex(c => c.kind === 'unit' && c.id === selectedUnit ||
+            c.kind === 'contact' && c.id === spectatorContact ||
+            c.kind === 'city' && c.id === spectatorCity);
+        const chosen = candidates[(current + 1) % candidates.length];
+        selectedUnit = chosen?.kind === 'unit' ? chosen.id : null;
+        selectedCity = chosen?.kind === 'city' && view.ownCities.some(c => c.id === chosen.id) ? chosen.id : null;
+        spectatorContact = chosen?.kind === 'contact' ? chosen.id : null;
+        spectatorCity = chosen?.kind === 'city' ? chosen.id : null;
+        refresh();
         return;
     }
     if (choosingDestination && selectedUnit) {
@@ -2185,6 +2204,25 @@ function selectedCityBlock(city) {
   <div class="datum"><small>Production phase</small><strong>${city.firstCycle ? 'Setup' : 'Repeat'}</strong></div></div>
   <p class="stat-note">Changing unit types discards unfinished production. Production advances at the beginning of your faction's turn.</p>`;
 }
+function spectatorUnitBlock(unit) {
+    const stats = index_js_1.STATS[unit.kind];
+    const cargo = view.ownUnits.filter(u => u.aboard === unit.id);
+    return `<div class="selection-title">${text(stats.name)} <span class="subtle">#${text(unit.id)}</span></div>
+    <div class="subtle">${text(unit.owner)} · ${unit.position.x}, ${unit.position.y}</div>
+    <div class="data"><div class="datum"><small>Movement remaining</small><strong>${Math.max(0, (0, index_js_1.movementAllowance)(unit) - unit.spent)}</strong></div>
+    <div class="datum"><small>Damage</small><strong>${unit.damage} / ${stats.hitPoints}</strong></div>
+    ${unit.kind === 'fighter' ? `<div class="datum"><small>Fuel</small><strong>${unit.fuel}</strong></div>` : ''}
+    ${(0, index_js_1.capacity)(unit) !== null ? `<div class="datum"><small>Cargo</small><strong>${cargo.length} / ${(0, index_js_1.capacity)(unit)}</strong></div>` : ''}</div>
+    <p class="stat-note">Spectator inspection only. No orders can be issued.</p>`;
+}
+function spectatorCityBlock(city) {
+    const turns = city.production ? (0, index_js_1.requiredProductionTurns)(city.production, city.firstCycle) : null;
+    return `<div class="selection-title">City ${text(city.id)}</div>
+    <div class="subtle">${text(city.owner ?? 'Neutral')} · ${city.position.x}, ${city.position.y}</div>
+    <div class="data"><div class="datum"><small>Production</small><strong>${text(city.production ?? 'None')}</strong></div>
+    <div class="datum"><small>Progress</small><strong>${city.progress} / ${turns ?? '—'}</strong></div></div>
+    <p class="stat-note">Spectator inspection only. No production changes allowed.</p>`;
+}
 function refresh() {
     view = (0, index_js_1.getPlayerView)(game, observer);
     el('aiSpectator').hidden = game.scenario !== 'ai-vs-ai';
@@ -2206,9 +2244,25 @@ function refresh() {
     const city = view.ownCities.find(c => c.id === selectedCity);
     const inspector = el('inspector');
     if (unit)
-        inspector.innerHTML = selectedUnitBlock(unit);
+        inspector.innerHTML = game.scenario === 'ai-vs-ai' ? spectatorUnitBlock(unit) : selectedUnitBlock(unit);
     else if (city)
-        inspector.innerHTML = selectedCityBlock(city);
+        inspector.innerHTML = game.scenario === 'ai-vs-ai' ? spectatorCityBlock(city) : selectedCityBlock(city);
+    else if (game.scenario === 'ai-vs-ai' && spectatorContact) {
+        const enemy = view.enemies.find(u => u.id === spectatorContact && !u.stale);
+        inspector.innerHTML = enemy ?
+            `<div class="selection-title">${text(index_js_1.STATS[enemy.kind].name)} #${text(enemy.id)}</div>
+      <div class="subtle">${text(enemy.owner)} · ${enemy.position.x}, ${enemy.position.y}</div>
+      <p class="stat-note">Visible enemy contact. Additional details are not available to this faction.</p>` :
+            '<p>Enemy contact no longer visible.</p>';
+    }
+    else if (game.scenario === 'ai-vs-ai' && spectatorCity) {
+        const intel = view.cells.find(c => c.city?.id === spectatorCity)?.city;
+        inspector.innerHTML = intel ?
+            `<div class="selection-title">City ${text(intel.id)}</div>
+      <div class="subtle">Known owner: ${text(intel.owner ?? 'Neutral')}</div>
+      <p class="stat-note">Remembered city intelligence. Production is not visible.</p>` :
+            '<p>City intelligence unavailable.</p>';
+    }
     else
         inspector.innerHTML = game.scenario === 'ai-vs-ai' ? '<p>Both factions are computer-controlled. Alternate the map viewpoint each round or choose a fixed side. The scorecards show both players’ own totals.</p>' : '<p>Select a blue unit, then tap an adjacent enemy to attack. Select a city to assign production. Red will respond on the next round using a preliminary rules-bound AI.</p>';
     inspector.querySelectorAll('.cargoButton').forEach(button => button.addEventListener('click', () => {
@@ -2443,6 +2497,8 @@ el('spectatorSide').addEventListener('change', () => {
     observer = spectatorMode === 'alternate' ? ((game.round - 1) % 2 === 0 ? 'blue' : 'red') : spectatorMode;
     selectedUnit = null;
     selectedCity = null;
+    spectatorContact = null;
+    spectatorCity = null;
     refresh();
     uiMessage(spectatorMode === 'alternate' ? 'Automatically alternating the spectator view each round.' : `Observing ${observer.toUpperCase()} intelligence. Hidden enemy information remains concealed.`);
 });
