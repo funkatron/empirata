@@ -46,16 +46,19 @@ test('Invasion planner navigates toward remembered enemy coastline without DOS e
 test('AI invasion eventually lands an army and contests a discovered neutral city',()=>{
   let g=invasionFixture();
   let landed=false,claimed=false;
+  const trace=[];
   for(let i=0;i<15;i++){
     g=advanceLabRound(g);
     const army=unit(g,'u3');
+    trace.push({round:g.round,army:army?{pos:army.position,aboard:army.aboard}:null,
+      ship:unit(g,'red-transport')?.position,owner:g.cities.find(c=>c.id==='invasion-objective').owner});
     if(army&&!army.aboard)landed=true;
     if(g.cities.find(c=>c.id==='invasion-objective').owner==='red'){
       claimed=true;break;
     }
   }
   assert.ok(landed,'A transported Red army should reach a legal landing square');
-  assert.ok(claimed,'Red should capture the known neutral objective with seed 1');
+  assert.ok(claimed,'Red should capture the known neutral objective with seed 1; '+JSON.stringify(trace));
 });
 
 test('Invasion decision does not consult unseen alternative destinations',()=>{
@@ -83,11 +86,14 @@ test('Playable AI Invasion scenario runs the opponent and brings transport to it
 
 test('Playable invasion captures an undefended outpost within bounded rounds',()=>{
   let g=makeAiInvasionLab(),claimed=false;
+  const trace=[];
   for(let round=0;round<15;round++){
     g=advanceLabRound(g);
+    trace.push({round:g.round,army:unit(g,'u3')?.position,aboard:unit(g,'u3')?.aboard,
+      ship:unit(g,'red-transport')?.position,owner:g.cities.find(c=>c.id==='invasion-outpost').owner});
     if(g.cities.find(c=>c.id==='invasion-outpost').owner==='red'){
       claimed=true;break;
     }
   }
-  assert.equal(claimed,true,'Red should complete the island invasion');
+  assert.equal(claimed,true,'Red should complete the island invasion: '+JSON.stringify(trace));
 });
