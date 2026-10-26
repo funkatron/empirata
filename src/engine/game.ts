@@ -613,6 +613,25 @@ export function playRedOpponent(game:Game):Game {
       const visibleEnemies=view.enemies.filter(e=>!e.stale);
       const knownCities=view.cells.flatMap((cell,i)=>cell.city&&cell.city.owner!=='red'?
         [{pos:{x:i%view.width,y:Math.floor(i/view.width)},city:cell.city}]:[]);
+      // With no discovered objective or contact, keep armies within loading
+      // range of a friendly coastal city. Otherwise the army population
+      // disperses before the first transport finishes construction.
+      if(unit.kind==='army'&&visibleEnemies.length===0&&knownCities.length===0){
+        const ports=view.ownCities.filter(c=>isCoastal(g,c.position))
+          .sort((a,b)=>distance(a.position,unit.position)-distance(b.position,unit.position));
+        if(ports.length){
+          if(ports.some(port=>distance(port.position,unit.position)<=1))break;
+          let staged=false;
+          for(const port of ports){
+            const next=routeStep(g,unit,port.position);
+            if(!next)continue;
+            try{g=moveUnit(g,id,next);staged=true;break;}
+            catch{/* Another unit may have moved into this square. */}
+          }
+          if(staged)continue;
+          break;
+        }
+      }
       // Only choose opponents visible to this faction. Ships/fighters may not
       // attempt a city capture; those targets are exclusively for armies.
       const foes=visibleEnemies.filter(e=>distance(e.position,unit.position)===1);
