@@ -292,6 +292,7 @@ __modules["engine/game.js"] = function(module, exports, require) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RuleNotImplemented = void 0;
 exports.makeRulesLab = makeRulesLab;
+exports.repairLabHarbor = repairLabHarbor;
 exports.selectProduction = selectProduction;
 exports.loadShip = loadShip;
 exports.unloadShip = unloadShip;
@@ -350,6 +351,76 @@ function makeRulesLab() {
         g.knowledge[faction] = (0, knowledge_js_1.emptyKnowledge)(g);
     (0, knowledge_js_1.updateAllKnowledge)(g);
     log(g, 'blue', 'system', 'Rules laboratory loaded. Manual-based combat and city assaults are active; cargo and autopilot orders are unfinished.');
+    return g;
+}
+/** Repair the constructed lab's isolated eastern harbor, including older
+ * AI-vs-AI autosaves. This is a fixture migration, not a general map editor.
+ * The corridor avoids cities and grounded units and joins actual open ocean.
+ * Never modify historical or imported non-lab scenarios.
+ */
+function repairLabHarbor(game) {
+    if (game.scenario !== 'ai-vs-ai')
+        return game;
+    const port = game.cities.find(c => c.id === 'c-red' && c.owner === 'red');
+    if (!port || port.position.x !== 80 || port.position.y !== 36 || game.width !== 100 || game.height !== 60)
+        return game;
+    const start = { x: 81, y: 36 };
+    if ((0, world_js_1.terrainAt)(game, start) !== 'sea')
+        return game;
+    const blocked = new Set();
+    for (const c of game.cities)
+        blocked.add((0, world_js_1.index)(game, c.position));
+    for (const u of game.units)
+        if (!u.aboard && units_js_1.STATS[u.kind].domain === 'land')
+            blocked.add((0, world_js_1.index)(game, u.position));
+    const startKey = (0, world_js_1.index)(game, start), distance = new Map([[startKey, 0]]);
+    const previous = new Map(), visited = new Set();
+    const queue = [[0, startKey]];
+    let target;
+    while (queue.length) {
+        queue.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+        const [cost, at] = queue.shift();
+        if (visited.has(at))
+            continue;
+        visited.add(at);
+        const p = { x: at % game.width, y: Math.floor(at / game.width) };
+        // The ocean beyond the eastern island is guaranteed sea in this lab.
+        if (p.x >= 94 && (0, world_js_1.terrainAt)(game, p) === 'sea') {
+            target = at;
+            break;
+        }
+        for (const d of world_js_1.directions) {
+            const next = { x: p.x + d.x, y: p.y + d.y };
+            if (!(0, world_js_1.playable)(game, next))
+                continue;
+            const k = (0, world_js_1.index)(game, next);
+            if (visited.has(k) || blocked.has(k))
+                continue;
+            const nextCost = cost + ((0, world_js_1.terrainAt)(game, next) === 'sea' ? 0 : 1);
+            if (nextCost < (distance.get(k) ?? Infinity)) {
+                distance.set(k, nextCost);
+                previous.set(k, at);
+                queue.push([nextCost, k]);
+            }
+        }
+    }
+    if (target === undefined)
+        return game;
+    const corridor = [];
+    for (let at = target; at !== startKey;) {
+        corridor.push(at);
+        const prior = previous.get(at);
+        if (prior === undefined)
+            return game;
+        at = prior;
+    }
+    if (!corridor.some(k => game.tiles[k] !== 'sea'))
+        return game;
+    const g = clone(game);
+    for (const k of corridor)
+        g.tiles[k] = 'sea';
+    (0, knowledge_js_1.updateAllKnowledge)(g);
+    log(g, null, 'system', 'Lab harbor repaired: an accessible sea lane now connects the eastern port to open water.');
     return g;
 }
 function selectProduction(game, cityId, kind) {
@@ -1317,7 +1388,8 @@ function playBlueOpponent(game) {
 function advanceLabRound(game) {
     if (game.mode !== 'rules-lab' || game.active !== 'blue')
         throw new Error('Lab round advance requires blue player.');
-    let g = game.scenario === 'ai-vs-ai' ? playBlueOpponent(game) : game;
+    const ready = repairLabHarbor(game);
+    let g = ready.scenario === 'ai-vs-ai' ? playBlueOpponent(ready) : ready;
     g = endTurn(g);
     if ((g.scenario === 'close-quarters' || g.scenario === 'ai-invasion' || g.scenario === 'ai-vs-ai') && g.active === 'red')
         g = playRedOpponent(g);
@@ -1703,7 +1775,7 @@ function makeAiVsAiLab() {
     g.scenario = 'ai-vs-ai';
     g.events.push({ id: g.nextEventId++, round: g.round, recipient: null, kind: 'system',
         message: 'AI versus AI laboratory: both factions act automatically. Advance rounds to observe a deterministic skirmish.' });
-    return g;
+    return (0, game_js_1.repairLabHarbor)(g);
 }
 
 };
