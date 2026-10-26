@@ -22,7 +22,13 @@
       <section class="events card"><h2>Orders &amp; reports</h2><div id="events"></div></section>
       <section class="files card"><h2>Close Quarters · Immediate encounters</h2>
         <p>Blue armies face nearby red forces and a neutral city. Select a blue unit and tap an adjacent red unit or gold city to fight. Results use the Interstel manual's combat odds, not scripted victory buttons. Additional armies make city assaults repeatable. Red responds on the next round using a preliminary rules-bound AI.</p>
-        <div class="actions"><button id="newGame" class="wide">Start Close Quarters</button><button id="classicGame">Original test map</button><button id="invasionGame">AI Invasion</button></div>
+        <div class="actions"><button id="newGame" class="wide">Start Close Quarters</button><button id="classicGame">Original test map</button><button id="invasionGame">AI Invasion</button><button id="aiVsAiGame">Computer vs computer</button></div>
+        <div class="ai-spectator" id="aiSpectator" hidden>
+          <label for="spectatorSide">Observe</label>
+          <select id="spectatorSide" aria-label="Spectator viewpoint"><option value="blue">Blue intelligence</option><option value="red">Red intelligence</option></select>
+          <div class="actions"><button id="autoPlay" type="button">▶ Play</button><button id="stepTen" type="button">+10 rounds</button></div>
+          <p>Both computers use the same provisional AI. Each viewpoint shows only its own intelligence. Pause before changing scenarios.</p>
+        </div>
         <p>AI Invasion is a short demonstration: defend a Blue outpost while Red approaches by transport, lands troops and attempts a capture. It is a testing scenario, not an original DOS map.</p><h2 style="margin-top:14px">Save &amp; reset</h2>
         <div class="actions"><button id="exportSave">Export JSON</button><button id="importSave">Import JSON</button></div>
         <input id="saveFile" type="file" accept="application/json,.json" hidden/>
