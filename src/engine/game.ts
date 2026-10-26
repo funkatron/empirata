@@ -37,6 +37,59 @@ export function makeRulesLab():Game {
   log(g,'blue','system','Rules laboratory loaded. Manual-based combat and city assaults are active; cargo and autopilot orders are unfinished.');
   return g;
 }
+/** Repair the constructed lab's isolated eastern harbor, including older
+ * AI-vs-AI autosaves. This is a fixture migration, not a general map editor.
+ * The corridor avoids cities and grounded units and joins actual open ocean.
+ * Never modify historical or imported non-lab scenarios.
+ */
+export function repairLabHarbor(game:Game):Game {
+  if(game.scenario!=='ai-vs-ai')return game;
+  const port=game.cities.find(c=>c.id==='c-red'&&c.owner==='red');
+  if(!port||port.position.x!==80||port.position.y!==36||game.width!==100||game.height!==60)return game;
+  const start={x:81,y:36};
+  if(terrainAt(game,start)!=='sea')return game;
+  const blocked=new Set<number>();
+  for(const c of game.cities)blocked.add(index(game,c.position));
+  for(const u of game.units)if(!u.aboard&&STATS[u.kind].domain==='land')
+    blocked.add(index(game,u.position));
+  const startKey=index(game,start),distance=new Map<number,number>([[startKey,0]]);
+  const previous=new Map<number,number>(),visited=new Set<number>();
+  const queue:[number,number][]=[[0,startKey]];
+  let target:number|undefined;
+  while(queue.length){
+    queue.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+    const [cost,at]=queue.shift()!;
+    if(visited.has(at))continue;
+    visited.add(at);
+    const p={x:at%game.width,y:Math.floor(at/game.width)};
+    // The ocean beyond the eastern island is guaranteed sea in this lab.
+    if(p.x>=94&&terrainAt(game,p)==='sea'){target=at;break;}
+    for(const d of directions){
+      const next={x:p.x+d.x,y:p.y+d.y};
+      if(!playable(game,next))continue;
+      const k=index(game,next);
+      if(visited.has(k)||blocked.has(k))continue;
+      const nextCost=cost+(terrainAt(game,next)==='sea'?0:1);
+      if(nextCost<(distance.get(k)??Infinity)){
+        distance.set(k,nextCost);previous.set(k,at);queue.push([nextCost,k]);
+      }
+    }
+  }
+  if(target===undefined)return game;
+  const corridor:number[]=[];
+  for(let at=target;at!==startKey;){
+    corridor.push(at);
+    const prior=previous.get(at);
+    if(prior===undefined)return game;
+    at=prior;
+  }
+  if(!corridor.some(k=>game.tiles[k]!=='sea'))return game;
+  const g=clone(game);
+  for(const k of corridor)g.tiles[k]='sea';
+  updateAllKnowledge(g);
+  log(g,null,'system','Lab harbor repaired: an accessible sea lane now connects the eastern port to open water.');
+  return g;
+}
 export function selectProduction(game:Game,cityId:string,kind:UnitType):Game {
   const g=clone(game);
   const city=g.cities.find(c=>c.id===cityId);
