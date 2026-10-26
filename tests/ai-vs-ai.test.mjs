@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   makeAiVsAiLab,makeCloseQuartersLab,playBlueOpponent,advanceLabRound,
-  getPlayerView,exportSave,importSave
+  getPlayerView,exportSave,importSave,repairLabHarbor,updateAllKnowledge
 } from '../dist/engine/index.js';
 
 test('AI versus AI is a separate deterministic lab scenario',()=>{
@@ -83,4 +83,36 @@ test('A twenty-round AI exhibition never strands cargo or leaves the active fact
       assert.deepEqual(ship.position,cargo.position);
     }
   }
+});
+
+test('The eastern computer harbor connects to open ocean in a new match',()=>{
+  const g=makeAiVsAiLab();
+  assert.equal(g.tiles[36*g.width+81],'sea');
+  const seen=new Set([36*g.width+81]),queue=[36*g.width+81];
+  for(let i=0;i<queue.length;i++){
+    const p=queue[i],x=p%g.width,y=Math.floor(p/g.width);
+    for(const [dx,dy] of [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]]){
+      const nx=x+dx,ny=y+dy,k=ny*g.width+nx;
+      if(nx<=0||ny<=0||nx>=g.width-1||ny>=g.height-1||seen.has(k)||g.tiles[k]!=='sea')continue;
+      seen.add(k);queue.push(k);
+    }
+  }
+  assert.ok([...seen].some(k=>k%g.width>=94),'Eastern port must reach open sea');
+});
+
+test('Legacy computer saves repair their isolated harbor without drowning land units',()=>{
+  const old=makeCloseQuartersLab();
+  old.scenario='ai-vs-ai';
+  const army=old.units.find(u=>u.owner==='red'&&u.kind==='army');
+  army.position={x:82,y:36};
+  updateAllKnowledge(old);
+  const original=structuredClone(old);
+  const fixed=repairLabHarbor(old);
+  assert.equal(old.tiles[36*old.width+82],'land','Repair must not mutate save input');
+  assert.equal(fixed.tiles[36*fixed.width+82],'land','Ground units must remain on land');
+  assert.ok(fixed.events.some(e=>e.message.includes('Lab harbor repaired')));
+  assert.deepEqual(repairLabHarbor(fixed),fixed,'Repair must be idempotent');
+  assert.deepEqual(old,original);
+  const advanced=advanceLabRound(importSave(exportSave(old)));
+  assert.ok(advanced.events.some(e=>e.message.includes('Lab harbor repaired')));
 });
