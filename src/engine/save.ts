@@ -49,7 +49,7 @@ export function importSave(json:string):Game {
       !finiteInt(u.spent)||u.spent<0||!finiteInt(u.damage)||u.damage<0||
       !(u.fuel===null||(finiteInt(u.fuel)&&u.fuel>=0)))throw new Error('Invalid unit entry.');
     const kind=u.order?.kind;
-    if(!['none','skip','sentry','move-to','go-direction','patrol','go-home','escort'].includes(kind))throw new Error('Invalid unit order.');
+    if(!['none','skip','sentry','move-to','go-direction','patrol','go-home','escort','load-ship'].includes(kind))throw new Error('Invalid unit order.');
     if(kind==='move-to'&&!validPosition((u.order as any).destination))throw new Error('Invalid Move To destination.');
     if(kind==='go-direction'){
       const d=(u.order as any).direction;
@@ -63,6 +63,8 @@ export function importSave(json:string):Game {
     }
     if(kind==='escort'&&(typeof (u.order as any).targetId!=='string'||!(u.order as any).targetId))
       throw new Error('Invalid escort target.');
+    if(kind==='load-ship'&&u.kind!=='transport'&&u.kind!=='carrier')
+      throw new Error('Only transport ships and carriers may wait for cargo.');
     unitIds.add(u.id);
   }
   for(const u of g.units){
