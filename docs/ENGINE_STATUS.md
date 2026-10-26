@@ -102,3 +102,12 @@ Close Quarters includes additional blue armies so players can engage in multiple
 - GitHub Actions verify run **40274327359 passed**: **122 / 122 engine tests**, **2 / 2 standalone bundle smoke tests**, engine-only coverage **96.05% lines / 89.33% branches / 93.66% functions**; Node test execution ~2.7 seconds. Bundled-page publish step passed.
 - GitHub Pages deployment for the new generated page runs separately. Verify that rollout before claiming the public site is up to date.
 - Next: evaluate behavior against multiple map fixtures, transport logistics under pressure, and more realistic strategic objective selection without making the normal CI suite heavy.
+
+## 2026-10-26 AI island-landing demonstration
+
+- Added an `ai-invasion` rules-lab scenario, selectable from the browser UI, with a known outpost and a Red army aboard a transport.
+- Loaded Red transports use bounded breadth-first search over their own remembered terrain to approach legal landing squares near known objectives. The planner does not inspect undiscovered world tiles.
+- Compact Node regressions verify approach, eventual landing and city capture, no change in route decisions from hidden alternative objectives, and replay determinism after JSON save/restore.
+- A separate test verifies that the initial naval approach consumes no combat RNG draws.
+- Scenario is a QA demonstration, not a historical Empire map or evidence of the original AI algorithm.
+- Verify the latest CI test run and published page separately; source commits and a generated bundle are not themselves a CI pass report.
