@@ -33,6 +33,14 @@ We follow those **documented odds**, but the original DOS PRNG, seeding, and seq
 
 Other remaining limits: simplified red AI; unfinished troop transport/carrier loading, automatic standing orders, and victory conditions; historical maps not imported; exact production timing and some submarine detection details still need executable confirmation. The old “Original test map” remains available as a passive rules test fixture.
 
+## Current logistics work (in development)
+
+The source now contains **troop transport embarkation/landing** and **carrier fighter boarding/launching**, including cargo movement with ships, friendly-port unloading/refueling and cargo losses on ship destruction. Close Quarters has friendly transport/army and carrier/fighter pairs for hands-on use once the latest browser bundle is deployed.
+
+To try the controls in an updated build: select an army and tap an adjacent friendly **T** to board; select the **T**, then a listed embarked army and tap adjacent land to disembark. For aircraft, select a fighter and tap an adjacent friendly **V** to board; select its cargo fighter and tap an empty adjacent square to launch.
+
+**Verification note:** These mechanics and their tests have been committed to the source repository, but the current GitHub Pages build has not been independently confirmed to include them. Original-DOS loading-order, fuel timing and carrier cargo-loss selection still need reference comparisons.
+
 ## Development
 
 The site is entirely static; GitHub Pages hosts `index.html` in the repository root. To work locally:
