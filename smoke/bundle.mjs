@@ -31,8 +31,8 @@ test('AI spectator controls support automatic viewpoint alternation and dual sco
   assert.match(html,/id="autoPlay"/);
   assert.match(html,/id="stepTen"/);
   assert.match(html,/spectatorMode\s*===\s*['"]alternate['"]/);
-  assert.match(html,/getPlayerView\(game,\s*['"]blue['"]\)/);
-  assert.match(html,/getPlayerView\(game,\s*['"]red['"]\)/);
+  assert.match(html,/spectatorBlue/);
+  assert.match(html,/spectatorRed/);
 });
 
 test('Touch map supports pinch gestures without dispatching accidental taps',()=>{
