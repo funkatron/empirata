@@ -844,6 +844,41 @@ function endTurn(game) {
     beginTurn(g);
     return executeStandingOrders(g);
 }
+/** Verify that a proposed beachhead has a confirmed land approach to a
+ * discovered objective. Distance alone is insufficient when a bay or strait
+ * separates the beach from the city. Uses only remembered PlayerView cells.
+ */
+function aiLandingReachesObjective(view, landing) {
+    const { width, height, cells } = view;
+    const key = (p) => p.y * width + p.x;
+    const start = key(landing);
+    if (cells[start]?.terrain !== 'land' || cells[start]?.city?.owner === 'red')
+        return false;
+    const goals = [];
+    for (let i = 0; i < cells.length; i++)
+        if (cells[i]?.city && cells[i].city.owner !== 'red')
+            goals.push({ x: i % width, y: Math.floor(i / width) });
+    if (!goals.length)
+        return false;
+    const distance = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+    const queue = [start], seen = new Set([start]);
+    for (let head = 0; head < queue.length; head++) {
+        const p = { x: queue[head] % width, y: Math.floor(queue[head] / width) };
+        if (goals.some(goal => distance(p, goal) <= 1))
+            return true;
+        for (const d of world_js_1.directions) {
+            const next = { x: p.x + d.x, y: p.y + d.y };
+            if (next.x <= 0 || next.y <= 0 || next.x >= width - 1 || next.y >= height - 1)
+                continue;
+            const k = key(next), cell = cells[k];
+            if (seen.has(k) || cell?.terrain !== 'land' || cell?.city && cell.city.owner !== 'red')
+                continue;
+            seen.add(k);
+            queue.push(k);
+        }
+    }
+    return false;
+}
 /** Choose a short sea route to a landing area near a *known* non-Red city.
  * Operates exclusively on the Red PlayerView. Unknown terrain may be explored,
  * but no hidden world tile, enemy or city is consulted for route selection.
@@ -865,7 +900,8 @@ function aiInvasionStep(view, ship) {
                 const landing = { x, y }, indexLanding = y * view.width + x;
                 if (x <= 0 || y <= 0 || x >= view.width - 1 || y >= view.height - 1)
                     continue;
-                if (cells[indexLanding]?.terrain !== 'land' || distance(landing, city) > 2)
+                if (cells[indexLanding]?.terrain !== 'land' || distance(landing, city) > 2 ||
+                    !aiLandingReachesObjective(view, landing))
                     continue;
                 for (const d of world_js_1.directions) {
                     const sea = { x: x + d.x, y: y + d.y };
@@ -960,7 +996,9 @@ function planAiGroundStep(view, army) {
             if (next.x <= 0 || next.y <= 0 || next.x >= width - 1 || next.y >= height - 1)
                 continue;
             const k = key(next), cell = view.cells[k];
-            if (seen.has(k) || occupied.has(k) || cell?.terrain === 'sea')
+            // Armies require a *confirmed* land route. Treat unexplored cells as
+            // unknown, not a magical bridge across an undiscovered ocean.
+            if (seen.has(k) || occupied.has(k) || cell?.terrain !== 'land')
                 continue;
             // A city owned by another faction must be assaulted, not routed through.
             if (cell?.city && cell.city.owner !== 'red')
@@ -1009,7 +1047,11 @@ function playRedOpponent(game) {
     for (const ship of (0, knowledge_js_1.getPlayerView)(g, 'red').ownUnits.filter(u => u.kind === 'transport' && !u.aboard)) {
         const nearArmy = (0, knowledge_js_1.getPlayerView)(g, 'red').ownUnits.some(u => u.kind === 'army' && !u.aboard &&
             Math.max(Math.abs(u.position.x - ship.position.x), Math.abs(u.position.y - ship.position.y)) <= 1);
-        if (nearArmy && g.units.filter(u => u.aboard === ship.id).length < ((0, units_js_1.capacity)(ship) ?? 0)) {
+        const atLoadingPort = (0, knowledge_js_1.getPlayerView)(g, 'red').ownCities.some(c => (0, world_js_1.isCoastal)(g, c.position) &&
+            Math.max(Math.abs(c.position.x - ship.position.x), Math.abs(c.position.y - ship.position.y)) <= 1);
+        // Never re-embark an invasion force at the enemy beachhead. Those armies
+        // need their next turn to assault the city rather than cycling aboard.
+        if (nearArmy && atLoadingPort && g.units.filter(u => u.aboard === ship.id).length < ((0, units_js_1.capacity)(ship) ?? 0)) {
             try {
                 g = loadShip(g, ship.id);
             }
@@ -1034,6 +1076,7 @@ function playRedOpponent(game) {
         const options = world_js_1.directions.map(d => ({ x: ship.position.x + d.x, y: ship.position.y + d.y }))
             .filter(p => (0, world_js_1.playable)(g, p) && view.cells[(0, world_js_1.index)(g, p)]?.terrain === 'land' &&
             view.cells[(0, world_js_1.index)(g, p)]?.city?.owner !== 'red' &&
+            aiLandingReachesObjective(view, p) &&
             // Avoid prematurely disembarking next to our own cities. Only commit
             // troops to a shore near a known non-red objective.
             knownObjectives.some(objective => distance(p, objective) <= 2))
@@ -1056,6 +1099,32 @@ function playRedOpponent(game) {
             const unit = view.ownUnits.find(u => u.id === id);
             if (!unit || unit.spent >= (0, units_js_1.movementAllowance)(unit) || unit.order.kind === 'sentry')
                 break;
+            if (unit.kind === 'transport' && !view.ownUnits.some(u => u.aboard === id)) {
+                // Empty transports return to known friendly ports for another load.
+                // A ship already in port waits for troops instead of wandering away.
+                const ports = view.ownCities.filter(c => (0, world_js_1.isCoastal)(g, c.position))
+                    .sort((a, b) => Math.max(Math.abs(a.position.x - unit.position.x), Math.abs(a.position.y - unit.position.y)) -
+                    Math.max(Math.abs(b.position.x - unit.position.x), Math.abs(b.position.y - unit.position.y)));
+                if (ports.length) {
+                    if (ports.some(port => (0, world_js_1.equal)(port.position, unit.position)))
+                        break;
+                    let returned = false;
+                    for (const port of ports) {
+                        const step = routeStep(g, unit, port.position);
+                        if (!step)
+                            continue;
+                        try {
+                            g = moveUnit(g, id, step);
+                            returned = true;
+                            break;
+                        }
+                        catch { /* An occupied or newly discovered square blocks this route. */ }
+                    }
+                    if (returned)
+                        continue;
+                    break;
+                }
+            }
             if (unit.kind === 'transport' && view.ownUnits.some(u => u.aboard === id)) {
                 const step = aiInvasionStep(view, unit);
                 // Once in landing range, hold station for the next available cargo turn.
@@ -1072,6 +1141,32 @@ function playRedOpponent(game) {
             const visibleEnemies = view.enemies.filter(e => !e.stale);
             const knownCities = view.cells.flatMap((cell, i) => cell.city && cell.city.owner !== 'red' ?
                 [{ pos: { x: i % view.width, y: Math.floor(i / view.width) }, city: cell.city }] : []);
+            // If no land route to a known objective exists, stage at a coastal port.
+            // A known overseas city must not lure armies away from their transports.
+            if (unit.kind === 'army' && visibleEnemies.length === 0 && planAiGroundStep(view, unit) === null &&
+                !knownCities.some(c => distance(c.pos, unit.position) <= 1)) {
+                const ports = view.ownCities.filter(c => (0, world_js_1.isCoastal)(g, c.position))
+                    .sort((a, b) => distance(a.position, unit.position) - distance(b.position, unit.position));
+                if (ports.length) {
+                    if (ports.some(port => distance(port.position, unit.position) <= 1))
+                        break;
+                    let staged = false;
+                    for (const port of ports) {
+                        const next = routeStep(g, unit, port.position);
+                        if (!next)
+                            continue;
+                        try {
+                            g = moveUnit(g, id, next);
+                            staged = true;
+                            break;
+                        }
+                        catch { /* Another unit may have moved into this square. */ }
+                    }
+                    if (staged)
+                        continue;
+                    break;
+                }
+            }
             // Only choose opponents visible to this faction. Ships/fighters may not
             // attempt a city capture; those targets are exclusively for armies.
             const foes = visibleEnemies.filter(e => distance(e.position, unit.position) === 1);
