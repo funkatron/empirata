@@ -613,10 +613,10 @@ export function playRedOpponent(game:Game):Game {
       const visibleEnemies=view.enemies.filter(e=>!e.stale);
       const knownCities=view.cells.flatMap((cell,i)=>cell.city&&cell.city.owner!=='red'?
         [{pos:{x:i%view.width,y:Math.floor(i/view.width)},city:cell.city}]:[]);
-      // With no discovered objective or contact, keep armies within loading
-      // range of a friendly coastal city. Otherwise the army population
-      // disperses before the first transport finishes construction.
-      if(unit.kind==='army'&&visibleEnemies.length===0&&knownCities.length===0){
+      // If no land route to a known objective exists, stage at a coastal port.
+      // A known overseas city must not lure armies away from their transports.
+      if(unit.kind==='army'&&visibleEnemies.length===0&&planAiGroundStep(view,unit)===null&&
+         !knownCities.some(c=>distance(c.pos,unit.position)<=1)){
         const ports=view.ownCities.filter(c=>isCoastal(g,c.position))
           .sort((a,b)=>distance(a.position,unit.position)-distance(b.position,unit.position));
         if(ports.length){
