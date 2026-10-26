@@ -1214,6 +1214,18 @@ function playRedOpponent(game) {
             catch { /* No legal landing here. */ }
         }
     }
+    // Report genuine geographic blockages at a bounded cadence rather than
+    // allowing silent centuries of stalled naval operations.
+    if (g.round % 10 === 0)
+        for (const ship of (0, knowledge_js_1.getPlayerView)(g, 'red').ownUnits.filter(u => u.kind === 'transport' && u.aboard === null && g.units.some(c => c.aboard === u.id))) {
+            const passable = world_js_1.directions.some(d => {
+                const p = { x: ship.position.x + d.x, y: ship.position.y + d.y };
+                return (0, world_js_1.playable)(g, p) && ((0, world_js_1.terrainAt)(g, p) === 'sea' || (0, world_js_1.cityAt)(g, p)?.owner === 'red') &&
+                    !g.units.some(other => other.id !== ship.id && !other.aboard && (0, world_js_1.equal)(other.position, p));
+            });
+            if (!passable)
+                log(g, 'red', 'system', `Transport ${ship.id} blocked at (${ship.position.x}, ${ship.position.y}): no accessible adjacent sea or friendly port.`);
+        }
     const redUnitIds = g.units.filter(u => u.owner === 'red' && !u.aboard).map(u => u.id);
     const distance = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
     for (const id of redUnitIds) {
