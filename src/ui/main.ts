@@ -120,7 +120,17 @@ function cellFromPointer(ev:PointerEvent):Coord {
   return {x:Math.floor((ev.clientX-rect.left+cameraX)/tileSize),y:Math.floor((ev.clientY-rect.top+cameraY)/tileSize)};
 }
 function tapTile(pos:Coord):void {
-  if(game.scenario==='ai-vs-ai'){uiMessage('Spectator mode: use Play, Next round or +10 rounds.');return;}
+  if(game.scenario==='ai-vs-ai'){
+    if(pos.x<0||pos.y<0||pos.x>=view.width||pos.y>=view.height)return;
+    const own=view.ownUnits.filter(u=>!u.aboard&&u.position.x===pos.x&&u.position.y===pos.y);
+    const city=view.ownCities.find(c=>c.position.x===pos.x&&c.position.y===pos.y);
+    const candidates=[...own.map(u=>({kind:'unit',id:u.id})),...(city?[{kind:'city',id:city.id}]:[])];
+    const current=candidates.findIndex(c=>c.kind==='unit'?c.id===selectedUnit:c.id===selectedCity);
+    const chosen=candidates[(current+1)%candidates.length];
+    selectedUnit=chosen?.kind==='unit'?chosen.id:null;
+    selectedCity=chosen?.kind==='city'?chosen.id:null;
+    refresh();return;
+  }
   if(choosingDestination&&selectedUnit){
     choosingDestination=false;
     const id=selectedUnit;
@@ -205,6 +215,25 @@ function selectedCityBlock(city:City):string {
   <div class="datum"><small>Production phase</small><strong>${city.firstCycle?'Setup':'Repeat'}</strong></div></div>
   <p class="stat-note">Changing unit types discards unfinished production. Production advances at the beginning of your faction's turn.</p>`;
 }
+function spectatorUnitBlock(unit:Unit):string {
+  const stats=STATS[unit.kind];
+  const cargo=view.ownUnits.filter(u=>u.aboard===unit.id);
+  return `<div class="selection-title">${text(stats.name)} <span class="subtle">#${text(unit.id)}</span></div>
+    <div class="subtle">${text(unit.owner)} · ${unit.position.x}, ${unit.position.y}</div>
+    <div class="data"><div class="datum"><small>Movement remaining</small><strong>${Math.max(0,movementAllowance(unit)-unit.spent)}</strong></div>
+    <div class="datum"><small>Damage</small><strong>${unit.damage} / ${stats.hitPoints}</strong></div>
+    ${unit.kind==='fighter'?`<div class="datum"><small>Fuel</small><strong>${unit.fuel}</strong></div>`:''}
+    ${capacity(unit)!==null?`<div class="datum"><small>Cargo</small><strong>${cargo.length} / ${capacity(unit)}</strong></div>`:''}</div>
+    <p class="stat-note">Spectator inspection only. No orders can be issued.</p>`;
+}
+function spectatorCityBlock(city:City):string {
+  const turns=city.production?requiredProductionTurns(city.production,city.firstCycle):null;
+  return `<div class="selection-title">City ${text(city.id)}</div>
+    <div class="subtle">${text(city.owner??'Neutral')} · ${city.position.x}, ${city.position.y}</div>
+    <div class="data"><div class="datum"><small>Production</small><strong>${text(city.production??'None')}</strong></div>
+    <div class="datum"><small>Progress</small><strong>${city.progress} / ${turns??'—'}</strong></div></div>
+    <p class="stat-note">Spectator inspection only. No production changes allowed.</p>`;
+}
 function refresh():void {
   view=getPlayerView(game,observer);
   el('aiSpectator').hidden=game.scenario!=='ai-vs-ai';
@@ -225,8 +254,8 @@ function refresh():void {
   const unit=view.ownUnits.find(u=>u.id===selectedUnit);
   const city=view.ownCities.find(c=>c.id===selectedCity);
   const inspector=el('inspector');
-  if(unit)inspector.innerHTML=selectedUnitBlock(unit);
-  else if(city)inspector.innerHTML=selectedCityBlock(city);
+  if(unit)inspector.innerHTML=game.scenario==='ai-vs-ai'?spectatorUnitBlock(unit):selectedUnitBlock(unit);
+  else if(city)inspector.innerHTML=game.scenario==='ai-vs-ai'?spectatorCityBlock(city):selectedCityBlock(city);
   else inspector.innerHTML=game.scenario==='ai-vs-ai'?'<p>Both factions are computer-controlled. Alternate the map viewpoint each round or choose a fixed side. The scorecards show both players’ own totals.</p>':'<p>Select a blue unit, then tap an adjacent enemy to attack. Select a city to assign production. Red will respond on the next round using a preliminary rules-bound AI.</p>';
   inspector.querySelectorAll<HTMLButtonElement>('.cargoButton').forEach(button=>button.addEventListener('click',()=>{
     selectedUnit=button.dataset.cargo??null;selectedCity=null;refresh();
