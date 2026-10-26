@@ -68,3 +68,22 @@ test('AI never reboards an army from an enemy beachhead before its assault',()=>
   assert.ok(!acted.events.some(e=>e.message.includes('loaded aboard red-transport')),
     'Beachhead should not be treated as a friendly loading port');
 });
+
+test('Loaded transport explores when a known overseas city has no charted landing shore',()=>{
+  const g=fleet();
+  const ship=g.units.find(u=>u.id==='empty-ship');
+  const cargo=g.units.find(u=>u.id==='u3');
+  ship.position={x:81,y:36};
+  cargo.position={...ship.position};cargo.aboard=ship.id;
+  updateAllKnowledge(g);
+  // Intelligence knows the rival city, but not any of its surrounding coast.
+  const rival=g.cities.find(c=>c.id==='c-blue');
+  const key=rival.position.y*g.width+rival.position.x;
+  g.knowledge.red.terrain[key]='land';
+  g.knowledge.red.cities[rival.id]={id:rival.id,owner:'blue',
+    production:null,productionKnown:false};
+  const before={...ship.position};
+  const acted=playRedOpponent(endTurn(g));
+  assert.notDeepEqual(acted.units.find(u=>u.id===ship.id).position,before,
+    'A known target without a charted beach must not freeze reconnaissance');
+});
