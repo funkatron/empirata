@@ -92,3 +92,13 @@ Close Quarters includes additional blue armies so players can engage in multiple
 - Decisions are deterministic and use the Red faction's `PlayerView` for knowledge-limited objectives; regression cases check that moving a completely invisible enemy does not change the decision state.
 - This is *provisional strategy*, not reconstructed original Interstel AI. Tactical movement remains primitive; sea navigation, ship construction time and coordinated amphibious operations are important follow-ups.
 - All new AI tests are designed to be fast, in-memory Node tests without an emulator. Source commits do not themselves establish a passing GitHub Actions run; check the workflow and generated bundle.
+
+## 2026-10-26 verified AI island-invasion milestone
+
+- AI transport routing now performs a bounded breadth-first search over the Red faction's `PlayerView` to approach *sea squares alongside land* near actually discovered hostile/neutral cities. Unknown terrain may be explored, but hidden city locations and terrain are not used as navigation hints.
+- At the landing coast the transport holds station until embarked armies can act. The troops land through ordinary legal disembarkation rules; the existing tactical AI then attempts the nearby city.
+- New `AI Invasion` scenario in the browser menu: a Blue island outpost and a loaded Red transport, seeded reproducibly for a short demonstration. This is a custom QA fixture, not the historical Interstel map.
+- Test fixtures cover the sea approach, shore landing, full city capture, and invariance under changes to undiscovered cities. One regression initially failed because it inherited `classic-lab`, where Red AI is deliberately disabled; corrected to `ai-invasion`.
+- GitHub Actions verify run **40274327359 passed**: **122 / 122 engine tests**, **2 / 2 standalone bundle smoke tests**, engine-only coverage **96.05% lines / 89.33% branches / 93.66% functions**; Node test execution ~2.7 seconds. Bundled-page publish step passed.
+- GitHub Pages deployment for the new generated page runs separately. Verify that rollout before claiming the public site is up to date.
+- Next: evaluate behavior against multiple map fixtures, transport logistics under pressure, and more realistic strategic objective selection without making the normal CI suite heavy.
