@@ -473,6 +473,54 @@ function aiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|n
   return {x:at%view.width,y:Math.floor(at/view.width)};
 }
 
+/** Plan one land move toward a discovered non-friendly city, routing around
+ * known water and occupied squares. This function deliberately accepts only a
+ * PlayerView: it cannot read hidden map tiles or live enemy positions.
+ * The final city assault remains an ordinary, separate moveUnit action.
+ */
+export function planAiGroundStep(view:ReturnType<typeof getPlayerView>,army:Unit):Coord|null {
+  if(army.kind!=='army'||army.aboard)return null;
+  const width=view.width,height=view.height;
+  const key=(p:Coord)=>p.y*width+p.x;
+  const start=key(army.position);
+  const targets:Coord[]=[];
+  for(let i=0;i<view.cells.length;i++){
+    const cell=view.cells[i];
+    if(cell?.city&&cell.city.owner!=='red')
+      targets.push({x:i%width,y:Math.floor(i/width)});
+  }
+  if(!targets.length)return null;
+  const cheb=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
+  if(targets.some(p=>cheb(p,army.position)<=1))return null;
+  const occupied=new Set<number>();
+  for(const u of view.ownUnits)if(!u.aboard&&u.id!==army.id)occupied.add(key(u.position));
+  for(const enemy of view.enemies)if(!enemy.stale)occupied.add(key(enemy.position));
+  const queue=[start],seen=new Set<number>([start]),parent=new Map<number,number>();
+  let found:number|undefined;
+  for(let head=0;head<queue.length;head++){
+    const here=queue[head]!;
+    const p={x:here%width,y:Math.floor(here/width)};
+    if(targets.some(target=>cheb(target,p)===1)){found=here;break;}
+    for(const d of directions){
+      const next={x:p.x+d.x,y:p.y+d.y};
+      if(next.x<=0||next.y<=0||next.x>=width-1||next.y>=height-1)continue;
+      const k=key(next),cell=view.cells[k];
+      if(seen.has(k)||occupied.has(k)||cell?.terrain==='sea')continue;
+      // A city owned by another faction must be assaulted, not routed through.
+      if(cell?.city&&cell.city.owner!=='red')continue;
+      seen.add(k);parent.set(k,here);queue.push(k);
+    }
+  }
+  if(found===undefined)return null;
+  let cursor=found;
+  while(parent.get(cursor)!==start){
+    const previous=parent.get(cursor);
+    if(previous===undefined)return null;
+    cursor=previous;
+  }
+  return {x:cursor%width,y:Math.floor(cursor/width)};
+}
+
 /**
  * Close Quarters' preliminary computer opponent. It sees only its own PlayerView,
  * chooses known targets, and executes the very same moves as the human player.
@@ -558,6 +606,13 @@ export function playRedOpponent(game:Game):Game {
       // Stop after any encounter; the AI makes no additional tactical decision
       // with a unit immediately after a battle or city assault.
       if(moved)break;
+      if(unit.kind==='army'){
+        const planned=planAiGroundStep(view,unit);
+        if(planned){
+          try {g=moveUnit(g,id,planned);continue;}
+          catch {break;} // A newly revealed contact blocks this turn's route.
+        }
+      }
       const goals=[...visibleEnemies.map(e=>e.position),
         ...((unit.kind==='army'||unit.kind==='transport'&&g.units.some(u=>u.aboard===id))?
           knownCities.map(c=>c.pos):[])].sort((a,b)=>distance(a,unit.position)-distance(b,unit.position));
