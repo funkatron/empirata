@@ -451,43 +451,47 @@ function aiLandingReachesObjective(view:ReturnType<typeof getPlayerView>,landing
  * but no hidden world tile, enemy or city is consulted for route selection.
  * A null result means either no objective or the transport is in landing range.
  */
+/** Find the nearest unexplored square reachable by known or plausible water.
+ * The route is planned only from faction intelligence, not actual hidden tiles.
+ * When an objective is discovered but its coast is unknown or unreachable,
+ * exploration must continue rather than freezing the invasion.
+ */
+function aiSeaExploreStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|null {
+  const cells=view.cells;
+  const start=ship.position.y*view.width+ship.position.x;
+  const blocked=new Set(view.enemies.filter(e=>!e.stale).map(e=>e.position.y*view.width+e.position.x));
+  for(const u of view.ownUnits)if(!u.aboard&&u.id!==ship.id)
+    blocked.add(u.position.y*view.width+u.position.x);
+  const queue=[start],seen=new Set<number>([start]),parent=new Map<number,number>();
+  let found:number|undefined;
+  for(let head=0;head<queue.length;head++){
+    const current=queue[head]!;
+    if(current!==start&&cells[current]?.terrain===null){found=current;break;}
+    const p={x:current%view.width,y:Math.floor(current/view.width)};
+    for(const d of directions){
+      const next={x:p.x+d.x,y:p.y+d.y};
+      if(next.x<=0||next.y<=0||next.x>=view.width-1||next.y>=view.height-1)continue;
+      const i=next.y*view.width+next.x;
+      if(seen.has(i)||blocked.has(i)||cells[i]?.terrain==='land'||cells[i]?.city)continue;
+      seen.add(i);parent.set(i,current);queue.push(i);
+    }
+  }
+  if(found===undefined)return null;
+  let at=found;
+  while(parent.get(at)!==start){
+    const previous=parent.get(at);
+    if(previous===undefined)return null;
+    at=previous;
+  }
+  return {x:at%view.width,y:Math.floor(at/view.width)};
+}
+
 function aiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|null {
   const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
   const objectives=view.cells.flatMap((cell,i)=>cell.city&&cell.city.owner!=='red'?
     [{x:i%view.width,y:Math.floor(i/view.width)}]:[]);
   const cells=view.cells;
-  // A loaded transport must explore when no foreign city is known. Otherwise
-  // both sides can sit fully loaded at their home ports forever, because
-  // transports only travel toward cities that have already been discovered.
-  // Explore through remembered sea and unknown cells, never hidden terrain.
-  if(!objectives.length){
-    const start=ship.position.y*view.width+ship.position.x;
-    const blocked=new Set(view.enemies.filter(e=>!e.stale).map(e=>e.position.y*view.width+e.position.x));
-    for(const u of view.ownUnits)if(!u.aboard&&u.id!==ship.id)
-      blocked.add(u.position.y*view.width+u.position.x);
-    const queue=[start],seen=new Set<number>([start]),parent=new Map<number,number>();
-    let found:number|undefined;
-    for(let head=0;head<queue.length;head++){
-      const current=queue[head]!;
-      if(current!==start&&cells[current]?.terrain===null){found=current;break;}
-      const p={x:current%view.width,y:Math.floor(current/view.width)};
-      for(const d of directions){
-        const next={x:p.x+d.x,y:p.y+d.y};
-        if(next.x<=0||next.y<=0||next.x>=view.width-1||next.y>=view.height-1)continue;
-        const i=next.y*view.width+next.x;
-        if(seen.has(i)||blocked.has(i)||cells[i]?.terrain==='land'||cells[i]?.city)continue;
-        seen.add(i);parent.set(i,current);queue.push(i);
-      }
-    }
-    if(found===undefined)return null;
-    let at=found;
-    while(parent.get(at)!==start){
-      const previous=parent.get(at);
-      if(previous===undefined)return null;
-      at=previous;
-    }
-    return {x:at%view.width,y:Math.floor(at/view.width)};
-  }
+  if(!objectives.length)return aiSeaExploreStep(view,ship);
   const destinations=new Set<number>();
   // Target known or unexplored sea squares that border a plausible landing
   // square within two cells of a discovered city.
@@ -504,7 +508,7 @@ function aiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|n
         if(cells[i]?.terrain==='sea'||cells[i]?.terrain===null)destinations.add(i);
       }
     }
-  if(!destinations.size)return null;
+  if(!destinations.size)return aiSeaExploreStep(view,ship);
   const start=ship.position.y*view.width+ship.position.x;
   if(destinations.has(start))return null;
   const blocked=new Set(view.enemies.filter(e=>!e.stale).map(e=>e.position.y*view.width+e.position.x));
@@ -524,11 +528,11 @@ function aiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|n
       seen.add(i);parent.set(i,current);queue.push(i);
     }
   }
-  if(found===undefined)return null;
+  if(found===undefined)return aiSeaExploreStep(view,ship);
   let at=found;
   while(parent.get(at)!==start){
     const previous=parent.get(at);
-    if(previous===undefined)return null;
+    if(previous===undefined)return aiSeaExploreStep(view,ship);
     at=previous;
   }
   return {x:at%view.width,y:Math.floor(at/view.width)};
