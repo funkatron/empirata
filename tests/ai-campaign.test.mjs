@@ -49,7 +49,8 @@ test('Production creates a transport, Red loads it, and begins an overseas voyag
 });
 
 test('A produced transport completes a bounded amphibious campaign',()=>{
-  let g=campaign(),built=false,loaded=false,landed=false,contested=false;
+  let g=campaign(),built=false,loaded=false,sailed=false,landed=false,contested=false;
+  const voyage=new Set();
   const trace=[];
   for(let i=0;i<32;i++){
     g=advanceLabRound(g);
