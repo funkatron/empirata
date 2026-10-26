@@ -34,3 +34,12 @@ test('AI spectator controls support automatic viewpoint alternation and dual sco
   assert.match(html,/getPlayerView\(game,'blue'\)/);
   assert.match(html,/getPlayerView\(game,'red'\)/);
 });
+
+test('Touch map supports pinch gestures without dispatching accidental taps',()=>{
+  assert.match(html,/function beginPinch\(/);
+  assert.match(html,/pinch\.scale\*p\.distance\/pinch\.distance/);
+  assert.match(html,/pinch\.worldX\*tileSize/);
+  assert.match(html,/pinch\.worldY\*tileSize/);
+  assert.match(html,/if\(pinch\|\|suppressTap\)/);
+  assert.match(html,/id="fitWorld"/);
+});
