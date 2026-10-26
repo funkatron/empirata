@@ -21,3 +21,16 @@ test('Bundled application JavaScript is syntactically valid and self-contained',
   assert.match(match[1],/__modules\["ui\/main\.js"\]/);
   assert.match(match[1],/__load\('ui\/main\.js'\)/);
 });
+
+test('AI spectator controls support automatic viewpoint alternation and dual scorecards',()=>{
+  assert.match(html,/id="spectatorSide"/);
+  assert.match(html,/<option value="alternate">Alternate each round<\/option>/);
+  assert.match(html,/id="spectatorNow"/);
+  assert.match(html,/id="spectatorBlue"/);
+  assert.match(html,/id="spectatorRed"/);
+  assert.match(html,/id="autoPlay"/);
+  assert.match(html,/id="stepTen"/);
+  assert.match(html,/spectatorMode==='alternate'/);
+  assert.match(html,/getPlayerView\(game,'blue'\)/);
+  assert.match(html,/getPlayerView\(game,'red'\)/);
+});
