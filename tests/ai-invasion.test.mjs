@@ -10,6 +10,7 @@ const range=(a,b)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
 /** A tiny island-to-island lab scenario, not a copy of the DOS campaign map. */
 function invasionFixture(){
   const g=makeRulesLab();
+  g.scenario='ai-invasion';
   g.rng={seed:1,draws:0};
   // A straight deep-water passage and a small landfall around 74,29.
   for(let y=28;y<=32;y++)for(let x=72;x<=83;x++)
@@ -36,13 +37,6 @@ test('Invasion planner navigates toward remembered enemy coastline without DOS e
   const initial=structuredClone(g);
   assert.ok(getPlayerView(g,'red').cells[29*100+74].city);
   g=advanceLabRound(g);
-  console.log('INVASION_NEUTRAL_DEBUG',JSON.stringify({
-    position:unit(g,'red-transport')?.position,
-    army:unit(g,'u3')?.position,
-    embarked:unit(g,'u3')?.aboard,
-    knownCity:getPlayerView(g,'red').cells[29*100+74]?.city,
-    events:g.events.slice(-4).map(e=>e.message)
-  }));
   assert.deepEqual(initial.units.find(u=>u.id==='red-transport').position,{x:81,y:30});
   assert.ok(range(unit(g,'red-transport').position,{x:74,y:29}) <
     range(initial.units.find(u=>u.id==='red-transport').position,{x:74,y:29}));
