@@ -518,6 +518,7 @@ export function playRedOpponent(game:Game):Game {
     const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
     const options=directions.map(d=>({x:ship.position.x+d.x,y:ship.position.y+d.y}))
       .filter(p=>playable(g,p)&&view.cells[index(g,p)]?.terrain==='land'&&
+        view.cells[index(g,p)]?.city?.owner!=='red'&&
         // Avoid prematurely disembarking next to our own cities. Only commit
         // troops to a shore near a known non-red objective.
         knownObjectives.some(objective=>distance(p,objective)<=2))
