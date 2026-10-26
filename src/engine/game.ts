@@ -715,11 +715,36 @@ export function playRedOpponent(game:Game):Game {
   return g;
 }
 
+/** Reuse the existing Red strategy for Blue by exchanging faction labels
+ * on a clone, including both sides' private intelligence. */
+function swapAiFactions(game:Game):Game {
+  const g=clone(game);
+  const flip=(id:FactionId|null):FactionId|null=>id==='blue'?'red':id==='red'?'blue':id;
+  g.active=flip(g.active)!;
+  for(const p of g.players)p.id=flip(p.id)!;
+  for(const c of g.cities)c.owner=flip(c.owner);
+  for(const u of g.units)u.owner=flip(u.owner)!;
+  for(const e of g.events)e.recipient=flip(e.recipient);
+  const originalBlue=g.knowledge.blue;
+  g.knowledge.blue=g.knowledge.red;
+  g.knowledge.red=originalBlue;
+  for(const k of Object.values(g.knowledge)){
+    for(const sight of k.sightings)sight.owner=flip(sight.owner)!;
+    for(const city of Object.values(k.cities))city.owner=flip(city.owner);
+  }
+  return g;
+}
+export function playBlueOpponent(game:Game):Game {
+  if(game.active!=='blue')throw new Error('Blue AI requires Blue turn.');
+  return swapAiFactions(playRedOpponent(swapAiFactions(game)));
+}
+
 /** Advance one blue-player round, allowing a rules-bound Red opponent to act. */
 export function advanceLabRound(game:Game):Game {
   if(game.mode!=='rules-lab'||game.active!=='blue')throw new Error('Lab round advance requires blue player.');
-  let g=endTurn(game);
-  if((g.scenario==='close-quarters'||g.scenario==='ai-invasion')&&g.active==='red')g=playRedOpponent(g);
+  let g=game.scenario==='ai-vs-ai'?playBlueOpponent(game):game;
+  g=endTurn(g);
+  if((g.scenario==='close-quarters'||g.scenario==='ai-invasion'||g.scenario==='ai-vs-ai')&&g.active==='red')g=playRedOpponent(g);
   while(g.active!=='blue')g=endTurn(g);
   return g;
 }
