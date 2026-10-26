@@ -10,6 +10,7 @@ if(!context)throw new Error('Canvas 2D is unavailable.');
 const ctx=context;
 let game:Game=makeCloseQuartersLab();
 let observer:'blue'|'red'='blue';
+let spectatorMode:'alternate'|'blue'|'red'='alternate';
 let playback:ReturnType<typeof setInterval>|null=null;
 let view:PlayerView=getPlayerView(game,observer);
 let selectedUnit:string|null='u1',selectedCity:string|null=null;
@@ -27,7 +28,14 @@ function pausePlayback():void {
 function dispatch(operation:()=>Game):boolean {
   try {
     const before=game.nextEventId;
-    game=operation();view=getPlayerView(game,observer);
+    const previousRound=game.round;
+    game=operation();
+    if(game.scenario==='ai-vs-ai'&&spectatorMode==='alternate'&&game.round!==previousRound){
+      // One visible perspective per round; never merge both knowledge maps.
+      observer=(game.round-1)%2===0?'blue':'red';
+      selectedUnit=null;selectedCity=null;
+    }
+    view=getPlayerView(game,observer);
     if(selectedUnit&&!view.ownUnits.some(u=>u.id===selectedUnit))selectedUnit=null;
     refresh();
     const result=view.events.filter(e=>e.id>=before&&e.kind==='combat').at(-1);
@@ -191,7 +199,13 @@ function selectedCityBlock(city:City):string {
 function refresh():void {
   view=getPlayerView(game,observer);
   el('aiSpectator').hidden=game.scenario!=='ai-vs-ai';
-  (el('spectatorSide') as HTMLSelectElement).value=observer;
+  (el('spectatorSide') as HTMLSelectElement).value=spectatorMode;
+  if(game.scenario==='ai-vs-ai'){
+    el('spectatorNow').textContent=`Currently viewing ${observer.toUpperCase()} intelligence · Round ${game.round}`;
+    const blue=getPlayerView(game,'blue'),red=getPlayerView(game,'red');
+    el('spectatorBlue').textContent=`${blue.ownCities.length} cities · ${blue.ownUnits.length} units`;
+    el('spectatorRed').textContent=`${red.ownCities.length} cities · ${red.ownUnits.length} units`;
+  }
   el('round').textContent=`ROUND ${game.round}`;
   el('cityCount').textContent=String(view.ownCities.length);
   el('unitCount').textContent=String(view.ownUnits.length);
@@ -202,7 +216,7 @@ function refresh():void {
   const inspector=el('inspector');
   if(unit)inspector.innerHTML=selectedUnitBlock(unit);
   else if(city)inspector.innerHTML=selectedCityBlock(city);
-  else inspector.innerHTML=game.scenario==='ai-vs-ai'?'<p>Both factions are controlled by the computer. Switch the spectator viewpoint to inspect either faction’s known terrain and units.</p>':'<p>Select a blue unit, then tap an adjacent enemy to attack. Select a city to assign production. Red will respond on the next round using a preliminary rules-bound AI.</p>';
+  else inspector.innerHTML=game.scenario==='ai-vs-ai'?'<p>Both factions are computer-controlled. Alternate the map viewpoint each round or choose a fixed side. The scorecards show both players’ own totals.</p>':'<p>Select a blue unit, then tap an adjacent enemy to attack. Select a city to assign production. Red will respond on the next round using a preliminary rules-bound AI.</p>';
   inspector.querySelectorAll<HTMLButtonElement>('.cargoButton').forEach(button=>button.addEventListener('click',()=>{
     selectedUnit=button.dataset.cargo??null;selectedCity=null;refresh();
     uiMessage('Tap adjacent land to disembark an army, or a free adjacent square to launch a fighter.');
@@ -279,7 +293,7 @@ el('saveFile').addEventListener('change',async()=>{
 });
 function startScenario(kind:'close-quarters'|'classic-lab'|'ai-invasion'|'ai-vs-ai'):void{
   if(!window.confirm('Start a new test scenario? This will replace the current local autosave. Export JSON first if you want to keep it.'))return;
-  pausePlayback();observer='blue';choosingDestination=false;game=kind==='ai-vs-ai'?makeAiVsAiLab():kind==='ai-invasion'?makeAiInvasionLab():kind==='close-quarters'?makeCloseQuartersLab():makeRulesLab();
+  pausePlayback();observer='blue';spectatorMode='alternate';choosingDestination=false;game=kind==='ai-vs-ai'?makeAiVsAiLab():kind==='ai-invasion'?makeAiInvasionLab():kind==='close-quarters'?makeCloseQuartersLab():makeRulesLab();
   selectedUnit=kind==='ai-invasion'||kind==='ai-vs-ai'?null:'u1';selectedCity=null;refresh();focus(kind==='ai-invasion'?{x:76,y:29}:{x:9,y:25});
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; export JSON.'));
   uiMessage(kind==='ai-vs-ai'?'Computer vs computer ready. Use Play, Next round or +10 rounds.':kind==='ai-invasion'?'AI Invasion ready: press Next round to watch the Red landing operation.':kind==='close-quarters'?'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.':'Classic rules lab reset.');
@@ -290,9 +304,10 @@ el('classicGame').addEventListener('click',()=>startScenario('classic-lab'));
 el('invasionGame').addEventListener('click',()=>startScenario('ai-invasion'));
 el('aiVsAiGame').addEventListener('click',()=>startScenario('ai-vs-ai'));
 el('spectatorSide').addEventListener('change',()=>{
-  observer=(el('spectatorSide') as HTMLSelectElement).value as 'blue'|'red';
+  spectatorMode=(el('spectatorSide') as HTMLSelectElement).value as 'alternate'|'blue'|'red';
+  observer=spectatorMode==='alternate'?((game.round-1)%2===0?'blue':'red'):spectatorMode;
   selectedUnit=null;selectedCity=null;refresh();
-  uiMessage(`Observing ${observer.toUpperCase()} intelligence. Hidden enemy information remains concealed.`);
+  uiMessage(spectatorMode==='alternate'?'Automatically alternating the spectator view each round.':`Observing ${observer.toUpperCase()} intelligence. Hidden enemy information remains concealed.`);
 });
 el('stepTen').addEventListener('click',()=>{
   pausePlayback();if(game.scenario!=='ai-vs-ai')return;
