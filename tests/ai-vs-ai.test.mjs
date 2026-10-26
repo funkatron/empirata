@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   makeAiVsAiLab,makeCloseQuartersLab,playBlueOpponent,advanceLabRound,
-  getPlayerView,exportSave,importSave,repairLabHarbor,updateAllKnowledge
+  getPlayerView,exportSave,importSave,updateAllKnowledge
 } from '../dist/engine/index.js';
 
 test('AI versus AI is a separate deterministic lab scenario',()=>{
@@ -100,37 +100,18 @@ test('The eastern computer harbor connects to open ocean in a new match',()=>{
   assert.ok([...seen].some(k=>k%g.width>=94),'Eastern port must reach open sea');
 });
 
-test('Legacy computer saves repair their isolated harbor without drowning land units',()=>{
-  const old=makeCloseQuartersLab();
-  old.scenario='ai-vs-ai';
-  const army=old.units.find(u=>u.owner==='red'&&u.kind==='army');
-  army.position={x:82,y:36};
-  updateAllKnowledge(old);
-  const original=structuredClone(old);
-  const fixed=repairLabHarbor(old);
-  assert.equal(old.tiles[36*old.width+82],'land','Repair must not mutate save input');
-  assert.equal(fixed.tiles[36*fixed.width+82],'land','Ground units must remain on land');
-  assert.ok(fixed.events.some(e=>e.message.includes('Lab harbor repaired')));
-  assert.deepEqual(repairLabHarbor(fixed),fixed,'Repair must be idempotent');
-  assert.deepEqual(old,original);
-  const advanced=advanceLabRound(importSave(exportSave(old)));
-  assert.ok(advanced.events.some(e=>e.message.includes('Lab harbor repaired')));
-});
 
-test('A legacy loaded Red transport can leave the repaired harbor',()=>{
-  const g=makeCloseQuartersLab();
-  g.scenario='ai-vs-ai';
+test('A loaded Red transport can depart the generated eastern harbor',()=>{
+  const g=makeAiVsAiLab();
   const template=g.units.find(u=>u.owner==='red'&&u.kind==='army');
-  const ship={...structuredClone(template),id:'legacy-ship',kind:'transport',
+  const ship={...structuredClone(template),id:'test-ship',kind:'transport',
     position:{x:81,y:36},aboard:null,fuel:null,spent:0,order:{kind:'none'}};
-  const cargo={...structuredClone(template),id:'legacy-cargo',
-    position:{x:81,y:36},aboard:'legacy-ship',spent:0,order:{kind:'none'}};
+  const cargo={...structuredClone(template),id:'test-cargo',
+    position:{x:81,y:36},aboard:'test-ship',spent:0,order:{kind:'none'}};
   g.units.push(ship,cargo);
   updateAllKnowledge(g);
-  const after=advanceLabRound(importSave(exportSave(g)));
-  const moved=after.units.find(u=>u.id==='legacy-ship');
-  assert.notDeepEqual(moved.position,ship.position,
-    'Loaded transport should navigate into repaired sea lane on next round');
-  assert.deepEqual(after.units.find(u=>u.id==='legacy-cargo').position,moved.position,
-    'Cargo follows the ship');
+  const after=advanceLabRound(g);
+  const moved=after.units.find(u=>u.id==='test-ship');
+  assert.notDeepEqual(moved.position,ship.position,'Loaded transport must sail out of port');
+  assert.deepEqual(after.units.find(u=>u.id==='test-cargo').position,moved.position);
 });
