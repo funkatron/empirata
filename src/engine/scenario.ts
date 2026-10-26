@@ -42,3 +42,29 @@ export function makeCloseQuartersLab():Game {
     message:'Close Quarters: select a blue unit, then an adjacent enemy or gold city. Combat and capture use the Interstel manual probabilities; Red responds during the next round using the same combat rules.'});
   return g;
 }
+
+/** Tiny, deterministic island assault demonstration; NOT an Interstel map. */
+export function makeAiInvasionLab():Game {
+  const g=makeRulesLab();
+  g.scenario='ai-invasion';
+  g.rng={seed:1,draws:0};
+  for(let y=28;y<=32;y++)for(let x=72;x<=83;x++)
+    g.tiles[y*g.width+x]='sea';
+  for(const x of [74,75])g.tiles[29*g.width+x]='land';
+  g.cities.push({id:'invasion-outpost',position:{x:74,y:29},owner:'blue',
+    production:null,progress:0,firstCycle:true});
+  const army=g.units.find(u=>u.id==='u3')!;
+  army.position={x:81,y:30};army.aboard='red-transport';
+  const ship:Unit={...structuredClone(army),id:'red-transport',kind:'transport',
+    position:{x:81,y:30},aboard:null,fuel:null};
+  g.units.push(ship);
+  const scout:Unit={...structuredClone(army),id:'red-scout',aboard:null,position:{x:74,y:30}};
+  // Red knows the outpost from scouting, but gains no continuing omniscience.
+  g.units.push(scout);
+  updateAllKnowledge(g);
+  g.units=g.units.filter(u=>u.id!=='red-scout');
+  updateAllKnowledge(g);
+  g.events.push({id:g.nextEventId++,round:1,recipient:'blue',kind:'system',
+    message:'AI Invasion demonstration: a loaded Red transport is approaching your Blue island outpost. End rounds to watch its naval approach and landing.'});
+  return g;
+}
