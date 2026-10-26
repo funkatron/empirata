@@ -14,6 +14,7 @@ let spectatorMode:'alternate'|'blue'|'red'='alternate';
 let playback:ReturnType<typeof setInterval>|null=null;
 let view:PlayerView=getPlayerView(game,observer);
 let selectedUnit:string|null='u1',selectedCity:string|null=null;
+let spectatorContact:string|null=null,spectatorCity:string|null=null;
 let tileSize=30,cameraX=0,cameraY=0;
 let down:{id:number;x:number;y:number;cameraX:number;cameraY:number;moved:boolean}|null=null;
 const touches=new Map<number,{x:number;y:number}>();
@@ -36,7 +37,7 @@ function dispatch(operation:()=>Game):boolean {
     if(game.scenario==='ai-vs-ai'&&spectatorMode==='alternate'&&game.round!==previousRound){
       // One visible perspective per round; never merge both knowledge maps.
       observer=(game.round-1)%2===0?'blue':'red';
-      selectedUnit=null;selectedCity=null;
+      selectedUnit=null;selectedCity=null;spectatorContact=null;spectatorCity=null;
     }
     view=getPlayerView(game,observer);
     if(selectedUnit&&!view.ownUnits.some(u=>u.id===selectedUnit))selectedUnit=null;
@@ -123,12 +124,19 @@ function tapTile(pos:Coord):void {
   if(game.scenario==='ai-vs-ai'){
     if(pos.x<0||pos.y<0||pos.x>=view.width||pos.y>=view.height)return;
     const own=view.ownUnits.filter(u=>!u.aboard&&u.position.x===pos.x&&u.position.y===pos.y);
-    const city=view.ownCities.find(c=>c.position.x===pos.x&&c.position.y===pos.y);
-    const candidates=[...own.map(u=>({kind:'unit',id:u.id})),...(city?[{kind:'city',id:city.id}]:[])];
-    const current=candidates.findIndex(c=>c.kind==='unit'?c.id===selectedUnit:c.id===selectedCity);
+    const enemies=view.enemies.filter(u=>!u.stale&&u.position.x===pos.x&&u.position.y===pos.y);
+    const city=view.cells[pos.y*view.width+pos.x]?.city;
+    const candidates=[...own.map(u=>({kind:'unit',id:u.id})),
+      ...enemies.map(u=>({kind:'contact',id:u.id})),
+      ...(city?[{kind:'city',id:city.id}]:[])];
+    const current=candidates.findIndex(c=>c.kind==='unit'&&c.id===selectedUnit||
+      c.kind==='contact'&&c.id===spectatorContact||
+      c.kind==='city'&&c.id===spectatorCity);
     const chosen=candidates[(current+1)%candidates.length];
     selectedUnit=chosen?.kind==='unit'?chosen.id:null;
-    selectedCity=chosen?.kind==='city'?chosen.id:null;
+    selectedCity=chosen?.kind==='city'&&view.ownCities.some(c=>c.id===chosen.id)?chosen.id:null;
+    spectatorContact=chosen?.kind==='contact'?chosen.id:null;
+    spectatorCity=chosen?.kind==='city'?chosen.id:null;
     refresh();return;
   }
   if(choosingDestination&&selectedUnit){
@@ -256,6 +264,22 @@ function refresh():void {
   const inspector=el('inspector');
   if(unit)inspector.innerHTML=game.scenario==='ai-vs-ai'?spectatorUnitBlock(unit):selectedUnitBlock(unit);
   else if(city)inspector.innerHTML=game.scenario==='ai-vs-ai'?spectatorCityBlock(city):selectedCityBlock(city);
+  else if(game.scenario==='ai-vs-ai'&&spectatorContact){
+    const enemy=view.enemies.find(u=>u.id===spectatorContact&&!u.stale);
+    inspector.innerHTML=enemy?
+      `<div class="selection-title">${text(STATS[enemy.kind].name)} #${text(enemy.id)}</div>
+      <div class="subtle">${text(enemy.owner)} · ${enemy.position.x}, ${enemy.position.y}</div>
+      <p class="stat-note">Visible enemy contact. Additional details are not available to this faction.</p>`:
+      '<p>Enemy contact no longer visible.</p>';
+  }
+  else if(game.scenario==='ai-vs-ai'&&spectatorCity){
+    const intel=view.cells.find(c=>c.city?.id===spectatorCity)?.city;
+    inspector.innerHTML=intel?
+      `<div class="selection-title">City ${text(intel.id)}</div>
+      <div class="subtle">Known owner: ${text(intel.owner??'Neutral')}</div>
+      <p class="stat-note">Remembered city intelligence. Production is not visible.</p>`:
+      '<p>City intelligence unavailable.</p>';
+  }
   else inspector.innerHTML=game.scenario==='ai-vs-ai'?'<p>Both factions are computer-controlled. Alternate the map viewpoint each round or choose a fixed side. The scorecards show both players’ own totals.</p>':'<p>Select a blue unit, then tap an adjacent enemy to attack. Select a city to assign production. Red will respond on the next round using a preliminary rules-bound AI.</p>';
   inspector.querySelectorAll<HTMLButtonElement>('.cargoButton').forEach(button=>button.addEventListener('click',()=>{
     selectedUnit=button.dataset.cargo??null;selectedCity=null;refresh();
@@ -401,7 +425,7 @@ el('aiVsAiGame').addEventListener('click',()=>startScenario('ai-vs-ai'));
 el('spectatorSide').addEventListener('change',()=>{
   spectatorMode=(el('spectatorSide') as HTMLSelectElement).value as 'alternate'|'blue'|'red';
   observer=spectatorMode==='alternate'?((game.round-1)%2===0?'blue':'red'):spectatorMode;
-  selectedUnit=null;selectedCity=null;refresh();
+  selectedUnit=null;selectedCity=null;spectatorContact=null;spectatorCity=null;refresh();
   uiMessage(spectatorMode==='alternate'?'Automatically alternating the spectator view each round.':`Observing ${observer.toUpperCase()} intelligence. Hidden enemy information remains concealed.`);
 });
 el('stepTen').addEventListener('click',()=>{
