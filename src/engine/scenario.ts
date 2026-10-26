@@ -68,3 +68,13 @@ export function makeAiInvasionLab():Game {
     message:'AI Invasion demonstration: a loaded Red transport is approaching your Blue island outpost. End rounds to watch its naval approach and landing.'});
   return g;
 }
+
+/** Two autonomous opponents, using the same provisional rules-bound strategy.
+ * Uses a constructed skirmish so combat begins quickly; not a DOS AI claim. */
+export function makeAiVsAiLab():Game {
+  const g=makeCloseQuartersLab();
+  g.scenario='ai-vs-ai';
+  g.events.push({id:g.nextEventId++,round:g.round,recipient:null,kind:'system',
+    message:'AI versus AI laboratory: both factions act automatically. Advance rounds to observe a deterministic skirmish.'});
+  return g;
+}
