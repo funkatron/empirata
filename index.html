@@ -294,6 +294,7 @@ exports.runMoveToOrders = runMoveToOrders;
 exports.endTurn = endTurn;
 exports.planAiGroundStep = planAiGroundStep;
 exports.playRedOpponent = playRedOpponent;
+exports.playBlueOpponent = playBlueOpponent;
 exports.advanceLabRound = advanceLabRound;
 const units_js_1 = require("./units.js");
 const world_js_1 = require("./world.js");
@@ -1231,12 +1232,43 @@ function playRedOpponent(game) {
     }
     return g;
 }
+/** Reuse the existing Red strategy for Blue by exchanging faction labels
+ * on a clone, including both sides' private intelligence. */
+function swapAiFactions(game) {
+    const g = clone(game);
+    const flip = (id) => id === 'blue' ? 'red' : id === 'red' ? 'blue' : id;
+    g.active = flip(g.active);
+    for (const p of g.players)
+        p.id = flip(p.id);
+    for (const c of g.cities)
+        c.owner = flip(c.owner);
+    for (const u of g.units)
+        u.owner = flip(u.owner);
+    for (const e of g.events)
+        e.recipient = flip(e.recipient);
+    const originalBlue = g.knowledge.blue;
+    g.knowledge.blue = g.knowledge.red;
+    g.knowledge.red = originalBlue;
+    for (const k of Object.values(g.knowledge)) {
+        for (const sight of k.sightings)
+            sight.owner = flip(sight.owner);
+        for (const city of Object.values(k.cities))
+            city.owner = flip(city.owner);
+    }
+    return g;
+}
+function playBlueOpponent(game) {
+    if (game.active !== 'blue')
+        throw new Error('Blue AI requires Blue turn.');
+    return swapAiFactions(playRedOpponent(swapAiFactions(game)));
+}
 /** Advance one blue-player round, allowing a rules-bound Red opponent to act. */
 function advanceLabRound(game) {
     if (game.mode !== 'rules-lab' || game.active !== 'blue')
         throw new Error('Lab round advance requires blue player.');
-    let g = endTurn(game);
-    if ((g.scenario === 'close-quarters' || g.scenario === 'ai-invasion') && g.active === 'red')
+    let g = game.scenario === 'ai-vs-ai' ? playBlueOpponent(game) : game;
+    g = endTurn(g);
+    if ((g.scenario === 'close-quarters' || g.scenario === 'ai-invasion' || g.scenario === 'ai-vs-ai') && g.active === 'red')
         g = playRedOpponent(g);
     while (g.active !== 'blue')
         g = endTurn(g);
@@ -1549,6 +1581,7 @@ __modules["engine/scenario.js"] = function(module, exports, require) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.makeCloseQuartersLab = makeCloseQuartersLab;
 exports.makeAiInvasionLab = makeAiInvasionLab;
+exports.makeAiVsAiLab = makeAiVsAiLab;
 const game_js_1 = require("./game.js");
 const knowledge_js_1 = require("./knowledge.js");
 function makeCloseQuartersLab() {
@@ -1610,6 +1643,15 @@ function makeAiInvasionLab() {
     (0, knowledge_js_1.updateAllKnowledge)(g);
     g.events.push({ id: g.nextEventId++, round: 1, recipient: 'blue', kind: 'system',
         message: 'AI Invasion demonstration: a loaded Red transport is approaching your Blue island outpost. End rounds to watch its naval approach and landing.' });
+    return g;
+}
+/** Two autonomous opponents, using the same provisional rules-bound strategy.
+ * Uses a constructed skirmish so combat begins quickly; not a DOS AI claim. */
+function makeAiVsAiLab() {
+    const g = makeCloseQuartersLab();
+    g.scenario = 'ai-vs-ai';
+    g.events.push({ id: g.nextEventId++, round: g.round, recipient: null, kind: 'system',
+        message: 'AI versus AI laboratory: both factions act automatically. Advance rounds to observe a deterministic skirmish.' });
     return g;
 }
 
