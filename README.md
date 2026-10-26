@@ -53,3 +53,9 @@ npm start
 ```
 
 The root `index.html` embeds all JS and CSS. All engine code is in `src/engine`, UI in `src/ui`, tests in `tests`, and original rules/specification in `docs`. No proprietary *Empire* code, artwork or map assets are distributed.
+
+### Computer opponent — early strategic behavior (October 2026)
+
+Close Quarters' Red opponent now selects army or transport production based on its existing forces, loads nearby friendly armies into transports, and can land troops near non-Red cities it has actually discovered. Loaded transports avoid reflexively unloading at their own ports. These are intentionally basic deterministic heuristics, not a claim of reconstructing the original Interstel AI.
+
+The regular test suite includes focused no-omniscience and production-transition tests. Long campaigns or DOS emulation are not required for ordinary CI. Naval route-finding, genuine inter-island invasions and opponent balance remain works in progress.
