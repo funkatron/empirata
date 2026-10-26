@@ -891,7 +891,10 @@ function playRedOpponent(game) {
             [{ x: i % view.width, y: Math.floor(i / view.width) }] : []);
         const distance = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
         const options = world_js_1.directions.map(d => ({ x: ship.position.x + d.x, y: ship.position.y + d.y }))
-            .filter(p => (0, world_js_1.playable)(g, p) && view.cells[(0, world_js_1.index)(g, p)]?.terrain === 'land')
+            .filter(p => (0, world_js_1.playable)(g, p) && view.cells[(0, world_js_1.index)(g, p)]?.terrain === 'land' &&
+            // Avoid prematurely disembarking next to our own cities. Only commit
+            // troops to a shore near a known non-red objective.
+            knownObjectives.some(objective => distance(p, objective) <= 2))
             .sort((a, b) => knownObjectives.length ?
             Math.min(...knownObjectives.map(o => distance(a, o))) - Math.min(...knownObjectives.map(o => distance(b, o))) :
             a.y - b.y || a.x - b.x);
@@ -940,6 +943,8 @@ function playRedOpponent(game) {
                 .sort((a, b) => goal ? distance(a, goal) - distance(b, goal) : a.y - b.y || a.x - b.x);
             for (const dest of possibilities) {
                 const known = view.cells[dest.y * view.width + dest.x];
+                if (unit.kind === 'transport' && g.units.some(u => u.aboard === id) && known?.city?.owner === 'red')
+                    continue; // Loaded transports should not turn straight back into port.
                 if (known && known.terrain !== null) {
                     const domain = units_js_1.STATS[unit.kind].domain;
                     const isPort = Boolean(known.city);
