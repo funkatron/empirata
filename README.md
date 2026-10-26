@@ -66,8 +66,12 @@ Select **Computer vs computer** in the scenario panel. Both Blue and Red run the
 same provisional opponent strategy under the ordinary movement, combat,
 production and fog-of-war rules. Use **Next round**, **+10 rounds**, or
 **Play / Pause** (about 0.75 seconds per round) to inspect a match.
-**Observe** switches between Blue's and Red's private intelligence; it does
-not reveal the entire world or change the game state. Playback pauses when
+**Observe** defaults to **Alternate each round**, switching the map between
+Blue's and Red's private intelligence after each simulated round. You can
+instead lock the map to Blue or Red. Compact scorecards show **both players'
+city and unit totals simultaneously**; the map never merges private terrain
+knowledge or reveals the entire world. Changing the viewpoint does not change
+the game state. Playback pauses when
 the tab is hidden. Save/export and import work between rounds.
 
 This is a deterministic **QA skirmish**, not the original DOS opponent AI,
