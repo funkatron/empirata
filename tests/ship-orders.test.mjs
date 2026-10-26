@@ -107,3 +107,27 @@ test('Amphibious invasion: load, sail, land, then capture a neutral city',()=>{
   assert.equal(get(g,'u1'),undefined);
   assert.equal(g.rng.draws,1);
 });
+
+test('Leaving a friendly city picks up co-located armies without a Load Ship order',()=>{
+  let g=transport();
+  get(g,'u2').position={x:8,y:25};
+  updateAllKnowledge(g);
+  g=moveUnit(g,'u2',{x:7,y:25});
+  assert.equal(get(g,'u1').aboard,'u2');
+  assert.deepEqual(get(g,'u1').position,{x:7,y:25});
+  assert.equal(get(g,'u1').spent,1);
+  assert.equal(get(g,'u2').spent,1);
+});
+
+test('Loading to full wakes a ship whose remaining slot is boarded manually',()=>{
+  let g=transport();
+  get(g,'u1').position={x:12,y:25};
+  get(g,'u2').damage=2; // capacity 2
+  g.units.push({...structuredClone(get(g,'u1')),id:'first',position:{x:8,y:24}});
+  g=loadShip(g,'u2');
+  assert.equal(get(g,'u2').order.kind,'load-ship');
+  get(g,'u1').position={x:8,y:25};
+  g=moveUnit(g,'u1',{x:7,y:25});
+  assert.equal(get(g,'u2').order.kind,'none');
+  assert.equal(g.units.filter(u=>u.aboard==='u2').length,2);
+});
