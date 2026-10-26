@@ -59,3 +59,22 @@ The root `index.html` embeds all JS and CSS. All engine code is in `src/engine`,
 Close Quarters' Red opponent now selects army or transport production based on its existing forces, loads nearby friendly armies into transports, and can land troops near non-Red cities it has actually discovered. Loaded transports avoid reflexively unloading at their own ports. These are intentionally basic deterministic heuristics, not a claim of reconstructing the original Interstel AI.
 
 The regular test suite includes focused no-omniscience and production-transition tests. Long campaigns or DOS emulation are not required for ordinary CI. Naval route-finding, genuine inter-island invasions and opponent balance remain works in progress.
+
+### Computer versus computer (experimental)
+
+Select **Computer vs computer** in the scenario panel. Both Blue and Red run the
+same provisional opponent strategy under the ordinary movement, combat,
+production and fog-of-war rules. Use **Next round**, **+10 rounds**, or
+**Play / Pause** (about 0.75 seconds per round) to inspect a match.
+**Observe** switches between Blue's and Red's private intelligence; it does
+not reveal the entire world or change the game state. Playback pauses when
+the tab is hidden. Save/export and import work between rounds.
+
+This is a deterministic **QA skirmish**, not the original DOS opponent AI,
+and is not yet a full strategic campaign. The constructed map intentionally
+places both sides near combat. The game does not run in the background when
+the tab is hidden.
+
+CI run `40366834046` passed **146/146 tests** on 2026-10-26, including a
+20-round autonomous endurance test, hidden-objective checks, and exact
+save/reload replay. Standalone bundle build and smoke test also passed.
