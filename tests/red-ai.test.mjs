@@ -69,3 +69,21 @@ test('AI city production selection ignores undiscovered opponent city production
   const resultA=playRedOpponent(endTurn(a)),resultB=playRedOpponent(endTurn(b));
   assert.equal(resultA.cities.find(c=>c.id==='c-red').production,resultB.cities.find(c=>c.id==='c-red').production);
 });
+
+test('Red changes existing army production to transport once three armies exist',()=>{
+  const g=makeRulesLab(),base=g.units.find(u=>u.id==='u3');
+  g.cities.find(c=>c.id==='c-red').production='army';
+  g.units.push({...structuredClone(base),id:'red-a',position:{x:79,y:35}});
+  g.units.push({...structuredClone(base),id:'red-b',position:{x:80,y:35}});
+  updateAllKnowledge(g);
+  const acted=playRedOpponent(endTurn(g));
+  assert.equal(acted.cities.find(c=>c.id==='c-red').production,'transport');
+});
+test('Red resumes army production when a transport already exists',()=>{
+  const g=makeRulesLab(),base=g.units.find(u=>u.id==='u3');
+  g.cities.find(c=>c.id==='c-red').production='transport';
+  g.units.push({...structuredClone(base),id:'red-ship',kind:'transport',position:{x:81,y:36}});
+  updateAllKnowledge(g);
+  const acted=playRedOpponent(endTurn(g));
+  assert.equal(acted.cities.find(c=>c.id==='c-red').production,'army');
+});
