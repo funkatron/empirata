@@ -25,6 +25,9 @@ export function makeCloseQuartersLab():Game {
   add(blueArmy,{position:{x:11,y:23},damage:0,spent:0});
   // Destroyer detects the submerged enemy immediately; both start in water.
   add(blueDestroyer,{owner:'red',kind:'submarine',position:{x:6,y:25},damage:0,spent:0});
+  // Adjacent transport/army pair for testing real embarkation and landings.
+  add(blueDestroyer,{kind:'transport',position:{x:7,y:26},damage:0,spent:0});
+  add(blueArmy,{kind:'army',position:{x:8,y:26},damage:0,spent:0});
   // Additional short-range land/air encounter, without stacking on another unit.
   add(blueArmy,{owner:'blue',kind:'fighter',position:{x:9,y:26},damage:0,spent:0,fuel:20});
   add(blueArmy,{owner:'red',kind:'fighter',position:{x:10,y:27},damage:0,spent:0,fuel:20});
