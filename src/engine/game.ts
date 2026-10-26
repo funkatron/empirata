@@ -1,5 +1,5 @@
 import type { City, Coord, FactionId, Game, Terrain, Unit, UnitOrder, UnitType } from './types.js';
-import {MAX_FIGHTER_FUEL, movementAllowance, requiredProductionTurns, STATS } from './units.js';
+import {MAX_FIGHTER_FUEL, movementAllowance, requiredProductionTurns, STATS, capacity } from './units.js';
 import {MAP_HEIGHT,MAP_WIDTH, makeTestTerrain, playable, index, terrainAt, cityAt, equal, isCoastal, directions } from './world.js';
 import {emptyKnowledge,updateAllKnowledge,getPlayerView} from './knowledge.js';
 import {resolveCombat,resolveCityAssault} from './combat.js';
@@ -75,6 +75,42 @@ export function setOrder(game:Game,unitId:string,order:UnitOrder):Game {
   if(order.kind==='skip') unit.spent=movementAllowance(unit);
   return g;
 }
+/** Move one army aboard an adjacent friendly troop transport. */
+export function embarkArmy(game:Game,armyId:string,transportId:string):Game {
+  const g=clone(game),army=g.units.find(u=>u.id===armyId),ship=g.units.find(u=>u.id===transportId);
+  if(!army||!ship||army.kind!=='army'||ship.kind!=='transport'||army.owner!==g.active||ship.owner!==g.active||
+    army.aboard||ship.aboard)throw new Error('Boarding requires an active friendly army and transport.');
+  if(army.spent>=movementAllowance(army))throw new Error('Army has no movement remaining.');
+  if(army.order.kind==='sentry')throw new Error('Clear sentry before boarding.');
+  if(Math.max(Math.abs(army.position.x-ship.position.x),Math.abs(army.position.y-ship.position.y))>1)
+    throw new Error('Army must be adjacent to the transport.');
+  const aboard=g.units.filter(u=>u.aboard===ship.id);
+  if(aboard.length>=(capacity(ship)??0))throw new Error('Transport is full.');
+  army.aboard=ship.id;army.position={...ship.position};army.spent++;army.order={kind:'none'};
+  log(g,army.owner,'movement',`${army.id} boarded ${ship.id} (${aboard.length+1}/${capacity(ship)}).`);
+  updateAllKnowledge(g);
+  return g;
+}
+/** Release an army from a transport into an adjacent legal land square. */
+export function disembarkArmy(game:Game,armyId:string,to:Coord):Game {
+  const g=clone(game),army=g.units.find(u=>u.id===armyId);
+  if(!army||army.owner!==g.active||army.kind!=='army'||!army.aboard)
+    throw new Error('Select an embarked friendly army.');
+  const ship=g.units.find(u=>u.id===army.aboard);
+  if(!ship||ship.kind!=='transport'||ship.owner!==g.active)throw new Error('Transport unavailable.');
+  if(army.spent>=movementAllowance(army))throw new Error('Army has no movement remaining.');
+  if(!playable(g,to)||Math.max(Math.abs(to.x-ship.position.x),Math.abs(to.y-ship.position.y))!==1)
+    throw new Error('Landing must be adjacent to the transport.');
+  const city=cityAt(g,to);
+  if(terrainAt(g,to)!=='land'&&!city)throw new Error('An army must disembark onto land.');
+  if(city&&city.owner!==army.owner)throw new Error('Capture hostile cities manually after landing.');
+  if(g.units.some(u=>!u.aboard&&equal(u.position,to)&&(!city||u.owner!==army.owner)))
+    throw new Error('Landing square occupied.');
+  army.aboard=null;army.position={...to};army.spent++;army.order={kind:'none'};
+  log(g,army.owner,'movement',`${army.id} landed from ${ship.id}.`);
+  updateAllKnowledge(g);
+  return g;
+}
 export function moveUnit(game:Game,id:string,to:Coord):Game {
   const g=clone(game),unit=g.units.find(u=>u.id===id);
   if(!unit||unit.owner!==g.active) throw new Error('That unit cannot be moved this turn.');
@@ -88,6 +124,8 @@ export function moveUnit(game:Game,id:string,to:Coord):Game {
   const domain=STATS[unit.kind].domain;
   const city=cityAt(g,to);
   const occupants=g.units.filter(u=>!u.aboard&&equal(u.position,to));
+  const boarding=occupants.find(u=>u.owner===unit.owner&&u.kind==='transport');
+  if(unit.kind==='army'&&boarding)return embarkArmy(game,id,boarding.id);
   const enemy=occupants.find(u=>u.owner!==unit.owner);
   // Original rules allow armies to engage hostile ships in adjacent water, but
   // the victorious army does not advance onto the sea square. Heavy warships
@@ -107,7 +145,17 @@ export function moveUnit(game:Game,id:string,to:Coord):Game {
   }
   if(enemy)return resolveCombat(game,id,enemy.id);
   if(occupants.some(u=>u.owner===unit.owner)&&!city) throw new RuleNotImplemented('CARGO','Loading and same-cell stacking require verified original mechanics.');
+  if(unit.kind==='transport'&&g.units.filter(u=>u.aboard===unit.id).length>(capacity(unit)??0))
+    throw new Error('Transport is overloaded. Unload excess armies before moving.');
   unit.position={...to}; unit.spent++;
+  // Embarked units physically travel with the ship, but spend no movement themselves.
+  for(const cargo of g.units.filter(u=>u.aboard===unit.id))cargo.position={...to};
+  if(unit.kind==='transport'&&city?.owner===unit.owner){
+    for(const cargo of g.units.filter(u=>u.aboard===unit.id)){
+      cargo.aboard=null;cargo.position={...to};
+      log(g,cargo.owner,'movement',`${cargo.id} unloaded in friendly port ${city.id}.`);
+    }
+  }
   if(unit.order.kind!=='none'&&unit.order.kind!=='skip')unit.order={kind:'none'};
   if(unit.kind==='fighter') {
     unit.fuel=(unit.fuel??MAX_FIGHTER_FUEL)-1;
