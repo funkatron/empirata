@@ -58,12 +58,16 @@ test('A produced transport completes a bounded amphibious campaign',()=>{
       owner:g.cities.find(c=>c.id==='invasion-outpost').owner});
     built ||= own(g,'transport').length>0;
     loaded ||= own(g,'army').some(u=>u.aboard);
+    for(const ship of own(g,'transport'))if(g.units.some(u=>u.aboard===ship.id))
+      voyage.add(`${ship.position.x},${ship.position.y}`);
+    sailed ||= voyage.size>=3;
     landed ||= own(g,'army').some(u=>!u.aboard&&u.position.x<=76&&u.position.y<=32);
     contested ||= g.cities.find(c=>c.id==='invasion-outpost').owner==='red';
     if(contested)break;
   }
   assert.ok(built,'Red must build a transport');
   assert.ok(loaded,'Red must load an army');
+  assert.ok(sailed,'Loaded transport must sail through multiple distinct sea cells: '+JSON.stringify(trace));
   assert.ok(landed,'Red must land an army on the target island: '+JSON.stringify(trace));
   assert.ok(contested,'Red must capture the outpost in the bounded scenario: '+JSON.stringify(trace));
 });
