@@ -34,3 +34,23 @@ test('A loaded transport is not sent home by the empty-ship rule',()=>{
   assert.equal(acted.units.find(u=>u.id==='u3').aboard,'empty-ship');
   assert.notDeepEqual(acted.units.find(u=>u.id==='empty-ship').position,{x:80,y:36});
 });
+
+test('An idle Red army moves toward its coastal loading city',()=>{
+  const g=fleet();
+  // Keep the transport absent so the army must prepare for future production.
+  g.units=g.units.filter(u=>u.id!=='empty-ship');
+  updateAllKnowledge(g);
+  const original=g.units.find(u=>u.id==='u3').position;
+  const acted=playRedOpponent(endTurn(g));
+  const moved=acted.units.find(u=>u.id==='u3').position;
+  const dist=p=>Math.max(Math.abs(p.x-80),Math.abs(p.y-36));
+  assert.ok(dist(moved)<dist(original));
+});
+test('An army already near its coastal city waits for transport pickup',()=>{
+  const g=fleet();
+  g.units=g.units.filter(u=>u.id!=='empty-ship');
+  g.units.find(u=>u.id==='u3').position={x:79,y:36};
+  updateAllKnowledge(g);
+  const acted=playRedOpponent(endTurn(g));
+  assert.deepEqual(acted.units.find(u=>u.id==='u3').position,{x:79,y:36});
+});
