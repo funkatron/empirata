@@ -1,5 +1,5 @@
 import {advanceLabRound,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,
-  moveUnit,disembarkArmy,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
+  moveUnit,disembarkArmy,launchFighter,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
   STATS,UNIT_TYPES,isCoastal} from '../engine/index.js';
 import type {City,Coord,Game,Unit,UnitType,PlayerView} from '../engine/index.js';
 
@@ -121,8 +121,9 @@ function tapTile(pos:Coord):void {
   if(pos.x<0||pos.y<0||pos.x>=game.width||pos.y>=game.height)return;
   const embarked=selectedUnit?view.ownUnits.find(u=>u.id===selectedUnit&&u.aboard):null;
   if(embarked){
-    if(dispatch(()=>disembarkArmy(game,embarked.id,pos))){
-      uiMessage(`${embarked.id} disembarked. Select the transport to manage remaining cargo.`);
+    const action=embarked.kind==='fighter'?launchFighter:disembarkArmy;
+    if(dispatch(()=>action(game,embarked.id,pos))){
+      uiMessage(`${embarked.id} left its ship. Select the ship to manage remaining cargo.`);
     }
     return;
   }
@@ -163,9 +164,9 @@ function selectedUnitBlock(unit:Unit):string {
   <div class="datum"><small>Damage</small><strong>${unit.damage} / ${stats.hitPoints}</strong></div>
   ${unit.kind==='fighter'?`<div class="datum"><small>Fuel</small><strong>${unit.fuel} / 20</strong></div>`:''}
   ${possible!==null?`<div class="datum"><small>Cargo capacity</small><strong>${possible}</strong></div>`:''}</div>
-  ${unit.kind==='transport'? `<div class="stat-note">Aboard: ${view.ownUnits.filter(u=>u.aboard===unit.id).length} / ${capacity(unit)??0}</div>
-  <div class="actions">${view.ownUnits.filter(u=>u.aboard===unit.id).map(u=>`<button class="cargoButton" data-cargo="${text(u.id)}">Unload ${text(u.id)}</button>`).join('')}</div>`:''}
-  ${unit.aboard?'<p class="stat-note">Embarked: tap adjacent land to disembark (if movement remains).</p>':''}
+  ${(unit.kind==='transport'||unit.kind==='carrier')? `<div class="stat-note">Aboard: ${view.ownUnits.filter(u=>u.aboard===unit.id).length} / ${capacity(unit)??0}</div>
+  <div class="actions">${view.ownUnits.filter(u=>u.aboard===unit.id).map(u=>`<button class="cargoButton" data-cargo="${text(u.id)}">Select ${text(u.id)}</button>`).join('')}</div>`:''}
+  ${unit.aboard?'<p class="stat-note">Embarked: tap an adjacent legal square to launch or disembark (if movement remains).</p>':''}
   <div class="actions"><button id="moveToButton">Move To</button><button id="directionButton">Go Direction</button><button id="patrolButton">Patrol</button><button id="homeButton">Go Home</button><button id="escortButton">Escort</button><button id="sentryButton">Sentry</button><button id="clearButton">Clear</button><button id="skipButton">Skip move</button></div>
   <p class="stat-note" style="margin-top:12px">Tap an adjacent tile for manual movement, or choose Move To and tap a distant destination. Armies can assault neutral or enemy cities. Combat uses the original manual's normal-efficiency odds with a seeded random stream.</p>`;
 }
@@ -195,7 +196,7 @@ function refresh():void {
   else inspector.innerHTML='<p>Select a blue unit, then tap an adjacent enemy to attack. Select a city to assign production. Red will respond on the next round using a preliminary rules-bound AI.</p>';
   inspector.querySelectorAll<HTMLButtonElement>('.cargoButton').forEach(button=>button.addEventListener('click',()=>{
     selectedUnit=button.dataset.cargo??null;selectedCity=null;refresh();
-    uiMessage('Tap adjacent land to disembark the selected army.');
+    uiMessage('Tap adjacent land to disembark an army, or a free adjacent square to launch a fighter.');
   }));
   const moveButton=document.getElementById('moveToButton');
   if(moveButton&&unit)moveButton.addEventListener('click',()=>{choosingOrder='move-to';choosingDestination=true;uiMessage('Tap a map tile to set destination. Drag to pan.');});
