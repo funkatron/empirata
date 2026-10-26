@@ -116,3 +116,21 @@ test('Legacy computer saves repair their isolated harbor without drowning land u
   const advanced=advanceLabRound(importSave(exportSave(old)));
   assert.ok(advanced.events.some(e=>e.message.includes('Lab harbor repaired')));
 });
+
+test('A legacy loaded Red transport can leave the repaired harbor',()=>{
+  const g=makeCloseQuartersLab();
+  g.scenario='ai-vs-ai';
+  const template=g.units.find(u=>u.owner==='red'&&u.kind==='army');
+  const ship={...structuredClone(template),id:'legacy-ship',kind:'transport',
+    position:{x:81,y:36},aboard:null,fuel:null,spent:0,order:{kind:'none'}};
+  const cargo={...structuredClone(template),id:'legacy-cargo',
+    position:{x:81,y:36},aboard:'legacy-ship',spent:0,order:{kind:'none'}};
+  g.units.push(ship,cargo);
+  updateAllKnowledge(g);
+  const after=advanceLabRound(importSave(exportSave(g)));
+  const moved=after.units.find(u=>u.id==='legacy-ship');
+  assert.notDeepEqual(moved.position,ship.position,
+    'Loaded transport should navigate into repaired sea lane on next round');
+  assert.deepEqual(after.units.find(u=>u.id==='legacy-cargo').position,moved.position,
+    'Cargo follows the ship');
+});
