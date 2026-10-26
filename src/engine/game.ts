@@ -417,6 +417,35 @@ export function endTurn(game:Game):Game {
   beginTurn(g);
   return executeStandingOrders(g);
 }
+/** Verify that a proposed beachhead has a confirmed land approach to a
+ * discovered objective. Distance alone is insufficient when a bay or strait
+ * separates the beach from the city. Uses only remembered PlayerView cells.
+ */
+function aiLandingReachesObjective(view:ReturnType<typeof getPlayerView>,landing:Coord):boolean {
+  const {width,height,cells}=view;
+  const key=(p:Coord)=>p.y*width+p.x;
+  const start=key(landing);
+  if(cells[start]?.terrain!=='land'||cells[start]?.city?.owner==='red')return false;
+  const goals:Coord[]=[];
+  for(let i=0;i<cells.length;i++)if(cells[i]?.city&&cells[i]!.city!.owner!=='red')
+    goals.push({x:i%width,y:Math.floor(i/width)});
+  if(!goals.length)return false;
+  const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
+  const queue=[start],seen=new Set<number>([start]);
+  for(let head=0;head<queue.length;head++){
+    const p={x:queue[head]!%width,y:Math.floor(queue[head]!/width)};
+    if(goals.some(goal=>distance(p,goal)<=1))return true;
+    for(const d of directions){
+      const next={x:p.x+d.x,y:p.y+d.y};
+      if(next.x<=0||next.y<=0||next.x>=width-1||next.y>=height-1)continue;
+      const k=key(next),cell=cells[k];
+      if(seen.has(k)||cell?.terrain!=='land'||cell?.city&&cell.city.owner!=='red')continue;
+      seen.add(k);queue.push(k);
+    }
+  }
+  return false;
+}
+
 /** Choose a short sea route to a landing area near a *known* non-Red city.
  * Operates exclusively on the Red PlayerView. Unknown terrain may be explored,
  * but no hidden world tile, enemy or city is consulted for route selection.
@@ -435,7 +464,8 @@ function aiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|n
     for(let x=city.x-2;x<=city.x+2;x++){
       const landing={x,y},indexLanding=y*view.width+x;
       if(x<=0||y<=0||x>=view.width-1||y>=view.height-1)continue;
-      if(cells[indexLanding]?.terrain!=='land'||distance(landing,city)>2)continue;
+      if(cells[indexLanding]?.terrain!=='land'||distance(landing,city)>2||
+         !aiLandingReachesObjective(view,landing))continue;
       for(const d of directions){
         const sea={x:x+d.x,y:y+d.y};
         if(sea.x<=0||sea.y<=0||sea.x>=view.width-1||sea.y>=view.height-1)continue;
@@ -569,6 +599,7 @@ export function playRedOpponent(game:Game):Game {
     const options=directions.map(d=>({x:ship.position.x+d.x,y:ship.position.y+d.y}))
       .filter(p=>playable(g,p)&&view.cells[index(g,p)]?.terrain==='land'&&
         view.cells[index(g,p)]?.city?.owner!=='red'&&
+        aiLandingReachesObjective(view,p)&&
         // Avoid prematurely disembarking next to our own cities. Only commit
         // troops to a shore near a known non-red objective.
         knownObjectives.some(objective=>distance(p,objective)<=2))
