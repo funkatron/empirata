@@ -51,3 +51,15 @@ Close Quarters includes additional blue armies so players can engage in multiple
 - Covered home arrival, multi-round travel, occupied friendly cities, escort following, invalid/lost targets and persistence with lightweight Node tests.
 - Historical details of Go Home destination preference and Escort formation remain *provisional* pending an original-DOS behavior trace.
 - GitHub Actions compilation and Pages publication for this milestone must be verified separately; a source commit alone does not prove deployment.
+
+## 2026-10-25 amphibious logistics milestone (initial)
+
+- Army embarkation: move an army onto an adjacent friendly troop transport, subject to remaining movement and damage-adjusted capacity.
+- Embarked army coordinates now follow the transport while sailing; the army remains inaccessible to direct attacks.
+- Army landing: select an embarked army and move to adjacent legal land (or a friendly city) with movement available. Hostile-city assaults remain manual.
+- Transport entering a friendly port unloads embarked armies automatically; overloaded damaged transports may not sail until unloaded.
+- Close Quarters includes an adjacent friendly army and troop transport for hands-on testing.
+- New small Node tests check boarding, cargo movement, unloading, capacity, invalid landing, persistence, and dock unloading.
+- CI workflow now runs engine tests and regenerates the standalone `index.html` on successful main-branch builds.
+- Still pending: original Load Ship/Unload Ship standing orders, fighter carriers, combat damage overflow, and definitive original-DOS cargo timing. Rules outside manual-confirmed cases remain provisional.
+- Source changes are committed; verify GitHub Actions and the updated hosted site before claiming a successful deployment.
