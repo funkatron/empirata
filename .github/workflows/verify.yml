@@ -1,0 +1,45 @@
+name: Verify and build Empirata
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: empirata-verify-main
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package.json
+      - name: Install test dependencies
+        run: npm install --no-audit --no-fund
+      - name: Test engine and coverage
+        run: npm test
+      - name: Build standalone browser application
+        run: node scripts/build-single-file.cjs
+      - name: Publish bundled page to main
+        if: github.ref == 'refs/heads/main'
+        run: |
+          if ! git diff --quiet -- index.html; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add index.html
+            git commit -m "build: refresh tested standalone browser page [skip ci]"
+            git push
+          fi
