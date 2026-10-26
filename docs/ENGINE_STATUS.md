@@ -118,3 +118,9 @@ Close Quarters includes additional blue armies so players can engage in multiple
 - Empty Red transports return to a known friendly coastal city to reload; ships already at port wait rather than wandering away. Loaded transports retain their invasion routing.
 - Five lightweight ground-routing tests cover a forced detour, occupied tiles, absence of objectives, repeatability, and fog isolation. Three additional tests cover empty-transport return, waiting, and loaded-ship separation.
 - The campaign opponent remains heuristic. Historical AI strategy, long-term exploration and fleet coordination remain unverified and are not claimed as original Interstel behavior.
+
+### AI staging refinement
+
+- When Red has no known opposing objective or visible enemy, idle armies move toward a friendly coastal loading city and wait within embarkation range rather than dispersing.
+- Empty transports return to that city; loaded transports remain assigned to their invasion route.
+- Additional regression tests cover staging and waiting behavior. These are strategic heuristics, not historical AI reconstruction.
