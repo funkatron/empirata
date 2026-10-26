@@ -20,6 +20,10 @@ function campaign(){
   home.production='transport';
   home.progress=requiredProductionTurns('transport',true,50)-1;
   home.firstCycle=true;
+  // An open sea lane links the production harbor to the target island.
+  // Without this the generated ship is trapped in an isolated coastal inlet.
+  for(let y=32;y<=36;y++)for(const x of [81,82])
+    g.tiles[y*g.width+x]='sea';
   // Three armies give Red a reason to continue building transports.
   for(const [id,x,y] of [['reserve-1',79,35],['reserve-2',80,35]]){
     g.tiles[y*g.width+x]='land';
