@@ -49,7 +49,10 @@ test('Red AI disembarks an already embarked army by legal land, without using un
   const red=g.units.find(u=>u.id==='u3');
   const ship={...structuredClone(red),id:'red-ship',kind:'transport',position:{x:81,y:36},fuel:null};
   red.position={...ship.position};red.aboard=ship.id;
-  g.units.push(ship);updateAllKnowledge(g);
+  g.units.push(ship);
+  // A neutral city in sight just behind the shore makes a landing useful.
+  g.cities.push({id:'near-neutral',position:{x:80,y:35},owner:null,production:null,progress:0,firstCycle:true});
+  updateAllKnowledge(g);
   const acted=playRedOpponent(endTurn(g));
   const army=own(acted,'u3');
   assert.ok(army);
