@@ -144,6 +144,15 @@ function adjudicateCombat(game, record) {
     const winner = defeated === attacker ? defender : attacker;
     const lostOwner = defeated.owner, winningOwner = winner.owner;
     removeUnitAndCargo(g, defeated.id);
+    // A damaged carrier immediately loses fighters exceeding its reduced capacity.
+    // Cargo selection is deterministic (last-added first); exact DOS priority is unresolved.
+    if (winner.kind === 'carrier') {
+        const excess = g.units.filter(u => u.aboard === winner.id).slice((0, units_js_1.capacity)(winner) ?? 0);
+        for (const fighter of excess) {
+            removeUnitAndCargo(g, fighter.id);
+            log(g, fighter.owner, `${fighter.id} was lost when ${winner.id} exceeded carrier capacity.`);
+        }
+    }
     if (winner.id === attacker.id) {
         attacker.spent++;
         if (advances)
