@@ -6,7 +6,7 @@
  * results. Red opponent uses a preliminary rules-bound AI.
  */
 import type { Game, Unit } from './types.js';
-import {makeRulesLab,repairLabHarbor} from './game.js';
+import {makeRulesLab} from './game.js';
 import {updateAllKnowledge} from './knowledge.js';
 
 export function makeCloseQuartersLab():Game {
@@ -76,5 +76,5 @@ export function makeAiVsAiLab():Game {
   g.scenario='ai-vs-ai';
   g.events.push({id:g.nextEventId++,round:g.round,recipient:null,kind:'system',
     message:'AI versus AI laboratory: both factions act automatically. Advance rounds to observe a deterministic skirmish.'});
-  return repairLabHarbor(g);
+  return g;
 }
