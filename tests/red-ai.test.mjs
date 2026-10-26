@@ -87,3 +87,14 @@ test('Red resumes army production when a transport already exists',()=>{
   const acted=playRedOpponent(endTurn(g));
   assert.equal(acted.cities.find(c=>c.id==='c-red').production,'army');
 });
+
+test('Red decisions are unaffected by moving an entirely unseen Blue army',()=>{
+  const a=makeRulesLab(),b=structuredClone(a);
+  b.units.find(u=>u.id==='u1').position={x:45,y:40};
+  updateAllKnowledge(a);updateAllKnowledge(b);
+  assert.deepEqual(getPlayerView(a,'red'),getPlayerView(b,'red'));
+  const left=playRedOpponent(endTurn(a)),right=playRedOpponent(endTurn(b));
+  assert.deepEqual(getPlayerView(left,'red').ownUnits,getPlayerView(right,'red').ownUnits);
+  assert.deepEqual(getPlayerView(left,'red').ownCities,getPlayerView(right,'red').ownCities);
+  assert.deepEqual(left.rng,right.rng);
+});
