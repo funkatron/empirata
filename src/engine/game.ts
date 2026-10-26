@@ -534,7 +534,8 @@ function aiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|n
       const next={x:p.x+direction.x,y:p.y+direction.y};
       if(next.x<=0||next.y<=0||next.x>=view.width-1||next.y>=view.height-1)continue;
       const i=next.y*view.width+next.x;
-      if(seen.has(i)||blocked.has(i)||cells[i]?.terrain==='land'||cells[i]?.city)continue;
+      if(seen.has(i)||blocked.has(i)||cells[i]?.terrain==='land'||cells[i]?.city||
+         aiTransportThreatened(view,next))continue;
       seen.add(i);parent.set(i,current);queue.push(i);
     }
   }
