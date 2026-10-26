@@ -2,7 +2,7 @@
 
 A browser-based, classic-rules strategy wargame based on the **gameplay** of *Empire: Wargame of the Century* (Interstel DOS version 2.05).
 
-**[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md)
+**[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
 ## Version 0.4 — First genuinely interactive skirmish
 
