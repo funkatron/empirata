@@ -83,3 +83,12 @@ Close Quarters includes additional blue armies so players can engage in multiple
 - Small regression cases cover waiting loaders, reaching capacity, waking through manual boarding, harbor departures, save roundtrips and an end-to-end deterministic amphibious invasion followed by a city capture.
 - The GitHub Actions workflow now also runs `node --test smoke/bundle.mjs` after generating the standalone HTML, guarding against broken embedded scripts without launching a browser.
 - Historical uncertainties: exact selection order of cargo when several units are eligible, precise Load Ship wakeup timing, and original naval/cargo loss draw ordering still need DOS reference checks done *outside* normal CI.
+
+## 2026-10-26 computer-opponent iteration
+
+- Close Quarters Red opponent now **chooses city production** from its owned cities: normally armies, switching to a transport once it has at least three armies and no transport, then back to armies after a transport exists.
+- Red **boards adjacent armies onto its own transports** using the same load rules as the player, and **lands embarked armies** on legal shores near cities actually known to Red.
+- Loaded Red transports avoid immediately re-entering known friendly cities during routine movement. When known non-red cities are available, loaded transports use those locations as strategic movement goals.
+- Decisions are deterministic and use the Red faction's `PlayerView` for knowledge-limited objectives; regression cases check that moving a completely invisible enemy does not change the decision state.
+- This is *provisional strategy*, not reconstructed original Interstel AI. Tactical movement remains primitive; sea navigation, ship construction time and coordinated amphibious operations are important follow-ups.
+- All new AI tests are designed to be fast, in-memory Node tests without an emulator. Source commits do not themselves establish a passing GitHub Actions run; check the workflow and generated bundle.
