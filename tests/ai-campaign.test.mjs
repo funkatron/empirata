@@ -46,8 +46,12 @@ test('Production creates a transport, Red loads it, and begins an overseas voyag
 
 test('A produced transport completes a bounded amphibious campaign',()=>{
   let g=campaign(),built=false,loaded=false,landed=false,contested=false;
+  const trace=[];
   for(let i=0;i<32;i++){
     g=advanceLabRound(g);
+    trace.push({round:g.round,ships:own(g,'transport').map(u=>({id:u.id,p:u.position})),
+      armies:own(g,'army').map(u=>({id:u.id,p:u.position,aboard:u.aboard})),
+      owner:g.cities.find(c=>c.id==='invasion-outpost').owner});
     built ||= own(g,'transport').length>0;
     loaded ||= own(g,'army').some(u=>u.aboard);
     landed ||= own(g,'army').some(u=>!u.aboard&&u.position.x<=76&&u.position.y<=32);
@@ -56,7 +60,7 @@ test('A produced transport completes a bounded amphibious campaign',()=>{
   }
   assert.ok(built,'Red must build a transport');
   assert.ok(loaded,'Red must load an army');
-  assert.ok(landed,'Red must land an army on the target island');
+  assert.ok(landed,'Red must land an army on the target island: '+JSON.stringify(trace));
   assert.ok(contested,'Red must capture the outpost in the bounded scenario');
 });
 
