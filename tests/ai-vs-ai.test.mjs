@@ -58,3 +58,29 @@ test('Blue opponent rejects an opponent turn',()=>{
   g.active='red';
   assert.throws(()=>playBlueOpponent(g),/Blue AI/);
 });
+
+test('Blue AI does not use an undiscovered rival city as a target',()=>{
+  const a=makeAiVsAiLab(),b=structuredClone(a);
+  b.cities.push({id:'secret-red-base',position:{x:48,y:47},owner:'red',
+    production:null,progress:0,firstCycle:true});
+  assert.deepEqual(getPlayerView(a,'blue'),getPlayerView(b,'blue'));
+  const left=playBlueOpponent(a),right=playBlueOpponent(b);
+  const blueUnits=g=>g.units.filter(u=>u.owner==='blue');
+  assert.deepEqual(blueUnits(left),blueUnits(right));
+  assert.deepEqual(left.rng,right.rng);
+});
+
+test('A twenty-round AI exhibition never strands cargo or leaves the active faction invalid',()=>{
+  let g=makeAiVsAiLab();
+  for(let i=0;i<20;i++){
+    g=advanceLabRound(g);
+    assert.equal(g.round,i+2);
+    assert.equal(g.active,'blue');
+    for(const cargo of g.units.filter(u=>u.aboard)){
+      const ship=g.units.find(u=>u.id===cargo.aboard);
+      assert.ok(ship,`Orphan cargo ${cargo.id} at round ${g.round}`);
+      assert.equal(ship.owner,cargo.owner);
+      assert.deepEqual(ship.position,cargo.position);
+    }
+  }
+});
