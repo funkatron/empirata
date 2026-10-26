@@ -9,6 +9,12 @@
 
 .scenario-start{font-size:10px;padding:6px 8px;white-space:nowrap;border:1px solid #61747d;color:#f0dd9b;background:#263542}.toolbar-left{min-width:0}.toolbar-left .live-label{white-space:nowrap}@media(max-width:550px){.toolbar-left #mapStatus{display:none}.scenario-start{padding:6px 6px}}
 
+.ai-spectator{border:1px solid #54778b;border-radius:7px;padding:11px;margin:10px 0;background:#122b39}
+.ai-spectator[hidden]{display:none}
+.ai-spectator label{display:block;font-size:11px;color:#d7bf85}
+.ai-spectator select{margin-top:5px}
+.ai-spectator .actions button{flex:1;min-height:38px}
+
 </style></head>
 <body><div class="app">
   <header class="topbar"><div class="brand"><span class="brand-mark">✦</span><div><strong>EMPIRATA</strong><small>CLASSIC RULES LAB · v0.4</small></div></div>
@@ -29,7 +35,13 @@
       <section class="events card"><h2>Orders &amp; reports</h2><div id="events"></div></section>
       <section class="files card"><h2>Close Quarters · Immediate encounters</h2>
         <p>Blue armies face nearby red forces and a neutral city. Select a blue unit and tap an adjacent red unit or gold city to fight. Results use the Interstel manual's combat odds, not scripted victory buttons. Additional armies make city assaults repeatable. Red responds on the next round using a preliminary rules-bound AI.</p>
-        <div class="actions"><button id="newGame" class="wide">Start Close Quarters</button><button id="classicGame">Original test map</button><button id="invasionGame">AI Invasion</button></div>
+        <div class="actions"><button id="newGame" class="wide">Start Close Quarters</button><button id="classicGame">Original test map</button><button id="invasionGame">AI Invasion</button><button id="aiVsAiGame">Computer vs computer</button></div>
+        <div class="ai-spectator" id="aiSpectator" hidden>
+          <label for="spectatorSide">Observe</label>
+          <select id="spectatorSide" aria-label="Spectator viewpoint"><option value="blue">Blue intelligence</option><option value="red">Red intelligence</option></select>
+          <div class="actions"><button id="autoPlay" type="button">▶ Play</button><button id="stepTen" type="button">+10 rounds</button></div>
+          <p>Both computers use the same provisional AI. Each viewpoint shows only its own intelligence. Pause before changing scenarios.</p>
+        </div>
         <p>AI Invasion is a short demonstration: defend a Blue outpost while Red approaches by transport, lands troops and attempts a capture. It is a testing scenario, not an original DOS map.</p><h2 style="margin-top:14px">Save &amp; reset</h2>
         <div class="actions"><button id="exportSave">Export JSON</button><button id="importSave">Import JSON</button></div>
         <input id="saveFile" type="file" accept="application/json,.json" hidden/>
@@ -1773,7 +1785,9 @@ if (!context)
     throw new Error('Canvas 2D is unavailable.');
 const ctx = context;
 let game = (0, index_js_1.makeCloseQuartersLab)();
-let view = (0, index_js_1.getPlayerView)(game, 'blue');
+let observer = 'blue';
+let playback = null;
+let view = (0, index_js_1.getPlayerView)(game, observer);
 let selectedUnit = 'u1', selectedCity = null;
 let tileSize = 30, cameraX = 0, cameraY = 0;
 let down = null;
@@ -1782,11 +1796,20 @@ let choosingDestination = false;
 let choosingOrder = 'move-to';
 const colors = { sea: '#23485f', land: '#516e50', unseen: '#0b1821', blue: '#68c4f1', red: '#f47c73', neutral: '#e2c37c' };
 function uiMessage(message) { el('toast').textContent = message; }
+function pausePlayback() {
+    if (playback !== null) {
+        clearInterval(playback);
+        playback = null;
+    }
+    const button = document.getElementById('autoPlay');
+    if (button)
+        button.textContent = '▶ Play';
+}
 function dispatch(operation) {
     try {
         const before = game.nextEventId;
         game = operation();
-        view = (0, index_js_1.getPlayerView)(game, 'blue');
+        view = (0, index_js_1.getPlayerView)(game, observer);
         if (selectedUnit && !view.ownUnits.some(u => u.id === selectedUnit))
             selectedUnit = null;
         refresh();
@@ -1893,6 +1916,10 @@ function cellFromPointer(ev) {
     return { x: Math.floor((ev.clientX - rect.left + cameraX) / tileSize), y: Math.floor((ev.clientY - rect.top + cameraY) / tileSize) };
 }
 function tapTile(pos) {
+    if (game.scenario === 'ai-vs-ai') {
+        uiMessage('Spectator mode: use Play, Next round or +10 rounds.');
+        return;
+    }
     if (choosingDestination && selectedUnit) {
         choosingDestination = false;
         const id = selectedUnit;
@@ -2005,11 +2032,13 @@ function selectedCityBlock(city) {
   <p class="stat-note">Changing unit types discards unfinished production. Production advances at the beginning of your faction's turn.</p>`;
 }
 function refresh() {
-    view = (0, index_js_1.getPlayerView)(game, 'blue');
+    view = (0, index_js_1.getPlayerView)(game, observer);
+    el('aiSpectator').hidden = game.scenario !== 'ai-vs-ai';
+    el('spectatorSide').value = observer;
     el('round').textContent = `ROUND ${game.round}`;
     el('cityCount').textContent = String(view.ownCities.length);
     el('unitCount').textContent = String(view.ownUnits.length);
-    el('scenarioName').textContent = game.scenario === 'ai-invasion' ? 'AI INVASION · DEMONSTRATION' : game.scenario === 'close-quarters' ? 'CLOSE QUARTERS · PLAYABLE' : 'CLASSIC RULES LAB';
+    el('scenarioName').textContent = game.scenario === 'ai-vs-ai' ? 'COMPUTER vs COMPUTER · EXPERIMENTAL' : game.scenario === 'ai-invasion' ? 'AI INVASION · DEMONSTRATION' : game.scenario === 'close-quarters' ? 'CLOSE QUARTERS · PLAYABLE' : 'CLASSIC RULES LAB';
     el('threatCount').textContent = String(view.enemies.filter(u => !u.stale).length);
     const unit = view.ownUnits.find(u => u.id === selectedUnit);
     const city = view.ownCities.find(c => c.id === selectedCity);
@@ -2019,7 +2048,7 @@ function refresh() {
     else if (city)
         inspector.innerHTML = selectedCityBlock(city);
     else
-        inspector.innerHTML = '<p>Select a blue unit, then tap an adjacent enemy to attack. Select a city to assign production. Red will respond on the next round using a preliminary rules-bound AI.</p>';
+        inspector.innerHTML = game.scenario === 'ai-vs-ai' ? '<p>Both factions are controlled by the computer. Switch the spectator viewpoint to inspect either faction’s known terrain and units.</p>' : '<p>Select a blue unit, then tap an adjacent enemy to attack. Select a city to assign production. Red will respond on the next round using a preliminary rules-bound AI.</p>';
     inspector.querySelectorAll('.cargoButton').forEach(button => button.addEventListener('click', () => {
         selectedUnit = button.dataset.cargo ?? null;
         selectedCity = null;
@@ -2168,19 +2197,50 @@ el('saveFile').addEventListener('change', async () => {
 function startScenario(kind) {
     if (!window.confirm('Start a new test scenario? This will replace the current local autosave. Export JSON first if you want to keep it.'))
         return;
+    pausePlayback();
+    observer = 'blue';
     choosingDestination = false;
-    game = kind === 'ai-invasion' ? (0, index_js_1.makeAiInvasionLab)() : kind === 'close-quarters' ? (0, index_js_1.makeCloseQuartersLab)() : (0, index_js_1.makeRulesLab)();
-    selectedUnit = kind === 'ai-invasion' ? null : 'u1';
+    game = kind === 'ai-vs-ai' ? (0, index_js_1.makeAiVsAiLab)() : kind === 'ai-invasion' ? (0, index_js_1.makeAiInvasionLab)() : kind === 'close-quarters' ? (0, index_js_1.makeCloseQuartersLab)() : (0, index_js_1.makeRulesLab)();
+    selectedUnit = kind === 'ai-invasion' || kind === 'ai-vs-ai' ? null : 'u1';
     selectedCity = null;
     refresh();
     focus(kind === 'ai-invasion' ? { x: 76, y: 29 } : { x: 9, y: 25 });
     void (0, index_js_1.saveLocally)(game).catch(() => uiMessage('Local save unavailable; export JSON.'));
-    uiMessage(kind === 'ai-invasion' ? 'AI Invasion ready: press Next round to watch the Red landing operation.' : kind === 'close-quarters' ? 'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.' : 'Classic rules lab reset.');
+    uiMessage(kind === 'ai-vs-ai' ? 'Computer vs computer ready. Use Play, Next round or +10 rounds.' : kind === 'ai-invasion' ? 'AI Invasion ready: press Next round to watch the Red landing operation.' : kind === 'close-quarters' ? 'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.' : 'Classic rules lab reset.');
 }
 el('newGame').addEventListener('click', () => startScenario('close-quarters'));
 el('startSkirmish').addEventListener('click', () => startScenario('close-quarters'));
 el('classicGame').addEventListener('click', () => startScenario('classic-lab'));
 el('invasionGame').addEventListener('click', () => startScenario('ai-invasion'));
+el('aiVsAiGame').addEventListener('click', () => startScenario('ai-vs-ai'));
+el('spectatorSide').addEventListener('change', () => {
+    observer = el('spectatorSide').value;
+    selectedUnit = null;
+    selectedCity = null;
+    refresh();
+    uiMessage(`Observing ${observer.toUpperCase()} intelligence. Hidden enemy information remains concealed.`);
+});
+el('stepTen').addEventListener('click', () => {
+    pausePlayback();
+    if (game.scenario !== 'ai-vs-ai')
+        return;
+    if (dispatch(() => { let g = game; for (let i = 0; i < 10; i++)
+        g = (0, index_js_1.advanceLabRound)(g); return g; }))
+        uiMessage(`Simulation advanced 10 rounds to round ${game.round}.`);
+});
+el('autoPlay').addEventListener('click', () => {
+    if (playback !== null) {
+        pausePlayback();
+        return;
+    }
+    if (game.scenario !== 'ai-vs-ai')
+        return;
+    el('autoPlay').textContent = 'Ⅱ Pause';
+    playback = setInterval(() => { if (!dispatch(() => (0, index_js_1.advanceLabRound)(game)))
+        pausePlayback(); }, 750);
+});
+document.addEventListener('visibilitychange', () => { if (document.hidden)
+    pausePlayback(); });
 new ResizeObserver(resize).observe(canvas);
 async function boot() {
     try {
@@ -2197,7 +2257,9 @@ async function boot() {
     selectedUnit = game.units.some(u => u.id === 'u1' && u.owner === 'blue') ? 'u1' : null;
     refresh();
     focus(game.scenario === 'ai-invasion' ? { x: 76, y: 29 } : { x: 9, y: 25 });
-    if (game.scenario === 'ai-invasion')
+    if (game.scenario === 'ai-vs-ai')
+        uiMessage('Computer versus computer restored, paused. Press Play to resume.');
+    else if (game.scenario === 'ai-invasion')
         uiMessage('AI Invasion restored. Press Next round to watch the invasion.');
     else if (game.scenario === 'close-quarters')
         uiMessage('Select a blue unit, then tap an adjacent red unit or gold city to fight.');
