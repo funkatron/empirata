@@ -1,4 +1,4 @@
-import {advanceLabRound,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,
+import {advanceLabRound,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,
   moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
   STATS,UNIT_TYPES,isCoastal} from '../engine/index.js';
 import type {City,Coord,Game,Unit,UnitType,PlayerView} from '../engine/index.js';
@@ -186,7 +186,7 @@ function refresh():void {
   el('round').textContent=`ROUND ${game.round}`;
   el('cityCount').textContent=String(view.ownCities.length);
   el('unitCount').textContent=String(view.ownUnits.length);
-  el('scenarioName').textContent=game.scenario==='close-quarters'?'CLOSE QUARTERS · PLAYABLE':'CLASSIC RULES LAB';
+  el('scenarioName').textContent=game.scenario==='ai-invasion'?'AI INVASION · DEMONSTRATION':game.scenario==='close-quarters'?'CLOSE QUARTERS · PLAYABLE':'CLASSIC RULES LAB';
   el('threatCount').textContent=String(view.enemies.filter(u=>!u.stale).length);
   const unit=view.ownUnits.find(u=>u.id===selectedUnit);
   const city=view.ownCities.find(c=>c.id===selectedCity);
@@ -268,21 +268,23 @@ el('saveFile').addEventListener('change',async()=>{
     choosingDestination=false;game=loaded;selectedUnit=null;selectedCity=null;refresh();void saveLocally(game);uiMessage('Saved game imported.');}
   catch(error){uiMessage(error instanceof Error?error.message:'Save could not be loaded.');}finally{input.value='';}
 });
-function startScenario(kind:'close-quarters'|'classic-lab'):void{
+function startScenario(kind:'close-quarters'|'classic-lab'|'ai-invasion'):void{
   if(!window.confirm('Start a new test scenario? This will replace the current local autosave. Export JSON first if you want to keep it.'))return;
-  choosingDestination=false;game=kind==='close-quarters'?makeCloseQuartersLab():makeRulesLab();
-  selectedUnit='u1';selectedCity=null;refresh();focus({x:9,y:25});
+  choosingDestination=false;game=kind==='ai-invasion'?makeAiInvasionLab():kind==='close-quarters'?makeCloseQuartersLab():makeRulesLab();
+  selectedUnit=kind==='ai-invasion'?null:'u1';selectedCity=null;refresh();focus(kind==='ai-invasion'?{x:76,y:29}:{x:9,y:25});
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; export JSON.'));
-  uiMessage(kind==='close-quarters'?'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.':'Classic rules lab reset.');
+  uiMessage(kind==='ai-invasion'?'AI Invasion ready: press Next round to watch the Red landing operation.':kind==='close-quarters'?'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.':'Classic rules lab reset.');
 }
 el('newGame').addEventListener('click',()=>startScenario('close-quarters'));
 el('startSkirmish').addEventListener('click',()=>startScenario('close-quarters'));
 el('classicGame').addEventListener('click',()=>startScenario('classic-lab'));
+el('invasionGame').addEventListener('click',()=>startScenario('ai-invasion'));
 new ResizeObserver(resize).observe(canvas);
 async function boot():Promise<void>{
   try{const saved=await loadLocal();if(saved?.active==='blue')game=saved;}catch{uiMessage('Could not load local autosave; use Import JSON if needed.');}
-  if(hydrated)return;hydrated=true;selectedUnit=game.units.some(u=>u.id==='u1'&&u.owner==='blue')?'u1':null;refresh();focus({x:9,y:25});
-  if(game.scenario==='close-quarters')uiMessage('Select a blue unit, then tap an adjacent red unit or gold city to fight.');
+  if(hydrated)return;hydrated=true;selectedUnit=game.units.some(u=>u.id==='u1'&&u.owner==='blue')?'u1':null;refresh();focus(game.scenario==='ai-invasion'?{x:76,y:29}:{x:9,y:25});
+  if(game.scenario==='ai-invasion')uiMessage('AI Invasion restored. Press Next round to watch the invasion.');
+  else if(game.scenario==='close-quarters')uiMessage('Select a blue unit, then tap an adjacent red unit or gold city to fight.');
   else uiMessage('Existing saved game restored. Choose Start Close Quarters to try the immediate combat scenario.');
 }
 void boot();
