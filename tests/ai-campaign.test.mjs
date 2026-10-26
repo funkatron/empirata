@@ -65,7 +65,7 @@ test('A produced transport completes a bounded amphibious campaign',()=>{
   assert.ok(built,'Red must build a transport');
   assert.ok(loaded,'Red must load an army');
   assert.ok(landed,'Red must land an army on the target island: '+JSON.stringify(trace));
-  assert.ok(contested,'Red must capture the outpost in the bounded scenario');
+  assert.ok(contested,'Red must capture the outpost in the bounded scenario: '+JSON.stringify(trace));
 });
 
 test('A campaign replay after saving mid-voyage remains byte-for-byte deterministic',()=>{
