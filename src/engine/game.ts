@@ -472,7 +472,8 @@ function aiSeaExploreStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord
       const next={x:p.x+d.x,y:p.y+d.y};
       if(next.x<=0||next.y<=0||next.x>=view.width-1||next.y>=view.height-1)continue;
       const i=next.y*view.width+next.x;
-      if(seen.has(i)||blocked.has(i)||cells[i]?.terrain==='land'||cells[i]?.city)continue;
+      if(seen.has(i)||blocked.has(i)||cells[i]?.terrain==='land'||cells[i]?.city||
+         aiTransportThreatened(view,next))continue;
       seen.add(i);parent.set(i,current);queue.push(i);
     }
   }
@@ -484,6 +485,14 @@ function aiSeaExploreStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord
     at=previous;
   }
   return {x:at%view.width,y:Math.floor(at/view.width)};
+}
+
+/** A transport carrying armies should not enter a square threatened by
+ * a freshly sighted hostile ground unit. Stale reports are not omniscience.
+ */
+function aiTransportThreatened(view:ReturnType<typeof getPlayerView>,p:Coord):boolean {
+  return view.enemies.some(enemy=>!enemy.stale&&enemy.kind==='army'&&
+    Math.max(Math.abs(enemy.position.x-p.x),Math.abs(enemy.position.y-p.y))<=1);
 }
 
 function aiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|null {
@@ -505,12 +514,13 @@ function aiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|n
         const sea={x:x+d.x,y:y+d.y};
         if(sea.x<=0||sea.y<=0||sea.x>=view.width-1||sea.y>=view.height-1)continue;
         const i=sea.y*view.width+sea.x;
-        if(cells[i]?.terrain==='sea'||cells[i]?.terrain===null)destinations.add(i);
+        if((cells[i]?.terrain==='sea'||cells[i]?.terrain===null)&&
+           !aiTransportThreatened(view,sea))destinations.add(i);
       }
     }
   if(!destinations.size)return aiSeaExploreStep(view,ship);
   const start=ship.position.y*view.width+ship.position.x;
-  if(destinations.has(start))return null;
+  if(destinations.has(start)&&!aiTransportThreatened(view,ship.position))return null;
   const blocked=new Set(view.enemies.filter(e=>!e.stale).map(e=>e.position.y*view.width+e.position.x));
   for(const u of view.ownUnits)if(!u.aboard&&u.id!==ship.id)
     blocked.add(u.position.y*view.width+u.position.x);
