@@ -417,6 +417,62 @@ export function endTurn(game:Game):Game {
   beginTurn(g);
   return executeStandingOrders(g);
 }
+/** Choose a short sea route to a landing area near a *known* non-Red city.
+ * Operates exclusively on the Red PlayerView. Unknown terrain may be explored,
+ * but no hidden world tile, enemy or city is consulted for route selection.
+ * A null result means either no objective or the transport is in landing range.
+ */
+function aiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|null {
+  const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
+  const objectives=view.cells.flatMap((cell,i)=>cell.city&&cell.city.owner!=='red'?
+    [{x:i%view.width,y:Math.floor(i/view.width)}]:[]);
+  if(!objectives.length)return null;
+  const cells=view.cells;
+  const destinations=new Set<number>();
+  // Target known or unexplored sea squares that border a plausible landing
+  // square within two cells of a discovered city.
+  for(const city of objectives)for(let y=city.y-2;y<=city.y+2;y++)
+    for(let x=city.x-2;x<=city.x+2;x++){
+      const landing={x,y},indexLanding=y*view.width+x;
+      if(x<=0||y<=0||x>=view.width-1||y>=view.height-1)continue;
+      if(cells[indexLanding]?.terrain!=='land'||distance(landing,city)>2)continue;
+      for(const d of directions){
+        const sea={x:x+d.x,y:y+d.y};
+        if(sea.x<=0||sea.y<=0||sea.x>=view.width-1||sea.y>=view.height-1)continue;
+        const i=sea.y*view.width+sea.x;
+        if(cells[i]?.terrain==='sea'||cells[i]?.terrain===null)destinations.add(i);
+      }
+    }
+  if(!destinations.size)return null;
+  const start=ship.position.y*view.width+ship.position.x;
+  if(destinations.has(start))return null;
+  const blocked=new Set(view.enemies.filter(e=>!e.stale).map(e=>e.position.y*view.width+e.position.x));
+  for(const u of view.ownUnits)if(!u.aboard&&u.id!==ship.id)
+    blocked.add(u.position.y*view.width+u.position.x);
+  const seen=new Set<number>([start]),queue=[start],parent=new Map<number,number>();
+  let found:number|undefined;
+  for(let head=0;head<queue.length;head++){
+    const current=queue[head]!;
+    if(destinations.has(current)){found=current;break;}
+    const p={x:current%view.width,y:Math.floor(current/view.width)};
+    for(const direction of directions){
+      const next={x:p.x+direction.x,y:p.y+direction.y};
+      if(next.x<=0||next.y<=0||next.x>=view.width-1||next.y>=view.height-1)continue;
+      const i=next.y*view.width+next.x;
+      if(seen.has(i)||blocked.has(i)||cells[i]?.terrain==='land'||cells[i]?.city)continue;
+      seen.add(i);parent.set(i,current);queue.push(i);
+    }
+  }
+  if(found===undefined)return null;
+  let at=found;
+  while(parent.get(at)!==start){
+    const previous=parent.get(at);
+    if(previous===undefined)return null;
+    at=previous;
+  }
+  return {x:at%view.width,y:Math.floor(at/view.width)};
+}
+
 /**
  * Close Quarters' preliminary computer opponent. It sees only its own PlayerView,
  * chooses known targets, and executes the very same moves as the human player.
@@ -479,6 +535,13 @@ export function playRedOpponent(game:Game):Game {
       const view=getPlayerView(g,'red');
       const unit=view.ownUnits.find(u=>u.id===id);
       if(!unit||unit.spent>=movementAllowance(unit)||unit.order.kind==='sentry')break;
+      if(unit.kind==='transport'&&view.ownUnits.some(u=>u.aboard===id)){
+        const step=aiInvasionStep(view,unit);
+        // Once in landing range, hold station for the next available cargo turn.
+        if(!step)break;
+        try {g=moveUnit(g,id,step);continue;}
+        catch {break;} // Hidden contact interrupts the route; do not attack blindly.
+      }
       const visibleEnemies=view.enemies.filter(e=>!e.stale);
       const knownCities=view.cells.flatMap((cell,i)=>cell.city&&cell.city.owner!=='red'?
         [{pos:{x:i%view.width,y:Math.floor(i/view.width)},city:cell.city}]:[]);
