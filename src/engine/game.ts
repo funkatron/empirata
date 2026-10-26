@@ -48,7 +48,57 @@ export function selectProduction(game:Game,cityId:string,kind:UnitType):Game {
   log(g,city.owner,'production',`Production set to ${STATS[kind].name} at ${city.id}; previous progress discarded.`);
   updateAllKnowledge(g);return g;
 }
+/** Load any available adjacent or co-located friendly troops while respecting capacity. */
+function fillShip(g:Game,ship:Unit):number {
+  const cargoKind=ship.kind==='transport'?'army':'fighter';
+  const capacityNow=capacity(ship)??0;
+  let occupied=g.units.filter(u=>u.aboard===ship.id).length,loaded=0;
+  for(const candidate of g.units){
+    if(occupied>=capacityNow)break;
+    if(candidate.owner!==ship.owner||candidate.kind!==cargoKind||candidate.aboard||
+       candidate.id===ship.id)continue;
+    if(Math.max(Math.abs(candidate.position.x-ship.position.x),
+                Math.abs(candidate.position.y-ship.position.y))>1)continue;
+    // Load Ship explicitly wakes nearby sentry troops. The army/fighter finishes
+    // its turn aboard rather than getting a second move during loading.
+    candidate.aboard=ship.id;
+    candidate.position={...ship.position};
+    candidate.spent=movementAllowance(candidate);
+    candidate.order={kind:'none'};
+    if(candidate.kind==='fighter')candidate.fuel=MAX_FIGHTER_FUEL;
+    occupied++;loaded++;
+    log(g,ship.owner,'movement',`${candidate.id} loaded aboard ${ship.id}.`);
+  }
+  if(occupied>=capacityNow)ship.order={kind:'none'};
+  return loaded;
+}
+/** Station a troop transport or carrier for automatic loading until full. */
+export function loadShip(game:Game,shipId:string):Game {
+  const g=clone(game),ship=g.units.find(u=>u.id===shipId);
+  if(!ship||ship.owner!==g.active||ship.aboard||
+     (ship.kind!=='transport'&&ship.kind!=='carrier'))
+    throw new Error('Load Ship requires an active friendly transport or carrier.');
+  ship.order={kind:'load-ship'};
+  fillShip(g,ship);
+  updateAllKnowledge(g);
+  return g;
+}
+/** Wake embarked units; landing remains an individual, legal movement action. */
+export function unloadShip(game:Game,shipId:string):Game {
+  const g=clone(game),ship=g.units.find(u=>u.id===shipId);
+  if(!ship||ship.owner!==g.active||ship.aboard||
+     (ship.kind!=='transport'&&ship.kind!=='carrier'))
+    throw new Error('Unload Ship requires an active friendly transport or carrier.');
+  const cargo=g.units.filter(u=>u.aboard===ship.id);
+  for(const unit of cargo)unit.order={kind:'none'};
+  ship.order={kind:'none'};
+  log(g,ship.owner,'movement',`${ship.id}: ${cargo.length} embarked units ready for individual landing orders.`);
+  updateAllKnowledge(g);
+  return g;
+}
 export function setOrder(game:Game,unitId:string,order:UnitOrder):Game {
+  if(order.kind==='load-ship')return loadShip(game,unitId);
+  if(order.kind==='unload-ship')return unloadShip(game,unitId);
   if(!['sentry','skip','none','move-to','go-direction','patrol','go-home','escort'].includes(order.kind)) throw new RuleNotImplemented('STANDING_ORDERS','This standing order is not implemented yet.');
   const g=clone(game),unit=g.units.find(u=>u.id===unitId);
   if(!unit||unit.owner!==g.active) throw new Error('Unit not available to the active player.');
@@ -87,6 +137,7 @@ export function embarkArmy(game:Game,armyId:string,transportId:string):Game {
   const aboard=g.units.filter(u=>u.aboard===ship.id);
   if(aboard.length>=(capacity(ship)??0))throw new Error('Transport is full.');
   army.aboard=ship.id;army.position={...ship.position};army.spent++;army.order={kind:'none'};
+  if(ship.order.kind==='load-ship'&&aboard.length+1>=capacity(ship)!)ship.order={kind:'none'};
   log(g,army.owner,'movement',`${army.id} boarded ${ship.id} (${aboard.length+1}/${capacity(ship)}).`);
   updateAllKnowledge(g);
   return g;
@@ -125,6 +176,7 @@ export function boardFighter(game:Game,fighterId:string,carrierId:string):Game {
     throw new Error('Carrier is full.');
   fighter.position={...ship.position};fighter.aboard=ship.id;fighter.spent++;fighter.fuel=MAX_FIGHTER_FUEL;
   fighter.order={kind:'none'};
+  if(ship.order.kind==='load-ship'&&g.units.filter(u=>u.aboard===ship.id).length>=capacity(ship)!)ship.order={kind:'none'};
   log(g,fighter.owner,'movement',`${fighter.id} landed aboard ${ship.id} and refueled.`);
   updateAllKnowledge(g);return g;
 }
@@ -156,7 +208,7 @@ export function moveUnit(game:Game,id:string,to:Coord):Game {
   const g=clone(game),unit=g.units.find(u=>u.id===id);
   if(!unit||unit.owner!==g.active) throw new Error('That unit cannot be moved this turn.');
   if(unit.aboard) throw new RuleNotImplemented('CARGO','Transport unloading is not yet implemented.');
-  if(unit.order.kind==='sentry') throw new Error('Clear sentry before moving.');
+  if(unit.order.kind==='sentry'||unit.order.kind==='load-ship') throw new Error('Clear sentry or loading orders before moving.');
   if(unit.spent>=movementAllowance(unit)) throw new Error('No movement remaining this turn.');
   if(!playable(g,to)) throw new Error('The outer map border is impassable.');
   const dx=Math.abs(to.x-unit.position.x),dy=Math.abs(to.y-unit.position.y);
@@ -345,6 +397,10 @@ function beginTurn(g:Game):void {
       log(g,g.active,'production',`${city.id} completed ${STATS[kind].name} (${unit.id}).`);
     }
   }
+  // A ship on Load Ship continues accepting friendly adjacent units at each turn
+  // start. It wakes automatically when full.
+  for(const ship of g.units.filter(u=>u.owner===g.active&&u.order.kind==='load-ship'))
+    fillShip(g,ship);
   updateAllKnowledge(g);
 }
 export function endTurn(game:Game):Game {
