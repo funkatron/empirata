@@ -423,8 +423,49 @@ export function endTurn(game:Game):Game {
  * This is NOT an attempt to reproduce the original game's AI strategy.
  * The older classic-lab fixture remains passive for reproducible system tests.
  */
-function playRedOpponent(game:Game):Game {
+export function playRedOpponent(game:Game):Game {
+  if(game.active!=='red')throw new Error('Red AI must act during the red faction turn.');
   let g=game;
+  // Deterministic, knowledge-limited production. Red assigns armies first;
+  // a coastal city may switch to transport production once forces accumulate.
+  // This is provisional strategy, NOT reverse-engineered historical AI.
+  for(const city of getPlayerView(g,'red').ownCities){
+    if(city.production!==null)continue;
+    const armyCount=g.units.filter(u=>u.owner==='red'&&u.kind==='army').length;
+    const transportCount=g.units.filter(u=>u.owner==='red'&&u.kind==='transport').length;
+    const pick=armyCount>=3&&transportCount===0&&isCoastal(g,city.position)?'transport':'army';
+    g=selectProduction(g,city.id,pick);
+  }
+  // Loading consumes eligible troops' movement. Choose from own units only.
+  for(const ship of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='transport'&&!u.aboard)){
+    const nearArmy=getPlayerView(g,'red').ownUnits.some(u=>u.kind==='army'&&!u.aboard&&
+      Math.max(Math.abs(u.position.x-ship.position.x),Math.abs(u.position.y-ship.position.y))<=1);
+    if(nearArmy&&g.units.filter(u=>u.aboard===ship.id).length<(capacity(ship)??0)){
+      try{g=loadShip(g,ship.id);}catch{/* The unit remains available for normal tactics. */}
+      // A partially filled AI transport may sail; do not keep it on a
+      // stationary loading order forever.
+      g=setOrder(g,ship.id,{kind:'none'});
+    }
+  }
+  // Prefer landing near a known hostile/neutral objective; never target an
+  // undiscovered city or use hidden terrain for route selection.
+  for(const cargo of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='army'&&u.aboard)){
+    if(cargo.spent>=movementAllowance(cargo))continue;
+    const ship=g.units.find(u=>u.id===cargo.aboard);
+    if(!ship)continue;
+    const view=getPlayerView(g,'red');
+    const knownObjectives=view.cells.flatMap((cell,i)=>cell.city&&cell.city.owner!=='red'?
+      [{x:i%view.width,y:Math.floor(i/view.width)}]:[]);
+    const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
+    const options=directions.map(d=>({x:ship.position.x+d.x,y:ship.position.y+d.y}))
+      .filter(p=>playable(g,p)&&view.cells[index(g,p)]?.terrain==='land')
+      .sort((a,b)=>knownObjectives.length?
+        Math.min(...knownObjectives.map(o=>distance(a,o)))-Math.min(...knownObjectives.map(o=>distance(b,o))):
+        a.y-b.y||a.x-b.x);
+    for(const square of options){
+      try {g=disembarkArmy(g,cargo.id,square);break;} catch{/* No legal landing here. */}
+    }
+  }
   const redUnitIds=g.units.filter(u=>u.owner==='red'&&!u.aboard).map(u=>u.id);
   const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
   for(const id of redUnitIds){
