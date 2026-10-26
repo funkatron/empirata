@@ -29,8 +29,8 @@
       <section class="events card"><h2>Orders &amp; reports</h2><div id="events"></div></section>
       <section class="files card"><h2>Close Quarters · Immediate encounters</h2>
         <p>Blue armies face nearby red forces and a neutral city. Select a blue unit and tap an adjacent red unit or gold city to fight. Results use the Interstel manual's combat odds, not scripted victory buttons. Additional armies make city assaults repeatable. Red responds on the next round using a preliminary rules-bound AI.</p>
-        <div class="actions"><button id="newGame" class="wide">Start Close Quarters</button><button id="classicGame">Original test map</button></div>
-        <h2 style="margin-top:14px">Save &amp; reset</h2>
+        <div class="actions"><button id="newGame" class="wide">Start Close Quarters</button><button id="classicGame">Original test map</button><button id="invasionGame">AI Invasion</button></div>
+        <p>AI Invasion is a short demonstration: defend a Blue outpost while Red approaches by transport, lands troops and attempts a capture. It is a testing scenario, not an original DOS map.</p><h2 style="margin-top:14px">Save &amp; reset</h2>
         <div class="actions"><button id="exportSave">Export JSON</button><button id="importSave">Import JSON</button></div>
         <input id="saveFile" type="file" accept="application/json,.json" hidden/>
       </section>
@@ -968,6 +968,7 @@ function playRedOpponent(game) {
         const distance = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
         const options = world_js_1.directions.map(d => ({ x: ship.position.x + d.x, y: ship.position.y + d.y }))
             .filter(p => (0, world_js_1.playable)(g, p) && view.cells[(0, world_js_1.index)(g, p)]?.terrain === 'land' &&
+            view.cells[(0, world_js_1.index)(g, p)]?.city?.owner !== 'red' &&
             // Avoid prematurely disembarking next to our own cities. Only commit
             // troops to a shore near a known non-red objective.
             knownObjectives.some(objective => distance(p, objective) <= 2))
@@ -1063,7 +1064,7 @@ function advanceLabRound(game) {
     if (game.mode !== 'rules-lab' || game.active !== 'blue')
         throw new Error('Lab round advance requires blue player.');
     let g = endTurn(game);
-    if (g.scenario === 'close-quarters' && g.active === 'red')
+    if ((g.scenario === 'close-quarters' || g.scenario === 'ai-invasion') && g.active === 'red')
         g = playRedOpponent(g);
     while (g.active !== 'blue')
         g = endTurn(g);
@@ -1375,6 +1376,7 @@ __modules["engine/scenario.js"] = function(module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.makeCloseQuartersLab = makeCloseQuartersLab;
+exports.makeAiInvasionLab = makeAiInvasionLab;
 const game_js_1 = require("./game.js");
 const knowledge_js_1 = require("./knowledge.js");
 function makeCloseQuartersLab() {
@@ -1408,6 +1410,34 @@ function makeCloseQuartersLab() {
     (0, knowledge_js_1.updateAllKnowledge)(g);
     g.events.push({ id: g.nextEventId++, round: 1, recipient: 'blue', kind: 'system',
         message: 'Close Quarters: select a blue unit, then an adjacent enemy or gold city. Combat and capture use the Interstel manual probabilities; Red responds during the next round using the same combat rules.' });
+    return g;
+}
+/** Tiny, deterministic island assault demonstration; NOT an Interstel map. */
+function makeAiInvasionLab() {
+    const g = (0, game_js_1.makeRulesLab)();
+    g.scenario = 'ai-invasion';
+    g.rng = { seed: 1, draws: 0 };
+    for (let y = 28; y <= 32; y++)
+        for (let x = 72; x <= 83; x++)
+            g.tiles[y * g.width + x] = 'sea';
+    for (const x of [74, 75])
+        g.tiles[29 * g.width + x] = 'land';
+    g.cities.push({ id: 'invasion-outpost', position: { x: 74, y: 29 }, owner: 'blue',
+        production: null, progress: 0, firstCycle: true });
+    const army = g.units.find(u => u.id === 'u3');
+    army.position = { x: 81, y: 30 };
+    army.aboard = 'red-transport';
+    const ship = { ...structuredClone(army), id: 'red-transport', kind: 'transport',
+        position: { x: 81, y: 30 }, aboard: null, fuel: null };
+    g.units.push(ship);
+    const scout = { ...structuredClone(army), id: 'red-scout', aboard: null, position: { x: 74, y: 30 } };
+    // Red knows the outpost from scouting, but gains no continuing omniscience.
+    g.units.push(scout);
+    (0, knowledge_js_1.updateAllKnowledge)(g);
+    g.units = g.units.filter(u => u.id !== 'red-scout');
+    (0, knowledge_js_1.updateAllKnowledge)(g);
+    g.events.push({ id: g.nextEventId++, round: 1, recipient: 'blue', kind: 'system',
+        message: 'AI Invasion demonstration: a loaded Red transport is approaching your Blue island outpost. End rounds to watch its naval approach and landing.' });
     return g;
 }
 
@@ -1765,7 +1795,7 @@ function refresh() {
     el('round').textContent = `ROUND ${game.round}`;
     el('cityCount').textContent = String(view.ownCities.length);
     el('unitCount').textContent = String(view.ownUnits.length);
-    el('scenarioName').textContent = game.scenario === 'close-quarters' ? 'CLOSE QUARTERS · PLAYABLE' : 'CLASSIC RULES LAB';
+    el('scenarioName').textContent = game.scenario === 'ai-invasion' ? 'AI INVASION · DEMONSTRATION' : game.scenario === 'close-quarters' ? 'CLOSE QUARTERS · PLAYABLE' : 'CLASSIC RULES LAB';
     el('threatCount').textContent = String(view.enemies.filter(u => !u.stale).length);
     const unit = view.ownUnits.find(u => u.id === selectedUnit);
     const city = view.ownCities.find(c => c.id === selectedCity);
@@ -1925,17 +1955,18 @@ function startScenario(kind) {
     if (!window.confirm('Start a new test scenario? This will replace the current local autosave. Export JSON first if you want to keep it.'))
         return;
     choosingDestination = false;
-    game = kind === 'close-quarters' ? (0, index_js_1.makeCloseQuartersLab)() : (0, index_js_1.makeRulesLab)();
-    selectedUnit = 'u1';
+    game = kind === 'ai-invasion' ? (0, index_js_1.makeAiInvasionLab)() : kind === 'close-quarters' ? (0, index_js_1.makeCloseQuartersLab)() : (0, index_js_1.makeRulesLab)();
+    selectedUnit = kind === 'ai-invasion' ? null : 'u1';
     selectedCity = null;
     refresh();
-    focus({ x: 9, y: 25 });
+    focus(kind === 'ai-invasion' ? { x: 76, y: 29 } : { x: 9, y: 25 });
     void (0, index_js_1.saveLocally)(game).catch(() => uiMessage('Local save unavailable; export JSON.'));
-    uiMessage(kind === 'close-quarters' ? 'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.' : 'Classic rules lab reset.');
+    uiMessage(kind === 'ai-invasion' ? 'AI Invasion ready: press Next round to watch the Red landing operation.' : kind === 'close-quarters' ? 'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.' : 'Classic rules lab reset.');
 }
 el('newGame').addEventListener('click', () => startScenario('close-quarters'));
 el('startSkirmish').addEventListener('click', () => startScenario('close-quarters'));
 el('classicGame').addEventListener('click', () => startScenario('classic-lab'));
+el('invasionGame').addEventListener('click', () => startScenario('ai-invasion'));
 new ResizeObserver(resize).observe(canvas);
 async function boot() {
     try {
@@ -1951,8 +1982,10 @@ async function boot() {
     hydrated = true;
     selectedUnit = game.units.some(u => u.id === 'u1' && u.owner === 'blue') ? 'u1' : null;
     refresh();
-    focus({ x: 9, y: 25 });
-    if (game.scenario === 'close-quarters')
+    focus(game.scenario === 'ai-invasion' ? { x: 76, y: 29 } : { x: 9, y: 25 });
+    if (game.scenario === 'ai-invasion')
+        uiMessage('AI Invasion restored. Press Next round to watch the invasion.');
+    else if (game.scenario === 'close-quarters')
         uiMessage('Select a blue unit, then tap an adjacent red unit or gold city to fight.');
     else
         uiMessage('Existing saved game restored. Choose Start Close Quarters to try the immediate combat scenario.');
