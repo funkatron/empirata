@@ -36,7 +36,10 @@ export function makeTestTerrain(): Terrain[] {
   // Purpose-built bays ensure test ports exist; this is not authentic map generation.
   tile[25*MAP_WIDTH+8]='land';
   for(let x=1;x<=7;x++) for(let y=24;y<=26;y++) tile[y*MAP_WIDTH+x]='sea';
-  tile[36*MAP_WIDTH+80]='land'; tile[36*MAP_WIDTH+81]='sea';
+  // Eastern city needs a continuous navigable harbor, not a one-cell lake.
+  // The eastern island's ellipse ends before x=94 at this latitude.
+  tile[36*MAP_WIDTH+80]='land';
+  for(let x=81;x<=94;x++)tile[36*MAP_WIDTH+x]='sea';
   for(const [x,y] of ([[20,16],[24,40],[33,24],[53,11],[67,24],[69,40],[52,50],[83,20]] as [number,number][])) tile[y*MAP_WIDTH+x]='land';
   return tile;
 }
