@@ -68,7 +68,9 @@ export function importSave(json:string):Game {
   for(const u of g.units){
     if(u.aboard!==null){
       const parent=g.units.find(v=>v.id===u.aboard);
-      if(!parent||parent.id===u.id||parent.owner!==u.owner||!['transport','carrier'].includes(parent.kind))
+      if(!parent||parent.id===u.id||parent.owner!==u.owner||!['transport','carrier'].includes(parent.kind)||
+        (parent.kind==='transport'&&u.kind!=='army')||(parent.kind==='carrier'&&u.kind!=='fighter')||
+        !equal(u.position,parent.position)||parent.aboard)
         throw new Error('Invalid embarked unit.');
     }
   }
