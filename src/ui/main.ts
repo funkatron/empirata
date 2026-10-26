@@ -266,7 +266,8 @@ function refresh():void {
 }
 function pinchPoints():{x:number;y:number;distance:number}|null {
   if(touches.size<2)return null;
-  const [a,b]=[...touches.values()];
+  const points=[...touches.values()];
+  const a=points[0]!,b=points[1]!;
   return {x:(a.x+b.x)/2,y:(a.y+b.y)/2,distance:Math.max(1,Math.hypot(a.x-b.x,a.y-b.y))};
 }
 function beginPinch():void {
