@@ -49,7 +49,7 @@ export function selectProduction(game:Game,cityId:string,kind:UnitType):Game {
   updateAllKnowledge(g);return g;
 }
 /** Load any available adjacent or co-located friendly troops while respecting capacity. */
-function fillShip(g:Game,ship:Unit):number {
+function fillShip(g:Game,ship:Unit,portOnly=false):number {
   const cargoKind=ship.kind==='transport'?'army':'fighter';
   const capacityNow=capacity(ship)??0;
   let occupied=g.units.filter(u=>u.aboard===ship.id).length,loaded=0;
@@ -57,6 +57,7 @@ function fillShip(g:Game,ship:Unit):number {
     if(occupied>=capacityNow)break;
     if(candidate.owner!==ship.owner||candidate.kind!==cargoKind||candidate.aboard||
        candidate.id===ship.id)continue;
+    if(portOnly&&!equal(candidate.position,ship.position))continue;
     if(Math.max(Math.abs(candidate.position.x-ship.position.x),
                 Math.abs(candidate.position.y-ship.position.y))>1)continue;
     // Load Ship explicitly wakes nearby sentry troops. The army/fighter finishes
@@ -243,6 +244,10 @@ export function moveUnit(game:Game,id:string,to:Coord):Game {
   if((unit.kind==='transport'||unit.kind==='carrier')&&
     g.units.filter(u=>u.aboard===unit.id).length>(capacity(unit)??0))
     throw new Error('Ship is overloaded. Unload excess cargo before moving.');
+  // Ships leaving a friendly port pick up eligible co-located troops automatically.
+  const departurePort=cityAt(g,unit.position);
+  if((unit.kind==='transport'||unit.kind==='carrier')&&departurePort?.owner===unit.owner)
+    fillShip(g,unit,true);
   unit.position={...to}; unit.spent++;
   // Embarked units physically travel with the ship, but spend no movement themselves.
   for(const cargo of g.units.filter(u=>u.aboard===unit.id))cargo.position={...to};
