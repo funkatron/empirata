@@ -505,7 +505,9 @@ export function planAiGroundStep(view:ReturnType<typeof getPlayerView>,army:Unit
       const next={x:p.x+d.x,y:p.y+d.y};
       if(next.x<=0||next.y<=0||next.x>=width-1||next.y>=height-1)continue;
       const k=key(next),cell=view.cells[k];
-      if(seen.has(k)||occupied.has(k)||cell?.terrain==='sea')continue;
+      // Armies require a *confirmed* land route. Treat unexplored cells as
+      // unknown, not a magical bridge across an undiscovered ocean.
+      if(seen.has(k)||occupied.has(k)||cell?.terrain!=='land')continue;
       // A city owned by another faction must be assaulted, not routed through.
       if(cell?.city&&cell.city.owner!=='red')continue;
       seen.add(k);parent.set(k,here);queue.push(k);
