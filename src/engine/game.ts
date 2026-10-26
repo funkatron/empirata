@@ -584,6 +584,25 @@ export function playRedOpponent(game:Game):Game {
       const view=getPlayerView(g,'red');
       const unit=view.ownUnits.find(u=>u.id===id);
       if(!unit||unit.spent>=movementAllowance(unit)||unit.order.kind==='sentry')break;
+      if(unit.kind==='transport'&&!view.ownUnits.some(u=>u.aboard===id)){
+        // Empty transports return to known friendly ports for another load.
+        // A ship already in port waits for troops instead of wandering away.
+        const ports=view.ownCities.filter(c=>isCoastal(g,c.position))
+          .sort((a,b)=>Math.max(Math.abs(a.position.x-unit.position.x),Math.abs(a.position.y-unit.position.y))-
+            Math.max(Math.abs(b.position.x-unit.position.x),Math.abs(b.position.y-unit.position.y)));
+        if(ports.length){
+          if(ports.some(port=>equal(port.position,unit.position)))break;
+          let returned=false;
+          for(const port of ports){
+            const step=routeStep(g,unit,port.position);
+            if(!step)continue;
+            try {g=moveUnit(g,id,step);returned=true;break;}
+            catch{/* An occupied or newly discovered square blocks this route. */}
+          }
+          if(returned)continue;
+          break;
+        }
+      }
       if(unit.kind==='transport'&&view.ownUnits.some(u=>u.aboard===id)){
         const step=aiInvasionStep(view,unit);
         // Once in landing range, hold station for the next available cargo turn.
