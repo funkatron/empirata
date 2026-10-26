@@ -124,3 +124,15 @@ Close Quarters includes additional blue armies so players can engage in multiple
 - When Red has no known opposing objective or visible enemy, idle armies move toward a friendly coastal loading city and wait within embarkation range rather than dispersing.
 - Empty transports return to that city; loaded transports remain assigned to their invasion route.
 - Additional regression tests cover staging and waiting behavior. These are strategic heuristics, not historical AI reconstruction.
+
+## 2026-10-26 bounded campaign endurance gate — verified
+
+- Added `tests/ai-campaign.test.mjs`, exercising **production of a real transport**, troop boarding, ocean passage, landfall, and capture of an overseas objective in at most 32 lab rounds. The fixture supplies a navigable sea lane and a known objective, not an instantly granted ship.
+- The campaign also checks deterministic continuation after JSON save/restore and scripted transport/cargo attrition followed by replacement-production selection. It is a controlled lab, not a full historical campaign.
+- The new gate exposed two real AI integration defects, now fixed:
+  1. Landing selection had used straight-line proximity without checking whether a land route actually connected the beachhead to the city. The planner now requires a route through remembered land.
+  2. The AI was **reboarding its own invasion army on the following turn**, repeatedly cycling it between beach and transport instead of allowing the city assault. Automatic AI boarding is now restricted to friendly coastal loading areas.
+- Armies no longer route through unknown terrain as though it were confirmed land, and the campaign fixture's production harbor has an actual sea connection.
+- Dedicated beachhead regression and compact failure traces guard against future recurrences.
+- **Verified CI:** GitHub Actions run `40364863326` on commit `a5096a46d38d948549fcc3f731ea5ce0264aea1c` passed **139/139 tests**, with **94.30% line coverage** and **90.22% branch coverage**. The standalone browser build and bundle smoke test completed in that same successful workflow.
+- A generated index.html commit followed; GitHub Pages deployment status must be checked separately.
