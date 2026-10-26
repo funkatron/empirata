@@ -826,7 +826,8 @@ export function playBlueOpponent(game:Game):Game {
 /** Advance one blue-player round, allowing a rules-bound Red opponent to act. */
 export function advanceLabRound(game:Game):Game {
   if(game.mode!=='rules-lab'||game.active!=='blue')throw new Error('Lab round advance requires blue player.');
-  let g=game.scenario==='ai-vs-ai'?playBlueOpponent(game):game;
+  const ready=repairLabHarbor(game);
+  let g=ready.scenario==='ai-vs-ai'?playBlueOpponent(ready):ready;
   g=endTurn(g);
   if((g.scenario==='close-quarters'||g.scenario==='ai-invasion'||g.scenario==='ai-vs-ai')&&g.active==='red')g=playRedOpponent(g);
   while(g.active!=='blue')g=endTurn(g);
