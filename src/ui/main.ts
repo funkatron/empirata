@@ -208,6 +208,8 @@ function selectedCityBlock(city:City):string {
 function refresh():void {
   view=getPlayerView(game,observer);
   el('aiSpectator').hidden=game.scenario!=='ai-vs-ai';
+  el('spectatorCard').hidden=game.scenario!=='ai-vs-ai';
+  el('viewFaction').textContent=observer==='blue'?'Blue':'Red';
   (el('spectatorSide') as HTMLSelectElement).value=spectatorMode;
   if(game.scenario==='ai-vs-ai'){
     el('spectatorNow').textContent=`Currently viewing ${observer.toUpperCase()} intelligence · Round ${game.round}`;
@@ -356,7 +358,14 @@ function startScenario(kind:'close-quarters'|'classic-lab'|'ai-invasion'|'ai-vs-
   uiMessage(kind==='ai-vs-ai'?'Computer vs computer ready. Use Play, Next round or +10 rounds.':kind==='ai-invasion'?'AI Invasion ready: press Next round to watch the Red landing operation.':kind==='close-quarters'?'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.':'Classic rules lab reset.');
 }
 el('newGame').addEventListener('click',()=>startScenario('close-quarters'));
-el('startSkirmish').addEventListener('click',()=>startScenario('close-quarters'));
+// Close the native Game menu after a scenario or save command.
+for(const id of ['newGame','classicGame','invasionGame','aiVsAiGame','exportSave','importSave']){
+  el(id).addEventListener('click',()=>{(el('gameMenu') as HTMLDetailsElement).open=false;});
+}
+document.addEventListener('pointerdown',event=>{
+  const menu=el('gameMenu') as HTMLDetailsElement;
+  if(menu.open&&!menu.contains(event.target as Node))menu.open=false;
+});
 el('classicGame').addEventListener('click',()=>startScenario('classic-lab'));
 el('invasionGame').addEventListener('click',()=>startScenario('ai-invasion'));
 el('aiVsAiGame').addEventListener('click',()=>startScenario('ai-vs-ai'));
