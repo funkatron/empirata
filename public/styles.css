@@ -9,3 +9,11 @@
 .ai-spectator label{display:block;font-size:11px;color:#d7bf85}
 .ai-spectator select{margin-top:5px}
 .ai-spectator .actions button{flex:1;min-height:38px}
+
+.spectator-scores{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:9px 0}
+.spectator-scores>div{display:flex;flex-direction:column;gap:3px;padding:8px;border:1px solid #4b6575;border-radius:5px;min-width:0}
+.spectator-scores strong{font-size:12px}
+.spectator-scores>div:first-child strong{color:#86bdf2}
+.spectator-scores>div:last-child strong{color:#ef9a92}
+.spectator-scores span{font-size:12px}
+#spectatorNow{font-size:12px;font-weight:600;margin:8px 0 0}
