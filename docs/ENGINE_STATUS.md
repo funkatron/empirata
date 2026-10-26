@@ -73,3 +73,13 @@ Close Quarters includes additional blue armies so players can engage in multiple
 - Close Quarters now includes a transport/army pair and a carrier/fighter pair for player testing.
 - Seven carrier tests and two cargo-combat tests were added using the lightweight Node runner.
 - Source and test changes are committed, but a passing end-to-end CI run and generated GitHub Pages bundle have **not** been independently confirmed.
+
+## 2026-10-25 Load Ship, Unload Ship and invasion regression
+
+- **Load Ship** now takes eligible adjacent friendly armies/fighters aboard a transport/carrier (including sentry units), waits for further cargo, and wakes automatically at damage-adjusted capacity. Ships with an active loading order cannot leave until it is cleared or loading finishes.
+- **Unload Ship** wakes embarked units without automatically moving them ashore or restoring spent movement; players must launch/land individual units legally.
+- Friendly ships leaving a friendly port automatically embark eligible units already in that city up to capacity.
+- The browser unit panel exposes Load Ship / Unload Ship controls for transports and carriers.
+- Small regression cases cover waiting loaders, reaching capacity, waking through manual boarding, harbor departures, save roundtrips and an end-to-end deterministic amphibious invasion followed by a city capture.
+- The GitHub Actions workflow now also runs `node --test smoke/bundle.mjs` after generating the standalone HTML, guarding against broken embedded scripts without launching a browser.
+- Historical uncertainties: exact selection order of cargo when several units are eligible, precise Load Ship wakeup timing, and original naval/cargo loss draw ordering still need DOS reference checks done *outside* normal CI.
