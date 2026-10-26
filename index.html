@@ -1172,6 +1172,9 @@ function makeCloseQuartersLab() {
     // Adjacent transport/army pair for testing real embarkation and landings.
     add(blueDestroyer, { kind: 'transport', position: { x: 7, y: 26 }, damage: 0, spent: 0 });
     add(blueArmy, { kind: 'army', position: { x: 8, y: 26 }, damage: 0, spent: 0 });
+    // Carrier/fighter pair in sheltered water for refueling and launch testing.
+    add(blueDestroyer, { kind: 'carrier', position: { x: 4, y: 26 }, damage: 0, spent: 0 });
+    add(blueArmy, { kind: 'fighter', position: { x: 5, y: 26 }, fuel: 8, damage: 0, spent: 0 });
     // Additional short-range land/air encounter, without stacking on another unit.
     add(blueArmy, { owner: 'blue', kind: 'fighter', position: { x: 9, y: 26 }, damage: 0, spent: 0, fuel: 20 });
     add(blueArmy, { owner: 'red', kind: 'fighter', position: { x: 10, y: 27 }, damage: 0, spent: 0, fuel: 20 });
