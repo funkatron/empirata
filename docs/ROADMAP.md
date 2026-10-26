@@ -89,6 +89,38 @@ This is the working roadmap for the browser-based Empire rules laboratory. Items
 - Improve logistics, multi-objective strategy, pathfinding, attrition recovery and victory/end-state detection.
 - Keep modern experimental AI separate from claims about the original DOS opponent.
 
+## Priority 2A — Reconnaissance, efficient exploration, and amphibious safety
+
+**Observed issue (2026-10-26):** A computer-versus-computer game reached round 498 with only two controlled cities and a large accumulation of armies. Passing 100-round transport movement tests does not demonstrate meaningful conquest. The owner also observed loaded transports approaching hostile armies too closely and risking the loss of all embarked troops.
+
+### Reconnaissance and exploration pathfinding
+
+- Define explicit roles for ground scouts, naval scouts, troop transports, and assault armies. Transports should not double as expendable scouts when safer reconnaissance units are available.
+- Prefer frontier destinations by expected **new tiles revealed per movement point**, navigable connectivity, nearby strategic objectives, and information freshness. Penalize repeated visits, loops, blocked routes, and already-covered terrain.
+- Track each faction's discovered terrain, city sightings, enemy sightings, and age of intelligence. Never read hidden opponent positions or actual unexplored terrain to plan a move.
+- Use a shared faction intelligence model: scout discoveries should influence transport routes, beachhead selection, and army objectives.
+- Improve route planning for known terrain with bounded search work and reusable navigation data; replan when new information or obstacles invalidate a route.
+- Instrument new cells revealed, redundant moves, stalled turns, exploration coverage, and CPU time per AI round.
+
+### Transport survival and beachhead selection
+
+- Avoid known enemy army attack ranges when planning transport approach and docking; distinguish currently visible threats from stale sightings.
+- Prefer a safe offshore staging position and a viable landing tile with a land route toward the objective. Do not sail directly into a known hostile port or cluster of defenders simply because it is geographically closest.
+- Coordinate naval scouting, troop delivery, disembarkation, and the subsequent land assault; retain a retreat/reposition option when the beachhead becomes unsafe.
+- Treat losses of a transport plus its cargo as a high strategic cost. Evaluate risk against the entire embarked force, not only the hull.
+- Under fog of war, danger remains uncertain; make conservative decisions using available intelligence rather than giving the AI omniscience.
+
+### Acceptance tests
+
+1. A ground or naval scout reveals substantially more unique map cells than an aimless nearest-neighbor baseline under a fixed deterministic seed.
+2. Known hostile armies near one beach cause a loaded transport to select a safer reachable landing, when one exists.
+3. Stale sightings influence caution but do not permanently block a coast without fresh evidence.
+4. A 100–200-round ordinary AI-vs-AI campaign reports city discoveries, attempted landings, successful landings, city captures, stalled rounds, and loaded-transport losses; test for strategic progress, not just movement.
+5. Save/resume yields identical decisions and results; no faction receives information from the opponent's private fog-of-war state.
+6. Exploration and navigation work remain bounded as the map becomes known and unit counts grow.
+
 ## Decision record
 
 2026-10-26: Requested by the project owner: full-world pinch-to-zoom-out on iPad, and a semantic UI hierarchy in which game-wide settings move to a top-level Game menu while the sidebar is reserved for contextual controls and logs. This is a **roadmap entry**, not a claim that the UI changes have been implemented.
+
+2026-10-26: Added reconnaissance efficiency, information-aware pathfinding, and threat-aware amphibious landing criteria after reviewing the round-498 AI-vs-AI screenshot and transport exposure near enemy armies.
