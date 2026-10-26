@@ -3,3 +3,9 @@
 .encounter-panel{border:1px solid #bca56e;background:#302e29;padding:12px;margin-bottom:12px;border-radius:7px}.encounter-panel strong{font-size:12px;color:#ffdc8a;display:block;margin-bottom:6px}.encounter-panel button{font-size:12px;padding:11px 10px;min-height:42px}.encounter-panel .wide{flex-basis:100%}.encounter-panel .stat-note{color:#e5d5b7}.files .wide{min-height:40px;background:#34556a;border-color:#6b97af}
 
 .scenario-start{font-size:10px;padding:6px 8px;white-space:nowrap;border:1px solid #61747d;color:#f0dd9b;background:#263542}.toolbar-left{min-width:0}.toolbar-left .live-label{white-space:nowrap}@media(max-width:550px){.toolbar-left #mapStatus{display:none}.scenario-start{padding:6px 6px}}
+
+.ai-spectator{border:1px solid #54778b;border-radius:7px;padding:11px;margin:10px 0;background:#122b39}
+.ai-spectator[hidden]{display:none}
+.ai-spectator label{display:block;font-size:11px;color:#d7bf85}
+.ai-spectator select{margin-top:5px}
+.ai-spectator .actions button{flex:1;min-height:38px}
