@@ -15,6 +15,14 @@
 .ai-spectator select{margin-top:5px}
 .ai-spectator .actions button{flex:1;min-height:38px}
 
+.spectator-scores{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:9px 0}
+.spectator-scores>div{display:flex;flex-direction:column;gap:3px;padding:8px;border:1px solid #4b6575;border-radius:5px;min-width:0}
+.spectator-scores strong{font-size:12px}
+.spectator-scores>div:first-child strong{color:#86bdf2}
+.spectator-scores>div:last-child strong{color:#ef9a92}
+.spectator-scores span{font-size:12px}
+#spectatorNow{font-size:12px;font-weight:600;margin:8px 0 0}
+
 </style></head>
 <body><div class="app">
   <header class="topbar"><div class="brand"><span class="brand-mark">✦</span><div><strong>EMPIRATA</strong><small>CLASSIC RULES LAB · v0.4</small></div></div>
@@ -24,7 +32,7 @@
   <main class="content">
     <section class="map-area" aria-label="Game map">
        <div class="toolbar"><div class="toolbar-left"><span class="live-label"><span class="pulse"></span> <span id="scenarioName">CLOSE QUARTERS · PLAYABLE</span></span><span id="mapStatus">60 × 100 world</span><button id="startSkirmish" class="scenario-start" title="Reset the skirmish test scenario">New skirmish</button></div>
-       <div class="toolbar-right"><button id="zoomOut" aria-label="Zoom out" title="Zoom out">−</button><button id="zoomIn" aria-label="Zoom in" title="Zoom in">+</button><button id="recenter" title="Focus on your city">⌖</button></div></div>
+       <div class="toolbar-right"><button id="fitWorld" aria-label="Fit entire world" title="Fit entire world">⊞</button><button id="zoomOut" aria-label="Zoom out" title="Zoom out">−</button><button id="zoomIn" aria-label="Zoom in" title="Zoom in">+</button><button id="recenter" title="Focus on your city">⌖</button></div></div>
        <div class="canvas-holder"><canvas id="map" tabindex="0" aria-label="Interactive tile map, use drag to pan and click to select a unit or city"></canvas>
        <div class="map-key"><span><i class="key-land"></i> Land</span><span><i class="key-sea"></i> Sea</span><span><i class="key-fog"></i> Unexplored</span></div></div>
        <div class="map-help">Drag to pan · Tap a unit or city · Tap adjacent enemy or city to attack · Arrow keys / Q E Z C</div>
@@ -38,9 +46,11 @@
         <div class="actions"><button id="newGame" class="wide">Start Close Quarters</button><button id="classicGame">Original test map</button><button id="invasionGame">AI Invasion</button><button id="aiVsAiGame">Computer vs computer</button></div>
         <div class="ai-spectator" id="aiSpectator" hidden>
           <label for="spectatorSide">Observe</label>
-          <select id="spectatorSide" aria-label="Spectator viewpoint"><option value="blue">Blue intelligence</option><option value="red">Red intelligence</option></select>
+          <select id="spectatorSide" aria-label="Spectator viewpoint"><option value="alternate">Alternate each round</option><option value="blue">Blue intelligence</option><option value="red">Red intelligence</option></select>
+          <p id="spectatorNow" aria-live="off">Currently viewing Blue</p>
+          <div class="spectator-scores" aria-label="Both player totals"><div><strong>Blue</strong><span id="spectatorBlue">—</span></div><div><strong>Red</strong><span id="spectatorRed">—</span></div></div>
           <div class="actions"><button id="autoPlay" type="button">▶ Play</button><button id="stepTen" type="button">+10 rounds</button></div>
-          <p>Both computers use the same provisional AI. Each viewpoint shows only its own intelligence. Pause before changing scenarios.</p>
+          <p>Both computers use the same provisional AI. Alternate switches the map between each player's private view after every round; both players' city and unit totals stay visible. Pause before changing scenarios.</p>
         </div>
         <p>AI Invasion is a short demonstration: defend a Blue outpost while Red approaches by transport, lands troops and attempts a capture. It is a testing scenario, not an original DOS map.</p><h2 style="margin-top:14px">Save &amp; reset</h2>
         <div class="actions"><button id="exportSave">Export JSON</button><button id="importSave">Import JSON</button></div>
@@ -1786,11 +1796,15 @@ if (!context)
 const ctx = context;
 let game = (0, index_js_1.makeCloseQuartersLab)();
 let observer = 'blue';
+let spectatorMode = 'alternate';
 let playback = null;
 let view = (0, index_js_1.getPlayerView)(game, observer);
 let selectedUnit = 'u1', selectedCity = null;
 let tileSize = 30, cameraX = 0, cameraY = 0;
 let down = null;
+const touches = new Map();
+let pinch = null;
+let suppressTap = false;
 let hydrated = false;
 let choosingDestination = false;
 let choosingOrder = 'move-to';
@@ -1808,7 +1822,14 @@ function pausePlayback() {
 function dispatch(operation) {
     try {
         const before = game.nextEventId;
+        const previousRound = game.round;
         game = operation();
+        if (game.scenario === 'ai-vs-ai' && spectatorMode === 'alternate' && game.round !== previousRound) {
+            // One visible perspective per round; never merge both knowledge maps.
+            observer = (game.round - 1) % 2 === 0 ? 'blue' : 'red';
+            selectedUnit = null;
+            selectedCity = null;
+        }
         view = (0, index_js_1.getPlayerView)(game, observer);
         if (selectedUnit && !view.ownUnits.some(u => u.id === selectedUnit))
             selectedUnit = null;
@@ -1845,9 +1866,16 @@ function focus(p) {
 }
 function zoom(change) {
     const old = tileSize;
-    tileSize = Math.max(11, Math.min(45, tileSize + change));
+    tileSize = Math.max(Math.min(canvas.clientWidth / game.width, canvas.clientHeight / game.height), Math.min(45, tileSize + change));
     cameraX = (cameraX + canvas.clientWidth / 2) * (tileSize / old) - canvas.clientWidth / 2;
     cameraY = (cameraY + canvas.clientHeight / 2) * (tileSize / old) - canvas.clientHeight / 2;
+    clamp();
+    paint();
+}
+function fitWorld() {
+    tileSize = Math.min(canvas.clientWidth / game.width, canvas.clientHeight / game.height);
+    cameraX = (game.width * tileSize - canvas.clientWidth) / 2;
+    cameraY = (game.height * tileSize - canvas.clientHeight) / 2;
     clamp();
     paint();
 }
@@ -1868,9 +1896,11 @@ function paint() {
                 ctx.fillStyle = 'rgba(3,13,22,.52)';
                 ctx.fillRect(px, py, tileSize, tileSize);
             }
-            ctx.strokeStyle = 'rgba(120,159,166,.12)';
-            ctx.lineWidth = .65;
-            ctx.strokeRect(px + .3, py + .3, tileSize - .6, tileSize - .6);
+            if (tileSize >= 9) {
+                ctx.strokeStyle = 'rgba(120,159,166,.12)';
+                ctx.lineWidth = .65;
+                ctx.strokeRect(px + .3, py + .3, tileSize - .6, tileSize - .6);
+            }
             if (c.city) {
                 const ink = c.city.owner === 'blue' ? colors.blue : c.city.owner === 'red' ? colors.red : colors.neutral;
                 ctx.fillStyle = ink;
@@ -2034,7 +2064,13 @@ function selectedCityBlock(city) {
 function refresh() {
     view = (0, index_js_1.getPlayerView)(game, observer);
     el('aiSpectator').hidden = game.scenario !== 'ai-vs-ai';
-    el('spectatorSide').value = observer;
+    el('spectatorSide').value = spectatorMode;
+    if (game.scenario === 'ai-vs-ai') {
+        el('spectatorNow').textContent = `Currently viewing ${observer.toUpperCase()} intelligence · Round ${game.round}`;
+        const blue = (0, index_js_1.getPlayerView)(game, 'blue'), red = (0, index_js_1.getPlayerView)(game, 'red');
+        el('spectatorBlue').textContent = `${blue.ownCities.length} cities · ${blue.ownUnits.length} units`;
+        el('spectatorRed').textContent = `${red.ownCities.length} cities · ${red.ownUnits.length} units`;
+    }
     el('round').textContent = `ROUND ${game.round}`;
     el('cityCount').textContent = String(view.ownCities.length);
     el('unitCount').textContent = String(view.ownUnits.length);
@@ -2048,7 +2084,7 @@ function refresh() {
     else if (city)
         inspector.innerHTML = selectedCityBlock(city);
     else
-        inspector.innerHTML = game.scenario === 'ai-vs-ai' ? '<p>Both factions are controlled by the computer. Switch the spectator viewpoint to inspect either faction’s known terrain and units.</p>' : '<p>Select a blue unit, then tap an adjacent enemy to attack. Select a city to assign production. Red will respond on the next round using a preliminary rules-bound AI.</p>';
+        inspector.innerHTML = game.scenario === 'ai-vs-ai' ? '<p>Both factions are computer-controlled. Alternate the map viewpoint each round or choose a fixed side. The scorecards show both players’ own totals.</p>' : '<p>Select a blue unit, then tap an adjacent enemy to attack. Select a city to assign production. Red will respond on the next round using a preliminary rules-bound AI.</p>';
     inspector.querySelectorAll('.cargoButton').forEach(button => button.addEventListener('click', () => {
         selectedUnit = button.dataset.cargo ?? null;
         selectedCity = null;
@@ -2094,15 +2130,57 @@ function refresh() {
     el('events').innerHTML = [...view.events].reverse().slice(0, 8).map(e => `<div class="report"><span>ROUND ${e.round} / ${e.kind.toUpperCase()}</span>${text(e.message)}</div>`).join('') || '<p>No reports.</p>';
     paint();
 }
+function pinchPoints() {
+    if (touches.size < 2)
+        return null;
+    const points = [...touches.values()];
+    const a = points[0], b = points[1];
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, distance: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)) };
+}
+function beginPinch() {
+    const p = pinchPoints();
+    if (!p)
+        return;
+    const rect = canvas.getBoundingClientRect();
+    pinch = { distance: p.distance, scale: tileSize,
+        worldX: (p.x - rect.left + cameraX) / tileSize,
+        worldY: (p.y - rect.top + cameraY) / tileSize };
+    suppressTap = true;
+    down = null;
+}
 canvas.addEventListener('pointerdown', ev => {
-    if (ev.button !== 0)
+    if (ev.pointerType === 'mouse' && ev.button !== 0)
         return;
     canvas.setPointerCapture(ev.pointerId);
-    down = { x: ev.clientX, y: ev.clientY, cameraX, cameraY, moved: false };
+    touches.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    if (touches.size === 2) {
+        beginPinch();
+        return;
+    }
+    if (touches.size > 2) {
+        suppressTap = true;
+        down = null;
+        return;
+    }
+    if (suppressTap)
+        return;
+    down = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, cameraX, cameraY, moved: false };
     canvas.focus({ preventScroll: true });
 });
 canvas.addEventListener('pointermove', ev => {
-    if (!down)
+    if (!touches.has(ev.pointerId))
+        return;
+    touches.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    if (pinch && touches.size === 2) {
+        const p = pinchPoints(), rect = canvas.getBoundingClientRect();
+        tileSize = Math.max(Math.min(canvas.clientWidth / game.width, canvas.clientHeight / game.height), Math.min(45, pinch.scale * p.distance / pinch.distance));
+        cameraX = pinch.worldX * tileSize - (p.x - rect.left);
+        cameraY = pinch.worldY * tileSize - (p.y - rect.top);
+        clamp();
+        paint();
+        return;
+    }
+    if (!down || down.id !== ev.pointerId)
         return;
     const dx = ev.clientX - down.x, dy = ev.clientY - down.y;
     if (Math.abs(dx) + Math.abs(dy) > 6)
@@ -2114,15 +2192,27 @@ canvas.addEventListener('pointermove', ev => {
         paint();
     }
 });
-canvas.addEventListener('pointerup', ev => {
-    if (!down)
+function finishPointer(ev, cancelled) {
+    if (!touches.has(ev.pointerId))
         return;
-    const wasMoved = down.moved;
-    down = null;
-    if (!wasMoved)
-        tapTile(cellFromPointer(ev));
-});
-canvas.addEventListener('pointercancel', () => { down = null; });
+    touches.delete(ev.pointerId);
+    if (pinch || suppressTap) {
+        pinch = null;
+        down = null;
+        if (touches.size === 0)
+            suppressTap = false;
+        return;
+    }
+    if (down?.id === ev.pointerId) {
+        const tapped = !cancelled && !down.moved;
+        down = null;
+        if (tapped)
+            tapTile(cellFromPointer(ev));
+    }
+}
+canvas.addEventListener('pointerup', ev => finishPointer(ev, false));
+canvas.addEventListener('pointercancel', ev => finishPointer(ev, true));
+el('fitWorld').addEventListener('click', fitWorld);
 canvas.addEventListener('wheel', ev => { ev.preventDefault(); zoom(ev.deltaY < 0 ? 2 : -2); }, { passive: false });
 document.addEventListener('keydown', ev => {
     if (ev.ctrlKey || ev.metaKey || ev.altKey)
@@ -2199,6 +2289,7 @@ function startScenario(kind) {
         return;
     pausePlayback();
     observer = 'blue';
+    spectatorMode = 'alternate';
     choosingDestination = false;
     game = kind === 'ai-vs-ai' ? (0, index_js_1.makeAiVsAiLab)() : kind === 'ai-invasion' ? (0, index_js_1.makeAiInvasionLab)() : kind === 'close-quarters' ? (0, index_js_1.makeCloseQuartersLab)() : (0, index_js_1.makeRulesLab)();
     selectedUnit = kind === 'ai-invasion' || kind === 'ai-vs-ai' ? null : 'u1';
@@ -2214,11 +2305,12 @@ el('classicGame').addEventListener('click', () => startScenario('classic-lab'));
 el('invasionGame').addEventListener('click', () => startScenario('ai-invasion'));
 el('aiVsAiGame').addEventListener('click', () => startScenario('ai-vs-ai'));
 el('spectatorSide').addEventListener('change', () => {
-    observer = el('spectatorSide').value;
+    spectatorMode = el('spectatorSide').value;
+    observer = spectatorMode === 'alternate' ? ((game.round - 1) % 2 === 0 ? 'blue' : 'red') : spectatorMode;
     selectedUnit = null;
     selectedCity = null;
     refresh();
-    uiMessage(`Observing ${observer.toUpperCase()} intelligence. Hidden enemy information remains concealed.`);
+    uiMessage(spectatorMode === 'alternate' ? 'Automatically alternating the spectator view each round.' : `Observing ${observer.toUpperCase()} intelligence. Hidden enemy information remains concealed.`);
 });
 el('stepTen').addEventListener('click', () => {
     pausePlayback();
