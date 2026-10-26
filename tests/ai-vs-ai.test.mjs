@@ -115,3 +115,43 @@ test('A loaded Red transport can depart the generated eastern harbor',()=>{
   assert.notDeepEqual(moved.position,ship.position,'Loaded transport must sail out of port');
   assert.deepEqual(after.units.find(u=>u.id==='test-cargo').position,moved.position);
 });
+
+test('Autonomous match tracks production, embarkation and real sea travel over 100 rounds',()=>{
+  let g=makeAiVsAiLab();
+  const produced={blue:new Set(),red:new Set()};
+  const loaded={blue:false,red:false};
+  const voyages={blue:new Map(),red:new Map()};
+  const initial=new Set(g.units.map(u=>u.id));
+  const firstRound={blue:null,red:null};
+  for(let i=0;i<100;i++){
+    g=advanceLabRound(g);
+    for(const side of ['blue','red']){
+      for(const unit of g.units.filter(u=>u.owner===side)){
+        if(!initial.has(unit.id))produced[side].add(unit.id);
+        if(unit.kind!=='transport')continue;
+        const cargo=g.units.filter(u=>u.aboard===unit.id);
+        if(!cargo.length)continue;
+        loaded[side]=true;
+        const visited=voyages[side].get(unit.id)??new Set();
+        visited.add(unit.position.y*g.width+unit.position.x);
+        voyages[side].set(unit.id,visited);
+        if(visited.size>=3&&firstRound[side]===null)firstRound[side]=g.round;
+      }
+    }
+    for(const cargo of g.units.filter(u=>u.aboard)){
+      const ship=g.units.find(u=>u.id===cargo.aboard);
+      assert.ok(ship,'No orphan cargo at round '+g.round);
+      assert.deepEqual(cargo.position,ship.position);
+    }
+  }
+  assert.ok(produced.red.size>0,'Red must produce units during an autonomous match');
+  assert.ok(produced.blue.size>0,'Blue must produce units during an autonomous match');
+  for(const side of ['blue','red']){
+    assert.ok(loaded[side],side+' must load at least one transport');
+    assert.ok(firstRound[side]!==null,
+      side+' must sail loaded through at least three distinct sea cells; observed '+JSON.stringify({
+        round:g.round,ships:[...voyages[side]].map(([id,cells])=>({id,visited:cells.size})),
+        production:produced[side].size
+      }));
+  }
+});
