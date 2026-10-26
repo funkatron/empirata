@@ -274,6 +274,8 @@ exports.RuleNotImplemented = void 0;
 exports.makeRulesLab = makeRulesLab;
 exports.selectProduction = selectProduction;
 exports.setOrder = setOrder;
+exports.embarkArmy = embarkArmy;
+exports.disembarkArmy = disembarkArmy;
 exports.moveUnit = moveUnit;
 exports.runMoveToOrders = runMoveToOrders;
 exports.endTurn = endTurn;
@@ -342,7 +344,7 @@ function selectProduction(game, cityId, kind) {
     return g;
 }
 function setOrder(game, unitId, order) {
-    if (!['sentry', 'skip', 'none', 'move-to', 'go-direction', 'patrol'].includes(order.kind))
+    if (!['sentry', 'skip', 'none', 'move-to', 'go-direction', 'patrol', 'go-home', 'escort'].includes(order.kind))
         throw new RuleNotImplemented('STANDING_ORDERS', 'This standing order is not implemented yet.');
     const g = clone(game), unit = g.units.find(u => u.id === unitId);
     if (!unit || unit.owner !== g.active)
@@ -366,10 +368,71 @@ function setOrder(game, unitId, order) {
             throw new Error('Patrol requires a different playable destination and current starting position.');
         unit.order = { kind: 'patrol', from: { ...order.from }, to: { ...order.to }, outbound: true };
     }
+    else if (order.kind === 'escort') {
+        const target = g.units.find(u => u.id === order.targetId);
+        if (!target || target.id === unit.id || target.owner !== unit.owner || target.aboard)
+            throw new Error('Escort requires another active friendly unit.');
+        unit.order = { kind: 'escort', targetId: target.id };
+    }
+    else if (order.kind === 'go-home') {
+        if (!g.cities.some(city => city.owner === unit.owner))
+            throw new Error('No friendly home city.');
+        unit.order = { kind: 'go-home' };
+    }
     else
         unit.order = { kind: order.kind };
     if (order.kind === 'skip')
         unit.spent = (0, units_js_1.movementAllowance)(unit);
+    return g;
+}
+/** Move one army aboard an adjacent friendly troop transport. */
+function embarkArmy(game, armyId, transportId) {
+    const g = clone(game), army = g.units.find(u => u.id === armyId), ship = g.units.find(u => u.id === transportId);
+    if (!army || !ship || army.kind !== 'army' || ship.kind !== 'transport' || army.owner !== g.active || ship.owner !== g.active ||
+        army.aboard || ship.aboard)
+        throw new Error('Boarding requires an active friendly army and transport.');
+    if (army.spent >= (0, units_js_1.movementAllowance)(army))
+        throw new Error('Army has no movement remaining.');
+    if (army.order.kind === 'sentry')
+        throw new Error('Clear sentry before boarding.');
+    if (Math.max(Math.abs(army.position.x - ship.position.x), Math.abs(army.position.y - ship.position.y)) > 1)
+        throw new Error('Army must be adjacent to the transport.');
+    const aboard = g.units.filter(u => u.aboard === ship.id);
+    if (aboard.length >= ((0, units_js_1.capacity)(ship) ?? 0))
+        throw new Error('Transport is full.');
+    army.aboard = ship.id;
+    army.position = { ...ship.position };
+    army.spent++;
+    army.order = { kind: 'none' };
+    log(g, army.owner, 'movement', `${army.id} boarded ${ship.id} (${aboard.length + 1}/${(0, units_js_1.capacity)(ship)}).`);
+    (0, knowledge_js_1.updateAllKnowledge)(g);
+    return g;
+}
+/** Release an army from a transport into an adjacent legal land square. */
+function disembarkArmy(game, armyId, to) {
+    const g = clone(game), army = g.units.find(u => u.id === armyId);
+    if (!army || army.owner !== g.active || army.kind !== 'army' || !army.aboard)
+        throw new Error('Select an embarked friendly army.');
+    const ship = g.units.find(u => u.id === army.aboard);
+    if (!ship || ship.kind !== 'transport' || ship.owner !== g.active)
+        throw new Error('Transport unavailable.');
+    if (army.spent >= (0, units_js_1.movementAllowance)(army))
+        throw new Error('Army has no movement remaining.');
+    if (!(0, world_js_1.playable)(g, to) || Math.max(Math.abs(to.x - ship.position.x), Math.abs(to.y - ship.position.y)) !== 1)
+        throw new Error('Landing must be adjacent to the transport.');
+    const city = (0, world_js_1.cityAt)(g, to);
+    if ((0, world_js_1.terrainAt)(g, to) !== 'land' && !city)
+        throw new Error('An army must disembark onto land.');
+    if (city && city.owner !== army.owner)
+        throw new Error('Capture hostile cities manually after landing.');
+    if (g.units.some(u => !u.aboard && (0, world_js_1.equal)(u.position, to) && (!city || u.owner !== army.owner)))
+        throw new Error('Landing square occupied.');
+    army.aboard = null;
+    army.position = { ...to };
+    army.spent++;
+    army.order = { kind: 'none' };
+    log(g, army.owner, 'movement', `${army.id} landed from ${ship.id}.`);
+    (0, knowledge_js_1.updateAllKnowledge)(g);
     return g;
 }
 function moveUnit(game, id, to) {
@@ -391,6 +454,9 @@ function moveUnit(game, id, to) {
     const domain = units_js_1.STATS[unit.kind].domain;
     const city = (0, world_js_1.cityAt)(g, to);
     const occupants = g.units.filter(u => !u.aboard && (0, world_js_1.equal)(u.position, to));
+    const boarding = occupants.find(u => u.owner === unit.owner && u.kind === 'transport');
+    if (unit.kind === 'army' && boarding)
+        return embarkArmy(game, id, boarding.id);
     const enemy = occupants.find(u => u.owner !== unit.owner);
     // Original rules allow armies to engage hostile ships in adjacent water, but
     // the victorious army does not advance onto the sea square. Heavy warships
@@ -412,8 +478,20 @@ function moveUnit(game, id, to) {
         return (0, combat_js_1.resolveCombat)(game, id, enemy.id);
     if (occupants.some(u => u.owner === unit.owner) && !city)
         throw new RuleNotImplemented('CARGO', 'Loading and same-cell stacking require verified original mechanics.');
+    if (unit.kind === 'transport' && g.units.filter(u => u.aboard === unit.id).length > ((0, units_js_1.capacity)(unit) ?? 0))
+        throw new Error('Transport is overloaded. Unload excess armies before moving.');
     unit.position = { ...to };
     unit.spent++;
+    // Embarked units physically travel with the ship, but spend no movement themselves.
+    for (const cargo of g.units.filter(u => u.aboard === unit.id))
+        cargo.position = { ...to };
+    if (unit.kind === 'transport' && city?.owner === unit.owner) {
+        for (const cargo of g.units.filter(u => u.aboard === unit.id)) {
+            cargo.aboard = null;
+            cargo.position = { ...to };
+            log(g, cargo.owner, 'movement', `${cargo.id} unloaded in friendly port ${city.id}.`);
+        }
+    }
     if (unit.order.kind !== 'none' && unit.order.kind !== 'skip')
         unit.order = { kind: 'none' };
     if (unit.kind === 'fighter') {
@@ -439,7 +517,7 @@ function routeStep(game, unit, destination) {
     const visibleEnemies = new Set(game.knowledge[unit.owner].sightings
         .filter(s => knowledge.freshEnemies.includes(s.id)).map(s => (0, world_js_1.index)(game, s.position)));
     const friendly = new Set(game.units.filter(u => !u.aboard && u.owner === unit.owner && u.id !== unit.id).map(u => (0, world_js_1.index)(game, u.position)));
-    const cities = new Map(game.cities.map(c => [(0, world_js_1.index)(game, c.position), c]));
+    const cities = new Map(game.cities.filter(c => knowledge.cities[c.id] !== undefined).map(c => [(0, world_js_1.index)(game, c.position), c]));
     const domain = units_js_1.STATS[unit.kind].domain;
     for (let head = 0; head < queue.length; head++) {
         const here = queue[head];
@@ -451,7 +529,7 @@ function routeStep(game, unit, destination) {
             if (!(0, world_js_1.playable)(game, pos))
                 continue;
             const k = (0, world_js_1.index)(game, pos);
-            if (visited.has(k) || visibleEnemies.has(k) || friendly.has(k))
+            if (visited.has(k) || visibleEnemies.has(k) || (friendly.has(k) && !game.cities.some(city => knowledge.cities[city.id]?.owner === unit.owner && (0, world_js_1.equal)(city.position, pos))))
                 continue;
             const terrain = knowledge.terrain[k];
             const city = knowledge.terrain[k] !== null ? cities.get(k) : undefined;
@@ -463,7 +541,7 @@ function routeStep(game, unit, destination) {
                     continue;
                 if (domain === 'sea' && terrain !== 'sea' && !city)
                     continue;
-                if (domain === 'sea' && city && !(0, world_js_1.isCoastal)(game, pos))
+                if (domain === 'sea' && city && !world_js_1.directions.some(d => knowledge.terrain[(0, world_js_1.index)(game, { x: pos.x + d.x, y: pos.y + d.y })] === 'sea'))
                     continue;
             }
             visited.add(k);
@@ -485,19 +563,52 @@ function routeStep(game, unit, destination) {
 /** Execute passive standing orders, never attacking or assaulting cities automatically. */
 function executeStandingOrders(game) {
     let g = game;
-    const ordered = g.units.filter(u => u.owner === g.active && ['move-to', 'go-direction', 'patrol'].includes(u.order.kind)).map(u => u.id);
+    const ordered = g.units.filter(u => u.owner === g.active && ['move-to', 'go-direction', 'patrol', 'go-home', 'escort'].includes(u.order.kind)).map(u => u.id);
     for (const id of ordered) {
         for (let attempt = 0; attempt < 10; attempt++) {
             const unit = g.units.find(u => u.id === id);
             if (!unit || unit.spent >= (0, units_js_1.movementAllowance)(unit))
                 break;
             const order = unit.order;
-            if (order.kind !== 'move-to' && order.kind !== 'go-direction' && order.kind !== 'patrol')
+            if (order.kind !== 'move-to' && order.kind !== 'go-direction' && order.kind !== 'patrol' && order.kind !== 'go-home' && order.kind !== 'escort')
                 break;
             let step = null;
             let nextOrder = structuredClone(order);
             if (order.kind === 'go-direction') {
                 step = { x: unit.position.x + order.direction.x, y: unit.position.y + order.direction.y };
+            }
+            else if (order.kind === 'go-home') {
+                const homes = g.cities.filter(city => city.owner === unit.owner)
+                    .sort((a, b) => Math.max(Math.abs(a.position.x - unit.position.x), Math.abs(a.position.y - unit.position.y)) -
+                    Math.max(Math.abs(b.position.x - unit.position.x), Math.abs(b.position.y - unit.position.y)));
+                if (homes.some(city => (0, world_js_1.equal)(unit.position, city.position))) {
+                    unit.order = { kind: 'none' };
+                    break;
+                }
+                for (const home of homes) {
+                    step = routeStep(g, unit, home.position);
+                    if (step)
+                        break;
+                }
+            }
+            else if (order.kind === 'escort') {
+                const target = g.units.find(other => other.id === order.targetId && other.owner === unit.owner && !other.aboard);
+                if (!target) {
+                    unit.order = { kind: 'none' };
+                    log(g, unit.owner, 'movement', `${id}: escort target unavailable.`);
+                    break;
+                }
+                const distance = Math.max(Math.abs(target.position.x - unit.position.x), Math.abs(target.position.y - unit.position.y));
+                if (distance <= 1)
+                    break; // stay beside the escorted unit; do not stack
+                const candidates = world_js_1.directions.map(d => ({ x: target.position.x + d.x, y: target.position.y + d.y }))
+                    .filter(p => (0, world_js_1.playable)(g, p)).sort((a, b) => Math.max(Math.abs(a.x - unit.position.x), Math.abs(a.y - unit.position.y)) -
+                    Math.max(Math.abs(b.x - unit.position.x), Math.abs(b.y - unit.position.y)));
+                for (const p of candidates) {
+                    step = routeStep(g, unit, p);
+                    if (step)
+                        break;
+                }
             }
             else {
                 let destination = order.kind === 'move-to' ? order.destination : (order.outbound ? order.to : order.from);
@@ -530,6 +641,8 @@ function executeStandingOrders(game) {
                 const newUnit = moved.units.find(u => u.id === id);
                 if (newUnit) {
                     if (nextOrder.kind === 'move-to' && (0, world_js_1.equal)(newUnit.position, nextOrder.destination))
+                        newUnit.order = { kind: 'none' };
+                    else if (nextOrder.kind === 'go-home' && g.cities.some(city => city.owner === newUnit.owner && (0, world_js_1.equal)(city.position, newUnit.position)))
                         newUnit.order = { kind: 'none' };
                     else
                         newUnit.order = nextOrder;
@@ -788,16 +901,17 @@ function getPlayerView(game, faction) {
 __modules["engine/rng.js"] = function(module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.nextRandom15 = nextRandom15;
 exports.nextRandom = nextRandom;
+exports.nextRandom15 = nextRandom15;
+function nextRandom(input) {
+    const state = (Math.imul(input.seed >>> 0, 0x343FD) + 0x269EC3) >>> 0;
+    const raw = (state >>> 16) & 0x7FFF;
+    return { next: { seed: state, draws: input.draws + 1 }, value: raw / 32768 };
+}
+/** Exact 15-bit DOS generator output, useful for historical trace comparisons. */
 function nextRandom15(input) {
     const state = (Math.imul(input.seed >>> 0, 0x343FD) + 0x269EC3) >>> 0;
     return { next: { seed: state, draws: input.draws + 1 }, value: (state >>> 16) & 0x7FFF };
-}
-/** Normalized sample for the existing probability-based combat API. */
-function nextRandom(input) {
-    const result = nextRandom15(input);
-    return { next: result.next, value: result.value / 32768 };
 }
 
 };
@@ -809,6 +923,8 @@ exports.importSave = importSave;
 exports.saveLocally = saveLocally;
 exports.loadLocal = loadLocal;
 const knowledge_js_1 = require("./knowledge.js");
+const units_js_1 = require("./units.js");
+const world_js_1 = require("./world.js");
 const DATABASE = 'empirata-rules-lab';
 const STORE = 'saves';
 function exportSave(game) {
@@ -829,19 +945,85 @@ function importSave(json) {
         !Number.isInteger(g.round) || !Number.isInteger(g.nextId) || !Number.isInteger(g.nextEventId) ||
         !g.knowledge || !g.rng || !Array.isArray(g.events))
         throw new Error('Invalid game structure.');
+    const validFaction = (id) => id === 'blue' || id === 'red' || id === 'green';
+    const finiteInt = (value) => Number.isSafeInteger(value) && Number.isFinite(value);
+    const validPosition = (pos) => pos && finiteInt(pos.x) && finiteInt(pos.y) && (0, world_js_1.playable)(g, pos);
+    if (!finiteInt(g.round) || g.round < 1 || !finiteInt(g.nextId) || g.nextId < 1 ||
+        !finiteInt(g.nextEventId) || g.nextEventId < 1)
+        throw new Error('Invalid counters.');
+    if (!g.rng || !finiteInt(g.rng.seed) || g.rng.seed < 0 || g.rng.seed > 0xffffffff ||
+        !finiteInt(g.rng.draws) || g.rng.draws < 0)
+        throw new Error('Invalid random state.');
+    const playerIds = new Set();
     for (const p of g.players) {
-        if (!p || p.productionEfficiency !== 50 || p.combatEfficiency !== 50)
-            throw new Error('Unsupported faction efficiencies.');
+        if (!p || !validFaction(p.id) || playerIds.has(p.id) || p.productionEfficiency !== 50 || p.combatEfficiency !== 50)
+            throw new Error('Invalid faction settings.');
+        playerIds.add(p.id);
     }
+    const validOwner = (owner) => owner === null || (typeof owner === 'string' && playerIds.has(owner));
+    const cityIds = new Set();
+    const cityPositions = new Set();
     for (const city of g.cities) {
-        if (!city || !city.position || !Number.isInteger(city.position.x) || !Number.isInteger(city.position.y) ||
-            typeof city.progress !== 'number' || city.progress < 0 || typeof city.firstCycle !== 'boolean')
+        if (!city || typeof city.id !== 'string' || !city.id || cityIds.has(city.id) || !validPosition(city.position) ||
+            !validOwner(city.owner) || !(city.production === null || Object.hasOwn(units_js_1.STATS, city.production)) ||
+            !finiteInt(city.progress) || city.progress < 0 || typeof city.firstCycle !== 'boolean')
             throw new Error('Invalid city entry.');
+        const tile = city.position.y * 100 + city.position.x;
+        if (cityPositions.has(tile))
+            throw new Error('Duplicate city position.');
+        cityIds.add(city.id);
+        cityPositions.add(tile);
+    }
+    const unitIds = new Set();
+    for (const u of g.units) {
+        if (!u || typeof u.id !== 'string' || !u.id || unitIds.has(u.id) || !playerIds.has(u.owner) ||
+            !Object.hasOwn(units_js_1.STATS, u.kind) || !validPosition(u.position) ||
+            !finiteInt(u.spent) || u.spent < 0 || !finiteInt(u.damage) || u.damage < 0 ||
+            !(u.fuel === null || (finiteInt(u.fuel) && u.fuel >= 0)))
+            throw new Error('Invalid unit entry.');
+        const kind = u.order?.kind;
+        if (!['none', 'skip', 'sentry', 'move-to', 'go-direction', 'patrol', 'go-home', 'escort'].includes(kind))
+            throw new Error('Invalid unit order.');
+        if (kind === 'move-to' && !validPosition(u.order.destination))
+            throw new Error('Invalid Move To destination.');
+        if (kind === 'go-direction') {
+            const d = u.order.direction;
+            if (!d || !finiteInt(d.x) || !finiteInt(d.y) || Math.max(Math.abs(d.x), Math.abs(d.y)) !== 1)
+                throw new Error('Invalid direction.');
+        }
+        if (kind === 'patrol') {
+            const o = u.order;
+            if (!validPosition(o.from) || !validPosition(o.to) || (0, world_js_1.equal)(o.from, o.to) || typeof o.outbound !== 'boolean')
+                throw new Error('Invalid patrol route.');
+        }
+        if (kind === 'escort' && (typeof u.order.targetId !== 'string' || !u.order.targetId))
+            throw new Error('Invalid escort target.');
+        unitIds.add(u.id);
     }
     for (const u of g.units) {
-        if (!u || !u.position || !Number.isInteger(u.position.x) || !Number.isInteger(u.position.y) ||
-            typeof u.spent !== 'number' || u.spent < 0 || typeof u.damage !== 'number' || u.damage < 0)
-            throw new Error('Invalid unit entry.');
+        if (u.aboard !== null) {
+            const parent = g.units.find(v => v.id === u.aboard);
+            if (!parent || parent.id === u.id || parent.owner !== u.owner || !['transport', 'carrier'].includes(parent.kind) ||
+                (parent.kind === 'transport' && u.kind !== 'army') || (parent.kind === 'carrier' && u.kind !== 'fighter') ||
+                !(0, world_js_1.equal)(u.position, parent.position) || parent.aboard)
+                throw new Error('Invalid embarked unit.');
+        }
+    }
+    for (const u of g.units) {
+        if (u.order.kind === 'escort') {
+            const escortId = u.order.targetId;
+            const target = g.units.find(v => v.id === escortId);
+            if (!target || target.id === u.id || target.owner !== u.owner || target.aboard)
+                throw new Error('Invalid escort relationship.');
+        }
+    }
+    for (const faction of playerIds) {
+        const k = g.knowledge?.[faction];
+        if (!k || !Array.isArray(k.terrain) || k.terrain.length !== 6000 ||
+            !k.terrain.every(t => t === null || t === 'land' || t === 'sea') ||
+            !Array.isArray(k.visible) || !Array.isArray(k.sightings) || !Array.isArray(k.freshEnemies) ||
+            !k.cities || typeof k.cities !== 'object')
+            throw new Error('Invalid faction knowledge.');
     }
     const result = structuredClone(g);
     // Rebuild known visibility from current authoritative state while retaining remembered terrain and sightings.
@@ -914,6 +1096,9 @@ function makeCloseQuartersLab() {
     add(blueArmy, { position: { x: 11, y: 23 }, damage: 0, spent: 0 });
     // Destroyer detects the submerged enemy immediately; both start in water.
     add(blueDestroyer, { owner: 'red', kind: 'submarine', position: { x: 6, y: 25 }, damage: 0, spent: 0 });
+    // Adjacent transport/army pair for testing real embarkation and landings.
+    add(blueDestroyer, { kind: 'transport', position: { x: 7, y: 26 }, damage: 0, spent: 0 });
+    add(blueArmy, { kind: 'army', position: { x: 8, y: 26 }, damage: 0, spent: 0 });
     // Additional short-range land/air encounter, without stacking on another unit.
     add(blueArmy, { owner: 'blue', kind: 'fighter', position: { x: 9, y: 26 }, damage: 0, spent: 0, fuel: 20 });
     add(blueArmy, { owner: 'red', kind: 'fighter', position: { x: 10, y: 27 }, damage: 0, spent: 0, fuel: 20 });
@@ -1171,6 +1356,16 @@ function tapTile(pos) {
         if (!origin)
             return;
         const dx = pos.x - origin.x, dy = pos.y - origin.y;
+        if (choosingOrder === 'escort') {
+            const target = view.ownUnits.find(u => u.id !== id && !u.aboard && u.position.x === pos.x && u.position.y === pos.y);
+            if (!target) {
+                uiMessage('Tap a different friendly unit to escort.');
+                return;
+            }
+            if (dispatch(() => (0, index_js_1.runMoveToOrders)((0, index_js_1.setOrder)(game, id, { kind: 'escort', targetId: target.id }))))
+                uiMessage(`${id} is escorting ${target.id}.`);
+            return;
+        }
         const order = choosingOrder === 'go-direction' ?
             { kind: 'go-direction', direction: { x: Math.sign(dx), y: Math.sign(dy) } } :
             choosingOrder === 'patrol' ? { kind: 'patrol', from: { ...origin }, to: pos, outbound: true } :
@@ -1181,6 +1376,13 @@ function tapTile(pos) {
     }
     if (pos.x < 0 || pos.y < 0 || pos.x >= game.width || pos.y >= game.height)
         return;
+    const embarked = selectedUnit ? view.ownUnits.find(u => u.id === selectedUnit && u.aboard) : null;
+    if (embarked) {
+        if (dispatch(() => (0, index_js_1.disembarkArmy)(game, embarked.id, pos))) {
+            uiMessage(`${embarked.id} disembarked. Select the transport to manage remaining cargo.`);
+        }
+        return;
+    }
     const units = view.ownUnits.filter(u => !u.aboard && u.position.x === pos.x && u.position.y === pos.y);
     const cityHere = view.ownCities.find(c => c.position.x === pos.x && c.position.y === pos.y);
     if (units.length) {
@@ -1235,12 +1437,15 @@ function text(value) { return String(value).replace(/[&<>"']/g, ch => ({ '&': '&
 function selectedUnitBlock(unit) {
     const allowance = (0, index_js_1.movementAllowance)(unit), stats = index_js_1.STATS[unit.kind], possible = (0, index_js_1.capacity)(unit);
     return `<div class="selection-title">${text(stats.name)} <span class="subtle">#${text(unit.id)}</span></div>
-  <div class="subtle">${unit.position.x}, ${unit.position.y} · ${unit.order.kind === 'sentry' ? 'Sentry' : unit.order.kind === 'move-to' ? `Moving to ${unit.order.destination.x}, ${unit.order.destination.y}` : unit.order.kind === 'go-direction' ? `Continuing ${unit.order.direction.x},${unit.order.direction.y}` : unit.order.kind === 'patrol' ? `Patrolling ${unit.order.from.x},${unit.order.from.y} ↔ ${unit.order.to.x},${unit.order.to.y}` : 'Awaiting orders'}</div>
+  <div class="subtle">${unit.position.x}, ${unit.position.y} · ${unit.order.kind === 'sentry' ? 'Sentry' : unit.order.kind === 'move-to' ? `Moving to ${unit.order.destination.x}, ${unit.order.destination.y}` : unit.order.kind === 'go-direction' ? `Continuing ${unit.order.direction.x},${unit.order.direction.y}` : unit.order.kind === 'patrol' ? `Patrolling ${unit.order.from.x},${unit.order.from.y} ↔ ${unit.order.to.x},${unit.order.to.y}` : unit.order.kind === 'go-home' ? 'Returning home' : unit.order.kind === 'escort' ? `Escorting ${text(unit.order.targetId)}` : 'Awaiting orders'}</div>
   <div class="data"><div class="datum"><small>Movement</small><strong>${Math.max(0, allowance - unit.spent)} / ${allowance}</strong></div>
   <div class="datum"><small>Damage</small><strong>${unit.damage} / ${stats.hitPoints}</strong></div>
   ${unit.kind === 'fighter' ? `<div class="datum"><small>Fuel</small><strong>${unit.fuel} / 20</strong></div>` : ''}
   ${possible !== null ? `<div class="datum"><small>Cargo capacity</small><strong>${possible}</strong></div>` : ''}</div>
-  <div class="actions"><button id="moveToButton">Move To</button><button id="directionButton">Go Direction</button><button id="patrolButton">Patrol</button><button id="sentryButton">Sentry</button><button id="clearButton">Clear</button><button id="skipButton">Skip move</button></div>
+  ${unit.kind === 'transport' ? `<div class="stat-note">Aboard: ${view.ownUnits.filter(u => u.aboard === unit.id).length} / ${(0, index_js_1.capacity)(unit) ?? 0}</div>
+  <div class="actions">${view.ownUnits.filter(u => u.aboard === unit.id).map(u => `<button class="cargoButton" data-cargo="${text(u.id)}">Unload ${text(u.id)}</button>`).join('')}</div>` : ''}
+  ${unit.aboard ? '<p class="stat-note">Embarked: tap adjacent land to disembark (if movement remains).</p>' : ''}
+  <div class="actions"><button id="moveToButton">Move To</button><button id="directionButton">Go Direction</button><button id="patrolButton">Patrol</button><button id="homeButton">Go Home</button><button id="escortButton">Escort</button><button id="sentryButton">Sentry</button><button id="clearButton">Clear</button><button id="skipButton">Skip move</button></div>
   <p class="stat-note" style="margin-top:12px">Tap an adjacent tile for manual movement, or choose Move To and tap a distant destination. Armies can assault neutral or enemy cities. Combat uses the original manual's normal-efficiency odds with a seeded random stream.</p>`;
 }
 function selectedCityBlock(city) {
@@ -1270,12 +1475,27 @@ function refresh() {
         inspector.innerHTML = selectedCityBlock(city);
     else
         inspector.innerHTML = '<p>Select a blue unit, then tap an adjacent enemy to attack. Select a city to assign production. Red will respond on the next round using a preliminary rules-bound AI.</p>';
+    inspector.querySelectorAll('.cargoButton').forEach(button => button.addEventListener('click', () => {
+        selectedUnit = button.dataset.cargo ?? null;
+        selectedCity = null;
+        refresh();
+        uiMessage('Tap adjacent land to disembark the selected army.');
+    }));
     const moveButton = document.getElementById('moveToButton');
     if (moveButton && unit)
         moveButton.addEventListener('click', () => { choosingOrder = 'move-to'; choosingDestination = true; uiMessage('Tap a map tile to set destination. Drag to pan.'); });
     for (const [button, kind, hint] of [['directionButton', 'go-direction', 'Tap an adjacent tile to choose a compass bearing.'], ['patrolButton', 'patrol', 'Tap a destination for the patrol route.']]) {
         document.getElementById(button)?.addEventListener('click', () => { choosingOrder = kind; choosingDestination = true; uiMessage(hint); });
     }
+    document.getElementById('homeButton')?.addEventListener('click', () => {
+        if (unit && dispatch(() => (0, index_js_1.runMoveToOrders)((0, index_js_1.setOrder)(game, unit.id, { kind: 'go-home' }))))
+            uiMessage(`${unit.id} returning to a friendly city.`);
+    });
+    document.getElementById('escortButton')?.addEventListener('click', () => {
+        choosingOrder = 'escort';
+        choosingDestination = true;
+        uiMessage('Tap another friendly unit to escort. Drag to pan.');
+    });
     const productionSelect = document.getElementById('productionSelect');
     if (productionSelect && city)
         productionSelect.addEventListener('change', () => {
