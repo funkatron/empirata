@@ -7,7 +7,7 @@
  * until the probability resolver has been validated against the original.
  */
 import type { City, Coord, FactionId, Game, Unit } from './types.js';
-import {STATS, movementAllowance} from './units.js';
+import {STATS, movementAllowance, capacity} from './units.js';
 import {playable, terrainAt, cityAt, equal, isCoastal} from './world.js';
 import {updateAllKnowledge} from './knowledge.js';
 
@@ -86,6 +86,15 @@ export function adjudicateCombat(game:Game, record:CombatRecord):Game {
   const winner=defeated===attacker?defender:attacker;
   const lostOwner=defeated.owner,winningOwner=winner.owner;
   removeUnitAndCargo(g,defeated.id);
+  // A damaged carrier immediately loses fighters exceeding its reduced capacity.
+  // Cargo selection is deterministic (last-added first); exact DOS priority is unresolved.
+  if(winner.kind==='carrier'){
+    const excess=g.units.filter(u=>u.aboard===winner.id).slice(capacity(winner)??0);
+    for(const fighter of excess){
+      removeUnitAndCargo(g,fighter.id);
+      log(g,fighter.owner,`${fighter.id} was lost when ${winner.id} exceeded carrier capacity.`);
+    }
+  }
   if(winner.id===attacker.id){
     attacker.spent++;
     if(advances)attacker.position={...defender.position};
