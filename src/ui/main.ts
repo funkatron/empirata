@@ -84,7 +84,7 @@ function paint():void {
     ctx.fillStyle=c.terrain===null?colors.unseen:c.terrain==='land'?colors.land:colors.sea;
     ctx.fillRect(px,py,tileSize+0.25,tileSize+0.25);
     if(c.terrain!==null&&!c.visible){ctx.fillStyle='rgba(3,13,22,.52)';ctx.fillRect(px,py,tileSize,tileSize);}
-    if(tileSize>=9){ctx.strokeStyle='rgba(120,159,166,.12)';ctx.lineWidth=.65;ctx.strokeRect(px+.3,py+.3,tileSize-.6,tileSize-.6);
+    if(tileSize>=9){ctx.strokeStyle='rgba(120,159,166,.12)';ctx.lineWidth=.65;ctx.strokeRect(px+.3,py+.3,tileSize-.6,tileSize-.6);}
     if(c.city){
       const ink=c.city.owner==='blue'?colors.blue:c.city.owner==='red'?colors.red:colors.neutral;
       ctx.fillStyle=ink;const r=Math.max(3,tileSize*.29);
