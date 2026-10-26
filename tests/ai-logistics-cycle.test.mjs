@@ -1,0 +1,36 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {makeRulesLab,endTurn,playRedOpponent,updateAllKnowledge} from '../dist/engine/index.js';
+
+function fleet(){
+  const g=makeRulesLab();
+  const base=g.units.find(u=>u.id==='u3');
+  base.position={x:77,y:35}; // out of loading range
+  g.units.push({...structuredClone(base),id:'empty-ship',kind:'transport',
+    position:{x:81,y:36},aboard:null,fuel:null});
+  updateAllKnowledge(g);
+  return g;
+}
+test('Empty AI transport returns to friendly port instead of drifting away',()=>{
+  const original=fleet();
+  const acted=playRedOpponent(endTurn(original));
+  const ship=acted.units.find(u=>u.id==='empty-ship');
+  assert.deepEqual(ship.position,{x:80,y:36});
+  assert.equal(ship.aboard,null);
+});
+test('Empty AI transport already in port waits for troops',()=>{
+  const g=fleet();
+  g.units.find(u=>u.id==='empty-ship').position={x:80,y:36};
+  updateAllKnowledge(g);
+  const acted=playRedOpponent(endTurn(g));
+  assert.deepEqual(acted.units.find(u=>u.id==='empty-ship').position,{x:80,y:36});
+});
+test('A loaded transport is not sent home by the empty-ship rule',()=>{
+  const g=fleet();
+  const army=g.units.find(u=>u.id==='u3');
+  army.aboard='empty-ship';army.position={x:81,y:36};
+  updateAllKnowledge(g);
+  const acted=playRedOpponent(endTurn(g));
+  assert.equal(acted.units.find(u=>u.id==='u3').aboard,'empty-ship');
+  assert.notDeepEqual(acted.units.find(u=>u.id==='empty-ship').position,{x:80,y:36});
+});
