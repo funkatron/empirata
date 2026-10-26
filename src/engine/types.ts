@@ -28,7 +28,7 @@ export type GameEvent = {
 };
 export type Game = {
   schema: 1; ruleset: 'interstel-2.05'; mode: 'rules-lab';
-  scenario?: 'classic-lab' | 'close-quarters' | 'ai-invasion';
+  scenario?: 'classic-lab' | 'close-quarters' | 'ai-invasion' | 'ai-vs-ai';
   width: number; height: number; tiles: Terrain[];
   players: Player[]; active: FactionId; round: number;
   cities: City[]; units: Unit[]; knowledge: Record<FactionId, Knowledge>;
