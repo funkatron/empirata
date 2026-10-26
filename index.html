@@ -383,7 +383,7 @@ function fillShip(g, ship, portOnly = false) {
         loaded++;
         log(g, ship.owner, 'movement', `${candidate.id} loaded aboard ${ship.id}.`);
     }
-    if (occupied >= capacityNow)
+    if (occupied >= capacityNow && ship.order.kind === 'load-ship')
         ship.order = { kind: 'none' };
     return loaded;
 }
