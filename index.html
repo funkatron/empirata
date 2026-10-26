@@ -23,39 +23,28 @@
 .spectator-scores span{font-size:12px}
 #spectatorNow{font-size:12px;font-weight:600;margin:8px 0 0}
 
+/* Game menu: accessible from the top bar on desktop and iPad. */
+.game-menu{position:relative;z-index:20;flex:none}.game-menu>summary{list-style:none;cursor:pointer;border:1px solid #526a77;border-radius:6px;padding:9px 13px;color:#f0dd9b;background:#233643;font-size:13px;font-weight:700}.game-menu>summary::-webkit-details-marker{display:none}.game-menu[open]>summary{background:#34536a}.game-menu-panel{position:absolute;top:calc(100% + 7px);left:0;width:min(300px,calc(100vw - 24px));max-height:min(70dvh,540px);overflow:auto;padding:14px;border:1px solid #557082;border-radius:8px;background:#152733;box-shadow:0 12px 30px #0009;display:grid;gap:7px}.game-menu-panel h2{margin:4px 0;color:#d7bf85;font-size:12px}.game-menu-panel p{font-size:11px;color:#aec0ca;line-height:1.5;margin:0 0 5px}.game-menu-panel button{text-align:left;font-size:12px;padding:10px}.game-menu-panel hr{width:100%;border:0;border-top:1px solid #3a5260;margin:6px 0}.spectator[hidden],.ai-spectator[hidden]{display:none}.spectator .ai-spectator{margin:0;border:0;padding:0;background:transparent}.spectator .actions button{flex:1}.sidebar .side-content{display:flex;flex-direction:column}.sidebar .events{min-height:100px}@media(max-width:880px){.sidebar{max-height:42dvh}.sidebar .side-content{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.sidebar .spectator{grid-column:1/-1}.sidebar .events{grid-column:1/-1}.game-menu>summary{padding:8px 10px}}@media(max-width:560px){.sidebar .side-content{display:flex}.topbar{gap:8px}.brand{gap:6px}.brand strong{font-size:15px;letter-spacing:.12em}.brand small{display:none}.brand-mark{display:none}.game-menu-panel{left:0}.toolbar .live-label{font-size:10px}}
+
 </style></head>
 <body><div class="app">
   <header class="topbar"><div class="brand"><span class="brand-mark">✦</span><div><strong>EMPIRATA</strong><small>CLASSIC RULES LAB · v0.4</small></div></div>
-   <div class="topstate"><span id="round">ROUND 1</span><span class="separator"></span><span class="faction"><span class="dot"></span>BLUE</span></div>
+   <details class="game-menu" id="gameMenu"><summary>Game <span aria-hidden="true">▾</span></summary><div class="game-menu-panel"><h2>New game</h2><p>Starting a scenario replaces your current autosave. Export first to keep it.</p><button id="newGame" type="button">Close Quarters</button><button id="classicGame" type="button">Original test map</button><button id="invasionGame" type="button">AI Invasion</button><button id="aiVsAiGame" type="button">Computer vs computer</button><hr/><h2>Saved games</h2><button id="exportSave" type="button">Export JSON</button><button id="importSave" type="button">Import JSON</button><input id="saveFile" type="file" accept="application/json,.json" hidden/></div></details><div class="topstate"><span id="round">ROUND 1</span><span class="separator"></span><span class="faction"><span class="dot"></span>BLUE</span></div>
    <button id="nextRound" class="primary">Next round <span aria-hidden="true">→</span></button>
   </header>
   <main class="content">
     <section class="map-area" aria-label="Game map">
-       <div class="toolbar"><div class="toolbar-left"><span class="live-label"><span class="pulse"></span> <span id="scenarioName">CLOSE QUARTERS · PLAYABLE</span></span><span id="mapStatus">60 × 100 world</span><button id="startSkirmish" class="scenario-start" title="Reset the skirmish test scenario">New skirmish</button></div>
+       <div class="toolbar"><div class="toolbar-left"><span class="live-label"><span class="pulse"></span> <span id="scenarioName">CLOSE QUARTERS · PLAYABLE</span></span><span id="mapStatus">60 × 100 world</span></div>
        <div class="toolbar-right"><button id="fitWorld" aria-label="Fit entire world" title="Fit entire world">⊞</button><button id="zoomOut" aria-label="Zoom out" title="Zoom out">−</button><button id="zoomIn" aria-label="Zoom in" title="Zoom in">+</button><button id="recenter" title="Focus on your city">⌖</button></div></div>
        <div class="canvas-holder"><canvas id="map" tabindex="0" aria-label="Interactive tile map, use drag to pan and click to select a unit or city"></canvas>
        <div class="map-key"><span><i class="key-land"></i> Land</span><span><i class="key-sea"></i> Sea</span><span><i class="key-fog"></i> Unexplored</span></div></div>
        <div class="map-help">Drag to pan · Tap a unit or city · Tap adjacent enemy or city to attack · Arrow keys / Q E Z C</div>
     </section>
     <aside class="sidebar" aria-label="Unit and city controls"><div class="side-content">
-      <section class="status card"><h2>Command center</h2><div class="statrow"><span>Controlled cities</span><strong id="cityCount">1</strong></div><div class="statrow"><span>Active units</span><strong id="unitCount">2</strong></div><div class="statrow"><span>Visible enemies</span><strong id="threatCount">0</strong></div><div class="statrow"><span>Current player</span><strong>Blue</strong></div></section>
-      <section class="inspector card"><h2>Selection</h2><div id="inspector" aria-live="polite"></div></section>
-      <section class="events card"><h2>Orders &amp; reports</h2><div id="events"></div></section>
-      <section class="files card"><h2>Close Quarters · Immediate encounters</h2>
-        <p>Blue armies face nearby red forces and a neutral city. Select a blue unit and tap an adjacent red unit or gold city to fight. Results use the Interstel manual's combat odds, not scripted victory buttons. Additional armies make city assaults repeatable. Red responds on the next round using a preliminary rules-bound AI.</p>
-        <div class="actions"><button id="newGame" class="wide">Start Close Quarters</button><button id="classicGame">Original test map</button><button id="invasionGame">AI Invasion</button><button id="aiVsAiGame">Computer vs computer</button></div>
-        <div class="ai-spectator" id="aiSpectator" hidden>
-          <label for="spectatorSide">Observe</label>
-          <select id="spectatorSide" aria-label="Spectator viewpoint"><option value="alternate">Alternate each round</option><option value="blue">Blue intelligence</option><option value="red">Red intelligence</option></select>
-          <p id="spectatorNow" aria-live="off">Currently viewing Blue</p>
-          <div class="spectator-scores" aria-label="Both player totals"><div><strong>Blue</strong><span id="spectatorBlue">—</span></div><div><strong>Red</strong><span id="spectatorRed">—</span></div></div>
-          <div class="actions"><button id="autoPlay" type="button">▶ Play</button><button id="stepTen" type="button">+10 rounds</button></div>
-          <p>Both computers use the same provisional AI. Alternate switches the map between each player's private view after every round; both players' city and unit totals stay visible. Pause before changing scenarios.</p>
-        </div>
-        <p>AI Invasion is a short demonstration: defend a Blue outpost while Red approaches by transport, lands troops and attempts a capture. It is a testing scenario, not an original DOS map.</p><h2 style="margin-top:14px">Save &amp; reset</h2>
-        <div class="actions"><button id="exportSave">Export JSON</button><button id="importSave">Import JSON</button></div>
-        <input id="saveFile" type="file" accept="application/json,.json" hidden/>
-      </section>
+      <section class="spectator card" id="spectatorCard" hidden><h2>Computer vs computer</h2><div class="ai-spectator" id="aiSpectator" hidden><label for="spectatorSide">Observe</label><select id="spectatorSide" aria-label="Spectator viewpoint"><option value="alternate">Alternate each round</option><option value="blue">Blue intelligence</option><option value="red">Red intelligence</option></select><p id="spectatorNow" aria-live="off">Currently viewing Blue</p><div class="spectator-scores" aria-label="Both player totals"><div><strong>Blue</strong><span id="spectatorBlue">—</span></div><div><strong>Red</strong><span id="spectatorRed">—</span></div></div><div class="actions"><button id="autoPlay" type="button">▶ Play</button><button id="stepTen" type="button">+10 rounds</button></div><p>Each viewpoint retains its own fog of war. Both players' totals remain visible.</p></div></section>
+      <section class="status card"><h2>Overview</h2><div class="statrow"><span>Controlled cities</span><strong id="cityCount">1</strong></div><div class="statrow"><span>Active units</span><strong id="unitCount">2</strong></div><div class="statrow"><span>Visible enemies</span><strong id="threatCount">0</strong></div><div class="statrow"><span>Current view</span><strong id="viewFaction">Blue</strong></div></section>
+      <section class="inspector card"><h2>Selection &amp; orders</h2><div id="inspector" aria-live="polite"></div></section>
+      <section class="events card"><h2>Reports</h2><div id="events"></div></section>
     </div></aside>
   </main>
   <footer><span id="toast" role="status" aria-live="polite">Movement, combat, and capture are available. Red has a basic opponent AI; troop loading remains under development.</span><span>INTERSTEL 2.05 RULES TARGET</span></footer>
@@ -2064,6 +2053,8 @@ function selectedCityBlock(city) {
 function refresh() {
     view = (0, index_js_1.getPlayerView)(game, observer);
     el('aiSpectator').hidden = game.scenario !== 'ai-vs-ai';
+    el('spectatorCard').hidden = game.scenario !== 'ai-vs-ai';
+    el('viewFaction').textContent = observer === 'blue' ? 'Blue' : 'Red';
     el('spectatorSide').value = spectatorMode;
     if (game.scenario === 'ai-vs-ai') {
         el('spectatorNow').textContent = `Currently viewing ${observer.toUpperCase()} intelligence · Round ${game.round}`;
@@ -2300,7 +2291,15 @@ function startScenario(kind) {
     uiMessage(kind === 'ai-vs-ai' ? 'Computer vs computer ready. Use Play, Next round or +10 rounds.' : kind === 'ai-invasion' ? 'AI Invasion ready: press Next round to watch the Red landing operation.' : kind === 'close-quarters' ? 'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.' : 'Classic rules lab reset.');
 }
 el('newGame').addEventListener('click', () => startScenario('close-quarters'));
-el('startSkirmish').addEventListener('click', () => startScenario('close-quarters'));
+// Close the native Game menu after a scenario or save command.
+for (const id of ['newGame', 'classicGame', 'invasionGame', 'aiVsAiGame', 'exportSave', 'importSave']) {
+    el(id).addEventListener('click', () => { el('gameMenu').open = false; });
+}
+document.addEventListener('pointerdown', event => {
+    const menu = el('gameMenu');
+    if (menu.open && !menu.contains(event.target))
+        menu.open = false;
+});
 el('classicGame').addEventListener('click', () => startScenario('classic-lab'));
 el('invasionGame').addEventListener('click', () => startScenario('ai-invasion'));
 el('aiVsAiGame').addEventListener('click', () => startScenario('ai-vs-ai'));
