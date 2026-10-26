@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  makeRulesLab,advanceLabRound,updateAllKnowledge,getPlayerView
+  makeRulesLab,makeAiInvasionLab,advanceLabRound,updateAllKnowledge,getPlayerView
 } from '../dist/engine/index.js';
 
 const unit=(g,id)=>g.units.find(u=>u.id===id);
@@ -67,4 +67,26 @@ test('Invasion decision does not consult unseen alternative destinations',()=>{
   const nextA=advanceLabRound(a),nextB=advanceLabRound(b);
   assert.deepEqual(unit(nextA,'red-transport').position,unit(nextB,'red-transport').position);
   assert.deepEqual(nextA.rng,nextB.rng);
+});
+
+test('Playable AI Invasion scenario runs the opponent and brings transport to its outpost',()=>{
+  let g=makeAiInvasionLab();
+  assert.equal(g.scenario,'ai-invasion');
+  assert.equal(g.cities.find(c=>c.id==='invasion-outpost').owner,'blue');
+  assert.equal(unit(g,'u3').aboard,'red-transport');
+  assert.deepEqual(unit(g,'red-transport').position,{x:81,y:30});
+  g=advanceLabRound(g);
+  assert.notDeepEqual(unit(g,'red-transport').position,{x:81,y:30});
+  assert.equal(g.active,'blue');
+});
+
+test('Playable invasion captures an undefended outpost within bounded rounds',()=>{
+  let g=makeAiInvasionLab(),claimed=false;
+  for(let round=0;round<15;round++){
+    g=advanceLabRound(g);
+    if(g.cities.find(c=>c.id==='invasion-outpost').owner==='red'){
+      claimed=true;break;
+    }
+  }
+  assert.equal(claimed,true,'Red should complete the island invasion');
 });
