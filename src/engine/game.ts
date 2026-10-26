@@ -538,6 +538,44 @@ function aiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|n
   return {x:at%view.width,y:Math.floor(at/view.width)};
 }
 
+/** Explore the nearest unknown frontier reachable over charted land.
+ * Unknown squares are goals, not transit corridors; the actual move still
+ * goes through moveUnit, so fog never grants terrain knowledge.
+ */
+function aiGroundExploreStep(view:ReturnType<typeof getPlayerView>,army:Unit):Coord|null {
+  const {width,height,cells}=view;
+  const start=army.position.y*width+army.position.x;
+  const occupied=new Set(view.ownUnits.filter(u=>!u.aboard&&u.id!==army.id)
+    .map(u=>u.position.y*width+u.position.x));
+  for(const enemy of view.enemies)if(!enemy.stale)
+    occupied.add(enemy.position.y*width+enemy.position.x);
+  const queue=[start],seen=new Set<number>([start]),parent=new Map<number,number>();
+  let found:number|undefined;
+  for(let head=0;head<queue.length;head++){
+    const here=queue[head]!;
+    const p={x:here%width,y:Math.floor(here/width)};
+    for(const d of directions){
+      const x=p.x+d.x,y=p.y+d.y,k=y*width+x;
+      if(x<=0||y<=0||x>=width-1||y>=height-1||seen.has(k)||occupied.has(k))continue;
+      const cell=cells[k];
+      if(cell?.city&&cell.city.owner!=='red')continue;
+      if(cell?.terrain==='sea')continue;
+      seen.add(k);parent.set(k,here);
+      if(cell?.terrain===null){found=k;break;}
+      if(cell?.terrain==='land')queue.push(k);
+    }
+    if(found!==undefined)break;
+  }
+  if(found===undefined)return null;
+  let at=found;
+  while(parent.get(at)!==start){
+    const previous=parent.get(at);
+    if(previous===undefined)return null;
+    at=previous;
+  }
+  return {x:at%width,y:Math.floor(at/width)};
+}
+
 /** Plan one land move toward a discovered non-friendly city, routing around
  * known water and occupied squares. This function deliberately accepts only a
  * PlayerView: it cannot read hidden map tiles or live enemy positions.
@@ -604,11 +642,18 @@ export function playRedOpponent(game:Game):Game {
     const ownUnits=getPlayerView(g,'red').ownUnits;
     const armyCount=ownUnits.filter(u=>u.kind==='army').length;
     const transportCount=ownUnits.filter(u=>u.kind==='transport').length;
-    const pick=armyCount>=3&&transportCount===0&&isCoastal(g,city.position)?'transport':'army';
-    // Existing army production must switch to transport construction once Red
-    // has enough troops; otherwise its first choice remains fixed forever.
-    // Once a transport exists, build replacement armies.
-    if(city.production!==pick)g=selectProduction(g,city.id,pick);
+    const pick=armyCount>=3&&transportCount===0&&isCoastal(g,city.position)?'transport':
+      armyCount>=8&&transportCount>0?null:'army';
+    // Avoid an unlimited army pile-up when the invasion fleet is stalled.
+    // Resume production automatically after casualties or transport losses.
+    if(pick===null){
+      if(city.production!==null){
+        g=clone(g);
+        const paused=g.cities.find(c=>c.id===city.id)!;
+        paused.production=null;paused.progress=0;paused.firstCycle=true;
+        log(g,'red','production',`Production paused at ${city.id}: sufficient reserve armies.`);
+      }
+    }else if(city.production!==pick)g=selectProduction(g,city.id,pick);
   }
   // Loading consumes eligible troops' movement. Choose from own units only.
   for(const ship of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='transport'&&!u.aboard)){
@@ -698,7 +743,12 @@ export function playRedOpponent(game:Game):Game {
         [{pos:{x:i%view.width,y:Math.floor(i/view.width)},city:cell.city}]:[]);
       // If no land route to a known objective exists, stage at a coastal port.
       // A known overseas city must not lure armies away from their transports.
-      if(unit.kind==='army'&&visibleEnemies.length===0&&planAiGroundStep(view,unit)===null&&
+      const groundPlan=unit.kind==='army'?planAiGroundStep(view,unit):null;
+      // Keep one active ground scout per faction. Other armies stage at ports
+      // for transport loading rather than clogging the island with wanderers.
+      const firstArmy=view.ownUnits.find(u=>u.kind==='army'&&!u.aboard);
+      const isScout=unit.kind==='army'&&firstArmy?.id===unit.id;
+      if(unit.kind==='army'&&!isScout&&visibleEnemies.length===0&&groundPlan===null&&
          !knownCities.some(c=>distance(c.pos,unit.position)<=1)){
         const ports=view.ownCities.filter(c=>isCoastal(g,c.position))
           .sort((a,b)=>distance(a.position,unit.position)-distance(b.position,unit.position));
@@ -728,7 +778,7 @@ export function playRedOpponent(game:Game):Game {
       // with a unit immediately after a battle or city assault.
       if(moved)break;
       if(unit.kind==='army'){
-        const planned=planAiGroundStep(view,unit);
+        const planned=groundPlan??(isScout?aiGroundExploreStep(view,unit):null);
         if(planned){
           try {g=moveUnit(g,id,planned);continue;}
           catch {break;} // A newly revealed contact blocks this turn's route.
