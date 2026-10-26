@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {makeRulesLab,endTurn,playRedOpponent,updateAllKnowledge} from '../dist/engine/index.js';
+import {makeRulesLab,makeAiInvasionLab,endTurn,playRedOpponent,updateAllKnowledge} from '../dist/engine/index.js';
 
 function fleet(){
   const g=makeRulesLab();
@@ -53,4 +53,18 @@ test('An army already near its coastal city waits for transport pickup',()=>{
   updateAllKnowledge(g);
   const acted=playRedOpponent(endTurn(g));
   assert.deepEqual(acted.units.find(u=>u.id==='u3').position,{x:79,y:36});
+});
+
+test('AI never reboards an army from an enemy beachhead before its assault',()=>{
+  const g=makeAiInvasionLab();
+  const ship=g.units.find(u=>u.id==='red-transport');
+  const army=g.units.find(u=>u.id==='u3');
+  ship.position={x:76,y:28};
+  army.position={x:75,y:29};army.aboard=null;
+  updateAllKnowledge(g);
+  const acted=playRedOpponent(endTurn(g));
+  assert.ok(!acted.units.some(u=>u.aboard==='red-transport'),
+    'An army already landed on enemy territory must not be loaded again');
+  assert.ok(!acted.events.some(e=>e.message.includes('loaded aboard red-transport')),
+    'Beachhead should not be treated as a friendly loading port');
 });
