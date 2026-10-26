@@ -15,7 +15,10 @@ let playback:ReturnType<typeof setInterval>|null=null;
 let view:PlayerView=getPlayerView(game,observer);
 let selectedUnit:string|null='u1',selectedCity:string|null=null;
 let tileSize=30,cameraX=0,cameraY=0;
-let down:{x:number;y:number;cameraX:number;cameraY:number;moved:boolean}|null=null;
+let down:{id:number;x:number;y:number;cameraX:number;cameraY:number;moved:boolean}|null=null;
+const touches=new Map<number,{x:number;y:number}>();
+let pinch:{distance:number;scale:number;worldX:number;worldY:number}|null=null;
+let suppressTap=false;
 let hydrated=false;
 let choosingDestination=false;
 let choosingOrder:'move-to'|'patrol'|'go-direction'|'escort'='move-to';
@@ -261,14 +264,60 @@ function refresh():void {
   el('events').innerHTML=[...view.events].reverse().slice(0,8).map(e=>`<div class="report"><span>ROUND ${e.round} / ${e.kind.toUpperCase()}</span>${text(e.message)}</div>`).join('')||'<p>No reports.</p>';
   paint();
 }
-canvas.addEventListener('pointerdown',ev=>{if(ev.button!==0)return;canvas.setPointerCapture(ev.pointerId);
-  down={x:ev.clientX,y:ev.clientY,cameraX,cameraY,moved:false};canvas.focus({preventScroll:true});});
-canvas.addEventListener('pointermove',ev=>{if(!down)return;
-  const dx=ev.clientX-down.x,dy=ev.clientY-down.y;if(Math.abs(dx)+Math.abs(dy)>6)down.moved=true;
-  if(down.moved){cameraX=down.cameraX-dx;cameraY=down.cameraY-dy;clamp();paint();}});
-canvas.addEventListener('pointerup',ev=>{if(!down)return;const wasMoved=down.moved;down=null;
-  if(!wasMoved)tapTile(cellFromPointer(ev));});
-canvas.addEventListener('pointercancel',()=>{down=null;});
+function pinchPoints():{x:number;y:number;distance:number}|null {
+  if(touches.size<2)return null;
+  const [a,b]=[...touches.values()];
+  return {x:(a.x+b.x)/2,y:(a.y+b.y)/2,distance:Math.max(1,Math.hypot(a.x-b.x,a.y-b.y))};
+}
+function beginPinch():void {
+  const p=pinchPoints();if(!p)return;
+  const rect=canvas.getBoundingClientRect();
+  pinch={distance:p.distance,scale:tileSize,
+    worldX:(p.x-rect.left+cameraX)/tileSize,
+    worldY:(p.y-rect.top+cameraY)/tileSize};
+  suppressTap=true;down=null;
+}
+canvas.addEventListener('pointerdown',ev=>{
+  if(ev.pointerType==='mouse'&&ev.button!==0)return;
+  canvas.setPointerCapture(ev.pointerId);
+  touches.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
+  if(touches.size===2){beginPinch();return;}
+  if(touches.size>2){suppressTap=true;down=null;return;}
+  if(suppressTap)return;
+  down={id:ev.pointerId,x:ev.clientX,y:ev.clientY,cameraX,cameraY,moved:false};
+  canvas.focus({preventScroll:true});
+});
+canvas.addEventListener('pointermove',ev=>{
+  if(!touches.has(ev.pointerId))return;
+  touches.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
+  if(pinch&&touches.size===2){
+    const p=pinchPoints()!,rect=canvas.getBoundingClientRect();
+    tileSize=Math.max(Math.min(canvas.clientWidth/game.width,canvas.clientHeight/game.height),
+      Math.min(45,pinch.scale*p.distance/pinch.distance));
+    cameraX=pinch.worldX*tileSize-(p.x-rect.left);
+    cameraY=pinch.worldY*tileSize-(p.y-rect.top);
+    clamp();paint();return;
+  }
+  if(!down||down.id!==ev.pointerId)return;
+  const dx=ev.clientX-down.x,dy=ev.clientY-down.y;
+  if(Math.abs(dx)+Math.abs(dy)>6)down.moved=true;
+  if(down.moved){cameraX=down.cameraX-dx;cameraY=down.cameraY-dy;clamp();paint();}
+});
+function finishPointer(ev:PointerEvent,cancelled:boolean):void {
+  if(!touches.has(ev.pointerId))return;
+  touches.delete(ev.pointerId);
+  if(pinch||suppressTap){
+    pinch=null;down=null;
+    if(touches.size===0)suppressTap=false;
+    return;
+  }
+  if(down?.id===ev.pointerId){
+    const tapped=!cancelled&&!down.moved;
+    down=null;if(tapped)tapTile(cellFromPointer(ev));
+  }
+}
+canvas.addEventListener('pointerup',ev=>finishPointer(ev,false));
+canvas.addEventListener('pointercancel',ev=>finishPointer(ev,true));
 el('fitWorld').addEventListener('click',fitWorld);
 canvas.addEventListener('wheel',ev=>{ev.preventDefault();zoom(ev.deltaY<0?2:-2);},{passive:false});
 document.addEventListener('keydown',ev=>{
