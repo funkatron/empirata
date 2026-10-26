@@ -857,12 +857,15 @@ function playRedOpponent(game) {
     // a coastal city may switch to transport production once forces accumulate.
     // This is provisional strategy, NOT reverse-engineered historical AI.
     for (const city of (0, knowledge_js_1.getPlayerView)(g, 'red').ownCities) {
-        if (city.production !== null)
-            continue;
-        const armyCount = g.units.filter(u => u.owner === 'red' && u.kind === 'army').length;
-        const transportCount = g.units.filter(u => u.owner === 'red' && u.kind === 'transport').length;
+        const ownUnits = (0, knowledge_js_1.getPlayerView)(g, 'red').ownUnits;
+        const armyCount = ownUnits.filter(u => u.kind === 'army').length;
+        const transportCount = ownUnits.filter(u => u.kind === 'transport').length;
         const pick = armyCount >= 3 && transportCount === 0 && (0, world_js_1.isCoastal)(g, city.position) ? 'transport' : 'army';
-        g = selectProduction(g, city.id, pick);
+        // Existing army production must switch to transport construction once Red
+        // has enough troops; otherwise its first choice remains fixed forever.
+        // Once a transport exists, build replacement armies.
+        if (city.production !== pick)
+            g = selectProduction(g, city.id, pick);
     }
     // Loading consumes eligible troops' movement. Choose from own units only.
     for (const ship of (0, knowledge_js_1.getPlayerView)(g, 'red').ownUnits.filter(u => u.kind === 'transport' && !u.aboard)) {
@@ -936,7 +939,8 @@ function playRedOpponent(game) {
             if (moved)
                 break;
             const goals = [...visibleEnemies.map(e => e.position),
-                ...(unit.kind === 'army' ? knownCities.map(c => c.pos) : [])].sort((a, b) => distance(a, unit.position) - distance(b, unit.position));
+                ...((unit.kind === 'army' || unit.kind === 'transport' && g.units.some(u => u.aboard === id)) ?
+                    knownCities.map(c => c.pos) : [])].sort((a, b) => distance(a, unit.position) - distance(b, unit.position));
             const goal = goals[0];
             const possibilities = world_js_1.directions.map(d => ({ x: unit.position.x + d.x, y: unit.position.y + d.y }))
                 .filter(p => (0, world_js_1.playable)(g, p))
