@@ -579,7 +579,11 @@ export function playRedOpponent(game:Game):Game {
   for(const ship of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='transport'&&!u.aboard)){
     const nearArmy=getPlayerView(g,'red').ownUnits.some(u=>u.kind==='army'&&!u.aboard&&
       Math.max(Math.abs(u.position.x-ship.position.x),Math.abs(u.position.y-ship.position.y))<=1);
-    if(nearArmy&&g.units.filter(u=>u.aboard===ship.id).length<(capacity(ship)??0)){
+    const atLoadingPort=getPlayerView(g,'red').ownCities.some(c=>isCoastal(g,c.position)&&
+      Math.max(Math.abs(c.position.x-ship.position.x),Math.abs(c.position.y-ship.position.y))<=1);
+    // Never re-embark an invasion force at the enemy beachhead. Those armies
+    // need their next turn to assault the city rather than cycling aboard.
+    if(nearArmy&&atLoadingPort&&g.units.filter(u=>u.aboard===ship.id).length<(capacity(ship)??0)){
       try{g=loadShip(g,ship.id);}catch{/* The unit remains available for normal tactics. */}
       // A partially filled AI transport may sail; do not keep it on a
       // stationary loading order forever.
