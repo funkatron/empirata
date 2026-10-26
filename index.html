@@ -276,6 +276,8 @@ exports.selectProduction = selectProduction;
 exports.setOrder = setOrder;
 exports.embarkArmy = embarkArmy;
 exports.disembarkArmy = disembarkArmy;
+exports.boardFighter = boardFighter;
+exports.launchFighter = launchFighter;
 exports.moveUnit = moveUnit;
 exports.runMoveToOrders = runMoveToOrders;
 exports.endTurn = endTurn;
@@ -435,6 +437,60 @@ function disembarkArmy(game, armyId, to) {
     (0, knowledge_js_1.updateAllKnowledge)(g);
     return g;
 }
+/** Embark a friendly fighter on a carrier; original exact refuel timing remains provisional. */
+function boardFighter(game, fighterId, carrierId) {
+    const g = clone(game), fighter = g.units.find(u => u.id === fighterId), ship = g.units.find(u => u.id === carrierId);
+    if (!fighter || !ship || fighter.kind !== 'fighter' || ship.kind !== 'carrier' || fighter.owner !== g.active ||
+        ship.owner !== g.active || fighter.aboard || ship.aboard)
+        throw new Error('Boarding requires a friendly active fighter and carrier.');
+    if (fighter.order.kind === 'sentry')
+        throw new Error('Clear sentry before boarding.');
+    if (fighter.spent >= (0, units_js_1.movementAllowance)(fighter))
+        throw new Error('Fighter has no movement remaining.');
+    if (Math.max(Math.abs(fighter.position.x - ship.position.x), Math.abs(fighter.position.y - ship.position.y)) > 1)
+        throw new Error('Fighter must be adjacent to its carrier.');
+    if (g.units.filter(u => u.aboard === ship.id).length >= ((0, units_js_1.capacity)(ship) ?? 0))
+        throw new Error('Carrier is full.');
+    fighter.position = { ...ship.position };
+    fighter.aboard = ship.id;
+    fighter.spent++;
+    fighter.fuel = units_js_1.MAX_FIGHTER_FUEL;
+    fighter.order = { kind: 'none' };
+    log(g, fighter.owner, 'movement', `${fighter.id} landed aboard ${ship.id} and refueled.`);
+    (0, knowledge_js_1.updateAllKnowledge)(g);
+    return g;
+}
+/** Launch a fighter from a carrier into an adjacent legal square. */
+function launchFighter(game, fighterId, to) {
+    const g = clone(game), fighter = g.units.find(u => u.id === fighterId);
+    if (!fighter || fighter.owner !== g.active || fighter.kind !== 'fighter' || !fighter.aboard)
+        throw new Error('Select an embarked friendly fighter.');
+    const carrier = g.units.find(u => u.id === fighter.aboard);
+    if (!carrier || carrier.kind !== 'carrier' || carrier.owner !== g.active)
+        throw new Error('Carrier unavailable.');
+    if (fighter.spent >= (0, units_js_1.movementAllowance)(fighter))
+        throw new Error('Fighter has no movement remaining.');
+    if (!(0, world_js_1.playable)(g, to) || Math.max(Math.abs(to.x - carrier.position.x), Math.abs(to.y - carrier.position.y)) !== 1)
+        throw new Error('Launch square must be adjacent to the carrier.');
+    if (g.units.some(u => !u.aboard && (0, world_js_1.equal)(u.position, to)) ||
+        ((0, world_js_1.cityAt)(g, to) && (0, world_js_1.cityAt)(g, to).owner !== fighter.owner))
+        throw new Error('Launch square must be free of hostile or occupied contacts.');
+    fighter.aboard = null;
+    fighter.position = { ...to };
+    fighter.spent++;
+    fighter.fuel = (fighter.fuel ?? units_js_1.MAX_FIGHTER_FUEL) - 1;
+    const arrival = (0, world_js_1.cityAt)(g, to);
+    if (arrival?.owner === fighter.owner)
+        fighter.fuel = units_js_1.MAX_FIGHTER_FUEL;
+    if (fighter.fuel <= 0) {
+        g.units = g.units.filter(u => u.id !== fighter.id);
+        log(g, fighter.owner, 'fuel', `${fighter.id} ran out of fuel after launch.`);
+    }
+    else
+        log(g, fighter.owner, 'movement', `${fighter.id} launched from ${carrier.id}.`);
+    (0, knowledge_js_1.updateAllKnowledge)(g);
+    return g;
+}
 function moveUnit(game, id, to) {
     const g = clone(game), unit = g.units.find(u => u.id === id);
     if (!unit || unit.owner !== g.active)
@@ -457,6 +513,9 @@ function moveUnit(game, id, to) {
     const boarding = occupants.find(u => u.owner === unit.owner && u.kind === 'transport');
     if (unit.kind === 'army' && boarding)
         return embarkArmy(game, id, boarding.id);
+    const friendlyCarrier = occupants.find(u => u.owner === unit.owner && u.kind === 'carrier');
+    if (unit.kind === 'fighter' && friendlyCarrier)
+        return boardFighter(game, id, friendlyCarrier.id);
     const enemy = occupants.find(u => u.owner !== unit.owner);
     // Original rules allow armies to engage hostile ships in adjacent water, but
     // the victorious army does not advance onto the sea square. Heavy warships
@@ -478,17 +537,20 @@ function moveUnit(game, id, to) {
         return (0, combat_js_1.resolveCombat)(game, id, enemy.id);
     if (occupants.some(u => u.owner === unit.owner) && !city)
         throw new RuleNotImplemented('CARGO', 'Loading and same-cell stacking require verified original mechanics.');
-    if (unit.kind === 'transport' && g.units.filter(u => u.aboard === unit.id).length > ((0, units_js_1.capacity)(unit) ?? 0))
-        throw new Error('Transport is overloaded. Unload excess armies before moving.');
+    if ((unit.kind === 'transport' || unit.kind === 'carrier') &&
+        g.units.filter(u => u.aboard === unit.id).length > ((0, units_js_1.capacity)(unit) ?? 0))
+        throw new Error('Ship is overloaded. Unload excess cargo before moving.');
     unit.position = { ...to };
     unit.spent++;
     // Embarked units physically travel with the ship, but spend no movement themselves.
     for (const cargo of g.units.filter(u => u.aboard === unit.id))
         cargo.position = { ...to };
-    if (unit.kind === 'transport' && city?.owner === unit.owner) {
+    if ((unit.kind === 'transport' || unit.kind === 'carrier') && city?.owner === unit.owner) {
         for (const cargo of g.units.filter(u => u.aboard === unit.id)) {
             cargo.aboard = null;
             cargo.position = { ...to };
+            if (cargo.kind === 'fighter')
+                cargo.fuel = units_js_1.MAX_FIGHTER_FUEL;
             log(g, cargo.owner, 'movement', `${cargo.id} unloaded in friendly port ${city.id}.`);
         }
     }
@@ -662,6 +724,8 @@ function runMoveToOrders(game) { return executeStandingOrders(clone(game)); }
 function beginTurn(g) {
     for (const unit of g.units.filter(u => u.owner === g.active)) {
         unit.spent = 0;
+        if (unit.kind === 'fighter' && unit.aboard)
+            unit.fuel = units_js_1.MAX_FIGHTER_FUEL;
         if (unit.order.kind === 'skip')
             unit.order = { kind: 'none' };
         const city = (0, world_js_1.cityAt)(g, unit.position);
