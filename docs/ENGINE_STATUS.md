@@ -63,3 +63,13 @@ Close Quarters includes additional blue armies so players can engage in multiple
 - CI workflow now runs engine tests and regenerates the standalone `index.html` on successful main-branch builds.
 - Still pending: original Load Ship/Unload Ship standing orders, fighter carriers, combat damage overflow, and definitive original-DOS cargo timing. Rules outside manual-confirmed cases remain provisional.
 - Source changes are committed; verify GitHub Actions and the updated hosted site before claiming a successful deployment.
+
+## 2026-10-25 aircraft carrier and cargo-combat milestone
+
+- A fighter may move onto an adjacent friendly carrier or board using `boardFighter`. Refueling aboard the carrier is enabled; exact original tick timing remains provisional.
+- Embarked fighters follow the ship. Select one from the carrier cargo list, then tap a free adjacent square to launch via `launchFighter`.
+- Friendly-port arrival unloads and refuels aircraft. The ship cannot move while overloaded.
+- Destroyed ships destroy their embarked cargo. A surviving damaged carrier immediately loses aircraft beyond the reduced capacity. Which aircraft are removed first is deterministic but not yet DOS-verified.
+- Close Quarters now includes a transport/army pair and a carrier/fighter pair for player testing.
+- Seven carrier tests and two cargo-combat tests were added using the lightweight Node runner.
+- Source and test changes are committed, but a passing end-to-end CI run and generated GitHub Pages bundle have **not** been independently confirmed.
