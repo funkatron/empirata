@@ -197,3 +197,23 @@ After the primary manual-to-engine audit, conduct a separate adversarial review 
 Confirmed from the supplied campaign save: Blue has 191 armies, one carrier, no transport, and three cities. Its intelligence incorrectly retains friendly ownership for `c-blue` and `c-frontier`, both actually Red-owned. Red has 25 armies, one transport, six cities, and every city has null production. The current faction-wide reserve policy pauses Red factories while allowing Blue's unlimited army production because Blue has no transport.
 
 The capture-event fix prevents new stale ownership records but does not repair existing saves. No existing-save migration or repair is required. Regression coverage targets future captures and new games. Production should respond to local expansion, defense, reconnaissance and logistics demand rather than merely removing all limits or assigning every captured city unconditional production.
+
+### Local reserve production — first implementation
+
+Production now counts unembarked armies connected to each city through faction-known land, stopping at hostile cities and unknown terrain. The provisional eight-army reserve ceiling applies without requiring a transport; disconnected reserves no longer suppress a new factory. This is a bounded correction, not a completed strategic production planner. Remaining work: reserve demand proportional to reachable objectives/threats, coordinated factories, early naval reconnaissance, fleet capacity and port recovery. Existing global transport selection remains a limitation.
+
+## Priority — Clean campaign openings and air-unit strategy (2026-10-27)
+
+### Clean computer-versus-computer campaign
+- Make a clean campaign the normal AI-vs-AI evaluation: one owned city per faction, no starting mobile units, neutral remaining cities, zero production progress, and initial production chosen by the AI.
+- Initialize fresh knowledge from starting cities only. Remove inherited Close Quarters encounters, scouting memories, cargo, event logs and production advantages. Retain the constructed skirmish as a separately labeled QA fixture.
+- Verify the no-starting-units detail against the actual DOS 2.05C manual/executable before labeling the opening historically exact. Current specification IMP-002 cites manual pp. 15–16 for one starting city and initial production.
+- Use reproducible varied seeds/layouts; validate legal starting-city placement and assess coastal access rather than guaranteeing a port without source evidence.
+- Test production through first completion, early discoveries, expansion and bounded campaign progress. Compare both factions under the same policy. Existing tactical fixtures remain regressions, not primary strategy benchmarks.
+
+### Air-unit strategy
+- Include fighters in production decisions, particularly for inland cities that cannot build ships. Evaluate scouting value, local defense and interception against production time and army demand.
+- Implement fuel-aware outbound and return routes using known friendly cities/carriers. Preserve a refueling reserve and replan when a destination is captured; do not send aircraft on inevitable fuel-loss missions.
+- Feed aerial discoveries into faction intelligence and land/naval planning, retaining normal detection restrictions. Fighters cannot capture cities; discovered overseas objectives still need army logistics.
+- Add carrier basing and coordinated naval air operations after reliable city-based flight and refueling.
+- Validate scouting, combat, fuel, refueling and carrier rules against manual evidence. Benchmark useful discoveries, survival, objective support and cost across clean campaigns, not just prepared encounters.

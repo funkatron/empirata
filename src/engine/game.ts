@@ -723,6 +723,22 @@ export function planAiGroundStep(view:ReturnType<typeof getPlayerView>,army:Unit
  * This is NOT an attempt to reproduce the original game's AI strategy.
  * The older classic-lab fixture remains passive for reproducible system tests.
  */
+/** Local reserve accounting uses charted land connectivity, never hidden terrain.
+ * Occupancy does not split a strategic supply region; hostile cities do.
+ */
+export function aiLocalArmyReserve(view:ReturnType<typeof getPlayerView>,origin:Coord):number {
+  const key=(p:Coord)=>p.y*view.width+p.x;
+  const seen=new Set<number>([key(origin)]),queue=[origin];
+  for(let head=0;head<queue.length;head++)for(const d of directions){
+    const p={x:queue[head]!.x+d.x,y:queue[head]!.y+d.y};
+    if(p.x<=0||p.y<=0||p.x>=view.width-1||p.y>=view.height-1)continue;
+    const k=key(p),cell=view.cells[k];
+    if(seen.has(k)||cell?.terrain!=='land'||cell.city&&cell.city.owner!==view.active)continue;
+    seen.add(k);queue.push(p);
+  }
+  return view.ownUnits.filter(u=>u.kind==='army'&&!u.aboard&&seen.has(key(u.position))).length;
+}
+
 export function playRedOpponent(game:Game):Game {
   if(game.active!=='red')throw new Error('Red AI must act during the red faction turn.');
   let g=game;
@@ -731,11 +747,11 @@ export function playRedOpponent(game:Game):Game {
   // This is provisional strategy, NOT reverse-engineered historical AI.
   for(const city of getPlayerView(g,'red').ownCities){
     const ownUnits=getPlayerView(g,'red').ownUnits;
-    const armyCount=ownUnits.filter(u=>u.kind==='army').length;
+    const armyCount=aiLocalArmyReserve(getPlayerView(g,'red'),city.position);
     const transportCount=ownUnits.filter(u=>u.kind==='transport').length;
     const pick=armyCount>=3&&transportCount===0&&isCoastal(g,city.position)?'transport':
-      armyCount>=8&&transportCount>0?null:'army';
-    // Avoid an unlimited army pile-up when the invasion fleet is stalled.
+      armyCount>=8?null:'army';
+    // Bound local reserves even when this faction has no transport or port.
     // Resume production automatically after casualties or transport losses.
     if(pick===null){
       if(city.production!==null){
