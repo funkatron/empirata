@@ -128,14 +128,14 @@ test('Stale army sightings warn the landing planner without permanently blocking
     'Prefer the beach farther from a stale army sighting');
 });
 
-test('Landing decisions cannot use hidden enemy positions outside faction intelligence',()=>{
-  const g=makeAiInvasionLab(),view=getPlayerView(g,'red');
-  const ship={...unit(g,'red-transport'),position:{x:75,y:30}};
-  for(const x of [74,75])view.cells[29*view.width+x].terrain='land';
-  const baseline=planAiLandingSquares(view,ship);
-  const secret=structuredClone(g);
-  secret.units.push({...structuredClone(unit(g,'u3')),id:'hidden-army',owner:'blue',
-    aboard:null,position:{x:73,y:29}});
-  // The planner has only the same preexisting Red view, never the live world.
-  assert.deepEqual(planAiLandingSquares(view,ship),baseline);
+test('Landing planner uses faction knowledge, not a hidden hostile army',()=>{
+  const a=makeAiInvasionLab(),b=structuredClone(a);
+  // An enemy army well outside the currently revealed area is not intelligence.
+  b.units.push({...structuredClone(unit(a,'u3')),id:'hidden-army',owner:'blue',
+    aboard:null,position:{x:30,y:25}});
+  updateAllKnowledge(a);updateAllKnowledge(b);
+  const va=getPlayerView(a,'red'),vb=getPlayerView(b,'red');
+  assert.deepEqual(va,vb,'Unseen units must not change Red intelligence');
+  const ship=unit(a,'red-transport');
+  assert.deepEqual(planAiLandingSquares(va,ship),planAiLandingSquares(vb,ship));
 });
