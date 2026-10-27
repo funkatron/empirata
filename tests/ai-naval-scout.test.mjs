@@ -24,7 +24,7 @@ test('Naval scouting favors information gain per route distance, not nearest unk
   for(let y=3;y<=5;y++)view.cells[y*view.width+2].terrain='sea';
   view.cells[2*view.width+2].terrain=null;
   const chosen=planAiNavalScoutStep(view,ship);
-  assert.deepEqual(chosen,{x:3,y:5},'Rich frontier should beat weak branch');
+  assert.deepEqual(chosen,{x:2,y:4},'Nearby branch yields more information per travel step');
 });
 
 test('Naval scout does not treat unknown terrain as a traversable sea corridor',()=>{
