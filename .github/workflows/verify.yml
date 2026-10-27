@@ -1,6 +1,8 @@
 name: Verify and build Empirata
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
     paths-ignore:
@@ -8,10 +10,10 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: empirata-verify-main
+  group: empirata-verify-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -20,8 +22,6 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v7
-        with:
-          persist-credentials: true
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
@@ -35,22 +35,9 @@ jobs:
         run: node scripts/build-single-file.cjs
       - name: Smoke test the generated browser bundle
         run: node --test smoke/bundle.mjs
-      - name: Publish bundled page to main
-        if: github.ref == 'refs/heads/main'
+      - name: Verify generated page is checked in
         run: |
-          if ! git diff --quiet -- index.html; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add index.html
-            git commit -m "build: refresh tested standalone browser page [skip ci]"
-            # Documentation-only commits may land while verification runs.
-            # Rebase the tested bundle commit onto the latest main rather than
-            # failing a non-fast-forward push. Never force-push.
-            for attempt in 1 2 3; do
-              git fetch origin main
-              git rebase origin/main
-              if git push origin HEAD:main; then exit 0; fi
-            done
-            echo 'Failed to publish after three rebased attempts' >&2
+          if ! git diff --exit-code -- index.html; then
+            echo 'Generated index.html is stale. Run node scripts/build-single-file.cjs and commit the result.' >&2
             exit 1
           fi
