@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  makeRulesLab,makeAiInvasionLab,advanceLabRound,updateAllKnowledge,getPlayerView
+  makeRulesLab,makeAiInvasionLab,advanceLabRound,updateAllKnowledge,getPlayerView,planAiLandingSquares
 } from '../dist/engine/index.js';
 
 const unit=(g,id)=>g.units.find(u=>u.id===id);
@@ -96,4 +96,46 @@ test('Playable invasion captures an undefended outpost within bounded rounds',()
     }
   }
   assert.equal(claimed,true,'Red should complete the island invasion: '+JSON.stringify(trace));
+});
+
+test('Landing planner chooses a safe beach instead of one adjacent to a known enemy army',()=>{
+  const g=makeAiInvasionLab(),view=getPlayerView(g,'red');
+  const ship={...unit(g,'red-transport'),position:{x:75,y:30}};
+  // A two-tile charted beach within reach of the same known city.
+  for(const x of [74,75])view.cells[29*view.width+x].terrain='land';
+  view.cells[29*view.width+74].city={id:'invasion-outpost',owner:'blue',
+    production:null,productionKnown:false};
+  view.enemies.push({id:'visible-defender',kind:'army',owner:'blue',
+    position:{x:73,y:29},stale:false});
+  const choices=planAiLandingSquares(view,ship);
+  assert.deepEqual(choices[0],{x:75,y:29});
+  assert.ok(!choices.some(p=>p.x===74&&p.y===29),
+    'Known adjacent enemy army must rule out the exposed beach');
+});
+
+test('Stale army sightings warn the landing planner without permanently blocking a beach',()=>{
+  const g=makeAiInvasionLab(),view=getPlayerView(g,'red');
+  const ship={...unit(g,'red-transport'),position:{x:75,y:30}};
+  for(const x of [74,75])view.cells[29*view.width+x].terrain='land';
+  view.cells[29*view.width+74].city={id:'invasion-outpost',owner:'blue',
+    production:null,productionKnown:false};
+  view.enemies.push({id:'old-defender',kind:'army',owner:'blue',
+    position:{x:73,y:29},stale:true});
+  const choices=planAiLandingSquares(view,ship);
+  assert.ok(choices.some(p=>p.x===74&&p.y===29),
+    'Stale sightings must not permanently prohibit landing');
+  assert.deepEqual(choices[0],{x:75,y:29},
+    'Prefer the beach farther from a stale army sighting');
+});
+
+test('Landing decisions cannot use hidden enemy positions outside faction intelligence',()=>{
+  const g=makeAiInvasionLab(),view=getPlayerView(g,'red');
+  const ship={...unit(g,'red-transport'),position:{x:75,y:30}};
+  for(const x of [74,75])view.cells[29*view.width+x].terrain='land';
+  const baseline=planAiLandingSquares(view,ship);
+  const secret=structuredClone(g);
+  secret.units.push({...structuredClone(unit(g,'u3')),id:'hidden-army',owner:'blue',
+    aboard:null,position:{x:73,y:29}});
+  // The planner has only the same preexisting Red view, never the live world.
+  assert.deepEqual(planAiLandingSquares(view,ship),baseline);
 });
