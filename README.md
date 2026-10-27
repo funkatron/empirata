@@ -43,7 +43,11 @@ To try the controls in an updated build: select an army and tap an adjacent frie
 
 ## Development
 
-The site is entirely static; GitHub Pages hosts `index.html` in the repository root. To work locally:
+The site is entirely static. CI builds and smoke-tests the standalone `index.html`, packages that exact file, and deploys it to GitHub Pages only after verification succeeds on `main`. Pull requests test and package the site without deploying. The checked-in root bundle is not the deployment source.
+
+**Hosting setup:** In repository **Settings → Pages → Build and deployment**, set **Source** to **GitHub Actions**. This replaces branch-based publishing. After merging, confirm both the `verify` and `deploy` jobs succeed before treating the live site as updated. A manual workflow run on `main` can retry deployment; it reruns verification first.
+
+To work locally:
 
 ```bash
 npm run build
