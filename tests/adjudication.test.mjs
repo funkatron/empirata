@@ -104,3 +104,16 @@ test('A-014 reports are delivered to participants without omniscient information
   assert.equal(blue.events.some(e=>e.kind==='combat'),true);
   assert.equal(red.events.some(e=>e.kind==='combat'),false);
 });
+
+ test('Lost city ownership updates outside the former owner visibility without production leakage',()=>{
+  const initial=addCity(base(),{owner:'red',production:'army'});
+  const g=adjudicateCityCapture(initial,{armyId:'u1',cityId:'test-city',outcome:'captured'});
+  const cell=getPlayerView(g,'red').cells[25*g.width+10];
+  assert.equal(cell.visible,false);
+  assert.equal(cell.city.owner,'blue');
+  assert.equal(cell.city.productionKnown,false);
+  g.cities.at(-1).production='fighter';
+  updateAllKnowledge(g);
+  assert.equal(getPlayerView(g,'red').cells[25*g.width+10].city.production,null);
+  assert.deepEqual(getPlayerView(importSave(exportSave(g)),'red'),getPlayerView(g,'red'));
+});

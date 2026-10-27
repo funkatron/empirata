@@ -2,6 +2,10 @@
 
 This is the working roadmap for the browser-based Empire rules laboratory. Items are proposals until marked implemented and verified. Historical rule fidelity, reproducibility, and accessibility remain core constraints.
 
+## Gameplay issue — Lost ports and stale ownership (2026-10-27)
+
+Round 753/758 screenshots show Blue with 186–189 units and three cities, with remembered friendly city markers where Red shows ownership. Capture notifications must update the former owner's ownership memory without revealing subsequent enemy production or movements. Add lost-port recovery objectives using known reachable targets, and bound reserve production even when no transport exists. Test landlocked starts and loss of the last port; do not assume a fleet can always be rebuilt. Use the supplied save as diagnostic evidence; validate fixes in newly constructed games. Existing-save repair and backward compatibility are explicitly out of scope.
+
 ## Gameplay issue — Production after city capture (2026-10-27)
 
 **User observation:** Captured cities appeared not to start producing units. Not yet reproduced; do not assume whether this is an engine, AI assignment, or display issue.
@@ -187,3 +191,9 @@ After the primary manual-to-engine audit, conduct a separate adversarial review 
 2026-10-26: Requested by the project owner: full-world pinch-to-zoom-out on iPad, and a semantic UI hierarchy in which game-wide settings move to a top-level Game menu while the sidebar is reserved for contextual controls and logs. This is a **roadmap entry**, not a claim that the UI changes have been implemented.
 
 2026-10-26: Added reconnaissance efficiency, information-aware pathfinding, and threat-aware amphibious landing criteria after reviewing the round-498 AI-vs-AI screenshot and transport exposure near enemy armies.
+
+### Round-764 save investigation
+
+Confirmed from the supplied campaign save: Blue has 191 armies, one carrier, no transport, and three cities. Its intelligence incorrectly retains friendly ownership for `c-blue` and `c-frontier`, both actually Red-owned. Red has 25 armies, one transport, six cities, and every city has null production. The current faction-wide reserve policy pauses Red factories while allowing Blue's unlimited army production because Blue has no transport.
+
+The capture-event fix prevents new stale ownership records but does not repair existing saves. No existing-save migration or repair is required. Regression coverage targets future captures and new games. Production should respond to local expansion, defense, reconnaissance and logistics demand rather than merely removing all limits or assigning every captured city unconditional production.
