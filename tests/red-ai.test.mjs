@@ -98,3 +98,20 @@ test('Red decisions are unaffected by moving an entirely unseen Blue army',()=>{
   assert.deepEqual(getPlayerView(left,'red').ownCities,getPlayerView(right,'red').ownCities);
   assert.deepEqual(left.rng,right.rng);
 });
+
+test('Opening ground reconnaissance does not require a transport or reserve army',()=>{
+  for(const [x,y] of [[25,25],[50,30],[70,20]]){
+    const g=makeRulesLab();
+    const army=g.units.find(u=>u.id==='u3');
+    g.units=g.units.filter(u=>u.owner!=='red'||u.id===army.id);
+    army.position={x,y};
+    for(let dy=-4;dy<=4;dy++)for(let dx=-4;dx<=4;dx++)
+      g.tiles[(y+dy)*g.width+x+dx]='land';
+    updateAllKnowledge(g);
+    const before=getPlayerView(g,'red').cells.filter(c=>c.terrain!==null).length;
+    const result=playRedOpponent(endTurn(g));
+    const after=getPlayerView(result,'red').cells.filter(c=>c.terrain!==null).length;
+    assert.ok(after>before,`Opening scout must reveal terrain from ${x},${y}`);
+    assert.equal(result.units.filter(u=>u.owner==='red').length,1);
+  }
+});

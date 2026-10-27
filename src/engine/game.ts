@@ -832,12 +832,13 @@ export function playRedOpponent(game:Game):Game {
       // If no land route to a known objective exists, stage at a coastal port.
       // A known overseas city must not lure armies away from their transports.
       const groundPlan=unit.kind==='army'?planAiGroundStep(view,unit):null;
+      // Scout from the opening turn, without waiting for a fleet or reserves.
       // Keep one active ground scout per faction. Other armies stage at ports
       // for transport loading rather than clogging the island with wanderers.
       const firstArmy=view.ownUnits.find(u=>u.kind==='army'&&!u.aboard);
       const isScout=unit.kind==='army'&&firstArmy?.id===unit.id&&
-        view.ownUnits.filter(u=>u.kind==='army'&&!u.aboard).length>=3&&
-        view.ownUnits.some(u=>u.kind==='transport');
+        (!view.ownUnits.some(u=>u.kind==='transport')||
+         view.ownUnits.filter(u=>u.kind==='army'&&!u.aboard).length>=3);
       if(unit.kind==='army'&&!isScout&&visibleEnemies.length===0&&groundPlan===null&&
          !knownCities.some(c=>distance(c.pos,unit.position)<=1)){
         const ports=view.ownCities.filter(c=>isCoastal(g,c.position))
