@@ -590,6 +590,49 @@ export function planAiLandingSquares(view:ReturnType<typeof getPlayerView>,ship:
   });
 }
 
+/** Naval reconnaissance: choose a reachable sea frontier by information gained
+ * per travel step. Route only through charted sea; unknown cells are endpoints,
+ * never presumed safe transit. No world state outside PlayerView is consulted.
+ */
+export function planAiNavalScoutStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|null {
+  if(ship.kind!=='destroyer'||ship.aboard)return null;
+  const {width,height,cells}=view,start=ship.position.y*width+ship.position.x;
+  const occupied=new Set(view.ownUnits.filter(u=>!u.aboard&&u.id!==ship.id)
+    .map(u=>u.position.y*width+u.position.x));
+  for(const e of view.enemies)if(!e.stale)occupied.add(e.position.y*width+e.position.x);
+  const queue=[start],seen=new Set<number>([start]),parent=new Map<number,number>();
+  const depth=new Map<number,number>([[start,0]]);
+  let best:number|undefined,bestScore=-Infinity;
+  for(let head=0;head<queue.length;head++){
+    const here=queue[head]!,p={x:here%width,y:Math.floor(here/width)};
+    const steps=depth.get(here)!;
+    let unknown=0;
+    for(const d of directions){
+      const x=p.x+d.x,y=p.y+d.y;
+      if(x<=0||y<=0||x>=width-1||y>=height-1)continue;
+      if(cells[y*width+x]?.terrain===null)unknown++;
+    }
+    if(here!==start&&unknown>0){
+      const score=unknown/(steps+1);
+      if(score>bestScore){best=here;bestScore=score;}
+    }
+    for(const d of directions){
+      const x=p.x+d.x,y=p.y+d.y,k=y*width+x;
+      if(x<=0||y<=0||x>=width-1||y>=height-1||seen.has(k)||
+         occupied.has(k)||cells[k]?.terrain!=='sea'||cells[k]?.city)continue;
+      seen.add(k);parent.set(k,here);depth.set(k,steps+1);queue.push(k);
+    }
+  }
+  if(best===undefined)return null;
+  let at=best;
+  while(parent.get(at)!==start){
+    const prev=parent.get(at);
+    if(prev===undefined)return null;
+    at=prev;
+  }
+  return {x:at%width,y:Math.floor(at/width)};
+}
+
 function aiGroundExploreStep(view:ReturnType<typeof getPlayerView>,army:Unit):Coord|null {
   const {width,height,cells}=view;
   const start=army.position.y*width+army.position.x;
@@ -773,6 +816,15 @@ export function playRedOpponent(game:Game):Game {
         if(!step)break;
         try {g=moveUnit(g,id,step);continue;}
         catch {break;} // Hidden contact interrupts the route; do not attack blindly.
+      }
+      // Destroyers scout charted water instead of drifting into arbitrary
+      // nearby cells; this is modern experimental strategy, not DOS AI parity.
+      if(unit.kind==='destroyer'){
+        const next=planAiNavalScoutStep(view,unit);
+        if(next){
+          try {g=moveUnit(g,id,next);continue;}
+          catch {break;}
+        }
       }
       const visibleEnemies=view.enemies.filter(e=>!e.stale);
       const knownCities=view.cells.flatMap((cell,i)=>cell.city&&cell.city.owner!=='red'?
