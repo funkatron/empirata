@@ -43,5 +43,14 @@ jobs:
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add index.html
             git commit -m "build: refresh tested standalone browser page [skip ci]"
-            git push
+            # Documentation-only commits may land while verification runs.
+            # Rebase the tested bundle commit onto the latest main rather than
+            # failing a non-fast-forward push. Never force-push.
+            for attempt in 1 2 3; do
+              git fetch origin main
+              git rebase origin/main
+              if git push origin HEAD:main; then exit 0; fi
+            done
+            echo 'Failed to publish after three rebased attempts' >&2
+            exit 1
           fi
