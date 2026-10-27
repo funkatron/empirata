@@ -553,6 +553,43 @@ function aiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|n
  * Unknown squares are goals, not transit corridors; the actual move still
  * goes through moveUnit, so fog never grants terrain knowledge.
  */
+/** Rank currently charted beachheads without consulting hidden terrain or
+ * hidden enemy positions. An exposed landing is worse than waiting offshore.
+ * Fresh army contacts threaten adjacent squares; stale sightings are only
+ * advisory and cannot permanently prohibit a beachhead.
+ */
+export function planAiLandingSquares(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord[] {
+  const cheb=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
+  const objectives:Coord[]=[];
+  for(let i=0;i<view.cells.length;i++){
+    const city=view.cells[i]?.city;
+    if(city&&city.owner!=='red')
+      objectives.push({x:i%view.width,y:Math.floor(i/view.width)});
+  }
+  if(!objectives.length)return [];
+  const options:Coord[]=[];
+  for(const d of directions){
+    const p={x:ship.position.x+d.x,y:ship.position.y+d.y};
+    if(p.x<=0||p.y<=0||p.x>=view.width-1||p.y>=view.height-1)continue;
+    const cell=view.cells[p.y*view.width+p.x];
+    if(cell?.terrain!=='land'||cell.city?.owner==='red'||
+       !objectives.some(o=>cheb(p,o)<=2)||!aiLandingReachesObjective(view,p))continue;
+    // Disembarking into an army's immediate attack range risks the entire
+    // invasion force; do not sacrifice cargo for a shorter route.
+    if(aiTransportThreatened(view,p))continue;
+    if(view.enemies.some(e=>!e.stale&&cheb(e.position,p)===0))continue;
+    if(view.ownUnits.some(u=>!u.aboard&&cheb(u.position,p)===0))continue;
+    options.push(p);
+  }
+  return options.sort((a,b)=>{
+    const objectiveDistance=(p:Coord)=>Math.min(...objectives.map(o=>cheb(p,o)));
+    const stalePenalty=(p:Coord)=>view.enemies.filter(e=>e.stale&&e.kind==='army'&&
+      cheb(e.position,p)<=1).length;
+    return stalePenalty(a)-stalePenalty(b)||
+      objectiveDistance(a)-objectiveDistance(b)||a.y-b.y||a.x-b.x;
+  });
+}
+
 function aiGroundExploreStep(view:ReturnType<typeof getPlayerView>,army:Unit):Coord|null {
   const {width,height,cells}=view;
   const start=army.position.y*width+army.position.x;
@@ -688,19 +725,7 @@ export function playRedOpponent(game:Game):Game {
     const ship=g.units.find(u=>u.id===cargo.aboard);
     if(!ship)continue;
     const view=getPlayerView(g,'red');
-    const knownObjectives=view.cells.flatMap((cell,i)=>cell.city&&cell.city.owner!=='red'?
-      [{x:i%view.width,y:Math.floor(i/view.width)}]:[]);
-    const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
-    const options=directions.map(d=>({x:ship.position.x+d.x,y:ship.position.y+d.y}))
-      .filter(p=>playable(g,p)&&view.cells[index(g,p)]?.terrain==='land'&&
-        view.cells[index(g,p)]?.city?.owner!=='red'&&
-        aiLandingReachesObjective(view,p)&&
-        // Avoid prematurely disembarking next to our own cities. Only commit
-        // troops to a shore near a known non-red objective.
-        knownObjectives.some(objective=>distance(p,objective)<=2))
-      .sort((a,b)=>knownObjectives.length?
-        Math.min(...knownObjectives.map(o=>distance(a,o)))-Math.min(...knownObjectives.map(o=>distance(b,o))):
-        a.y-b.y||a.x-b.x);
+    const options=planAiLandingSquares(view,ship);
     for(const square of options){
       try {g=disembarkArmy(g,cargo.id,square);break;} catch{/* No legal landing here. */}
     }
