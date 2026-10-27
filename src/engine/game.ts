@@ -509,7 +509,7 @@ function aiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|n
       const landing={x,y},indexLanding=y*view.width+x;
       if(x<=0||y<=0||x>=view.width-1||y>=view.height-1)continue;
       if(cells[indexLanding]?.terrain!=='land'||distance(landing,city)>2||
-         !aiLandingReachesObjective(view,landing))continue;
+         !aiLandingReachesObjective(view,landing)||aiTransportThreatened(view,landing))continue;
       for(const d of directions){
         const sea={x:x+d.x,y:y+d.y};
         if(sea.x<=0||sea.y<=0||sea.x>=view.width-1||sea.y>=view.height-1)continue;
