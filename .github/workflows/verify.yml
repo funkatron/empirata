@@ -41,3 +41,30 @@ jobs:
           name: empirata-browser-${{ github.sha }}
           path: index.html
           retention-days: 14
+      - name: Stage verified site
+        run: |
+          mkdir -p _site
+          cp index.html _site/index.html
+      - name: Package verified site for Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: empirata-pages
+      cancel-in-progress: false
+    steps:
+      - name: Deploy verified site
+        id: deployment
+        uses: actions/deploy-pages@v4
