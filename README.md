@@ -66,10 +66,16 @@ The regular test suite includes focused no-omniscience and production-transition
 
 ### Computer versus computer (experimental)
 
-Select **Computer vs computer** in the scenario panel. Both Blue and Red run the
-same provisional opponent strategy under the ordinary movement, combat,
-production and fog-of-war rules. Use **Next round**, **+10 rounds**, or
-**Play / Pause** (about 0.75 seconds per round) to inspect a match.
+Select **Computer vs computer · clean start** in the Game menu. Each faction
+begins with one city, no mobile units, fresh city-only intelligence and zero
+production progress. The AI chooses production on its turn; advance rounds to
+watch units finish and begin exploring. The map remains the fixed lab terrain,
+and exact original DOS start placement is not verified.
+
+**Computer skirmish · staged test** retains the prepared Close Quarters forces
+for tactical regression checks. Both modes use the same provisional strategy
+and ordinary movement, combat, production and fog-of-war rules. Use **Next
+round**, **+10 rounds**, or **Play / Pause** to inspect a match.
 **Observe** defaults to **Alternate each round**, switching the map between
 Blue's and Red's private intelligence after each simulated round. You can
 instead lock the map to Blue or Red. Compact scorecards show **both players'
@@ -78,9 +84,9 @@ knowledge or reveals the entire world. Changing the viewpoint does not change
 the game state. Playback pauses when
 the tab is hidden. Save/export and import work between rounds.
 
-This is a deterministic **QA skirmish**, not the original DOS opponent AI,
-and is not yet a full strategic campaign. The constructed map intentionally
-places both sides near combat. The game does not run in the background when
+These are deterministic **experimental AI modes**, not reconstructions of the
+original DOS opponent. The staged fixture intentionally places forces near combat;
+the clean opening evaluates development from production. The game does not run in the background when
 the tab is hidden.
 
 CI run `40366834046` passed **146/146 tests** on 2026-10-26, including a
