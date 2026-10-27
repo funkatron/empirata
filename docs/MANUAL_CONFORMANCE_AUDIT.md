@@ -45,6 +45,14 @@ The unit table, fuel constant, half-damage ship movement penalty, and transport/
 
 **Known discrepancy to investigate:** The research specification includes `Go Random` and city-to-city fighter `Flight Paths` (IMP-064, IMP-066, IMP-080), but the current `UnitOrder` union has neither. These are tracked as unimplemented or not yet represented; no unsupported implementation is being invented during this inventory.
 
+## First direct primary-manual cross-check (2026-10-26)
+
+Consulted the publicly available text transcription of the original [Interstel DOS v2.05 manual](https://oldgamesdownload.com/manual/empire-wargame-of-the-century-dos-manual-english/). Its cover identifies IBM PC version 2.05, second printing August 1988. The manual's **Table III (p. 24)** and surrounding unit descriptions support the eight-unit roster, movement, HP and per-hit damage listed above; **Table VII (p. 49)** covers production times. The online OCR merges columns and page order, so the PDF page images still need to be checked before calling each individual value independently scan-verified.
+
+**Strategic implication for the AI roadmap:** The original manual's destroyer description (pp. 21–22) explicitly recommends early destroyers for fast scouting and shoreline/city discovery. Current experimental AI predominantly starts with armies and then transports. This is a documented strategy gap worth testing: build a dedicated destroyer scout and measure useful coast/city discovery versus the current transport-led exploration. This is a *strategy recommendation from the manual*, not a claim that the original computer AI followed that policy.
+
+**Unresolved scan detail:** The submarine section (p. 23) has an OCR-damaged statement concerning detection by cities. Verify against the actual scanned page image before changing submarine visibility rules.
+
 ## Next audit passes
 
 1. Check each cited page of the actual manual scan, especially unit table, combat/detection exceptions, loading and aircraft rules. Record edition and page references.
