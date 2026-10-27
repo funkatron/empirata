@@ -97,6 +97,20 @@ Conduct a thorough, page-by-page review of the original **Empire: Wargame of the
 
 **Completion criteria:** Every manual unit and substantive rule is accounted for, with source citations, implementation status, and either a passing regression test or an explicitly documented gap.
 
+### Original DOS 2.05C executable re-examination
+
+Treat the original DOS game as a complementary primary source to the printed manual. Revisit the previously supplied 2.05C executable and existing `DOS_CALL_SITE_AUDIT_2026-10-23.md`, with an evidence-driven plan:
+
+- Establish the exact executable version/hash, relevant game data, repeatable DOSBox-X/debugger environment, and saved test fixtures; keep commercial binaries and raw disassembly out of the public repository.
+- Run controlled A/B gameplay experiments for ambiguous mechanics: combat rolls and damage, city assault and capture, unit detection, repair, cargo loss/capacity, aircraft fuel, order interruption, and production/turn timing.
+- Compare equivalent states and commands in DOS and Empirata, documenting observations, uncertainty, and edition/patch differences rather than assuming the manual or existing code must be correct.
+- For unresolved behaviors, trace targeted executable control flow and game-state writes, rather than inferring RNG or rules from raw linear disassembly. Confirm actual runtime addresses and call sites.
+- Investigate original AI decisions separately from rules fidelity, including reconnaissance, production, embarkation, amphibious assault, and stalemates; do not silently import original AI quirks into the modern experimental opponent.
+- Preserve a reproducible evidence record for each case: DOS build/hash, setup or save, commands, observations, expected Empirata behavior, source location, confidence, and regression test.
+- Explicitly flag cases that cannot be resolved without an executable, debugger, or original save fixture; never claim parity from inference alone.
+
+Use findings in the **mandatory independent testing and wargaming second pass**. Prioritize high-impact disagreements between manual, executable, and Empirata.
+
 ### Mandatory independent second pass — testing and wargaming review
 
 After the primary manual-to-engine audit, conduct a separate adversarial review from **both** perspectives:
