@@ -135,7 +135,13 @@ export function adjudicateCityCapture(game:Game, record:CaptureRecord):Game {
     // The lab leaves the city's factory unassigned instead of copying enemy production.
     city.production=null;city.progress=0;city.firstCycle=true;
     log(g,army.owner,`${city.id} captured. ${army.id} joined its permanent garrison. Assign production.`);
-    if(previousOwner)log(g,previousOwner,`${city.id} was captured by an enemy army.`);
+    if(previousOwner){
+      // The loss notification is known even when the city's sight is removed.
+      // Do not retain friendly ownership or reveal the conqueror's production.
+      g.knowledge[previousOwner].cities[city.id]={id:city.id,owner:army.owner,
+        production:null,productionKnown:false};
+      log(g,previousOwner,`${city.id} was captured by an enemy army.`);
+    }
   }
   updateAllKnowledge(g);
   return g;
