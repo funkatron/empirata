@@ -2,6 +2,29 @@
 
 This is the working roadmap for the browser-based Empire rules laboratory. Items are proposals until marked implemented and verified. Historical rule fidelity, reproducibility, and accessibility remain core constraints.
 
+## Gameplay issue — Production after city capture (2026-10-27)
+
+**User observation:** Captured cities appeared not to start producing units. Not yet reproduced; do not assume whether this is an engine, AI assignment, or display issue.
+
+- Reproduce captures by both factions, including computer-versus-computer play. Trace ownership, production selection, progress, and first-unit completion across subsequent turns.
+- Check whether the AI assigns production on its next eligible turn, and whether human players receive a clear production-selection prompt or indication.
+- Verify capture-related production resets and any delay against the original rules; distinguish deliberate timing from a stalled city.
+- Add regression tests for production assignment and eventual unit completion, plus save/reload continuity. Confirm the inspector displays the actual state.
+
+Prioritize this investigation alongside reconnaissance: expansion must result in usable production capacity.
+
+## Immediate priority — General gameplay reconnaissance (2026-10-27)
+
+Scenario success is regression evidence, not evidence of a generally effective strategy.
+Withdraw the proposed transport-plus-eight-armies prerequisite for naval scouts.
+
+1. Enable ground reconnaissance from the opening turn, independent of fleet or reserve size.
+2. Select production from faction-known geography and objectives: reachable land expansion, unexplored navigable coastline, and useful overseas troop movement. Compare early naval scouts with transport exploration; do not prescribe either universally.
+3. Preserve useful production progress and avoid fleet-wide unit-count thresholds as substitutes for local needs. Reserve troops for logistics without preventing early exploration.
+4. Evaluate multiple map layouts and seeds: inland starts, open coast, isolated islands, blocked harbors, and nearby enemies. Record discoveries, captures, losses, idle rounds, and computation cost. Include save/replay and hidden-world equivalence checks.
+
+Implement incrementally; keep existing invasion fixtures as regressions. Do not claim general improvement from a single fixture or silently tune test expectations to new behavior.
+
 ## Priority 1 — Map navigation and semantic UI architecture (2026-10-26)
 
 ### 1. Touch zoom, pan, and fit-entire-world
