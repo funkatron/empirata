@@ -7,7 +7,7 @@
  */
 import type { Game, Unit } from './types.js';
 import {makeRulesLab} from './game.js';
-import {updateAllKnowledge} from './knowledge.js';
+import {emptyKnowledge,updateAllKnowledge} from './knowledge.js';
 
 export function makeCloseQuartersLab():Game {
   const g=makeRulesLab();
@@ -71,10 +71,21 @@ export function makeAiInvasionLab():Game {
 
 /** Two autonomous opponents, using the same provisional rules-bound strategy.
  * Uses a constructed skirmish so combat begins quickly; not a DOS AI claim. */
-export function makeAiVsAiLab():Game {
+export function makeAiVsAiSkirmishLab():Game {
   const g=makeCloseQuartersLab();
   g.scenario='ai-vs-ai';
   g.events.push({id:g.nextEventId++,round:g.round,recipient:null,kind:'system',
     message:'AI versus AI laboratory: both factions act automatically. Advance rounds to observe a deterministic skirmish.'});
+  return g;
+}
+
+/** Clean production opening on the lab terrain; exact DOS placement is unverified. */
+export function makeAiVsAiLab():Game {
+  const g=makeRulesLab();
+  g.scenario='ai-vs-ai';g.units=[];g.nextId=1;g.events=[];g.nextEventId=1;
+  for(const faction of ['blue','red','green'] as const)g.knowledge[faction]=emptyKnowledge(g);
+  updateAllKnowledge(g);
+  g.events.push({id:g.nextEventId++,round:1,recipient:null,kind:'system',
+    message:'Clean computer campaign: one city each, no starting units. Production begins on each faction turn. Lab terrain; original DOS placement is not verified.'});
   return g;
 }

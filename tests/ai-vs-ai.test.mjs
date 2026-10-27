@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  makeAiVsAiLab,makeCloseQuartersLab,playBlueOpponent,advanceLabRound,
+  makeAiVsAiSkirmishLab as makeAiVsAiLab,makeCloseQuartersLab,playBlueOpponent,advanceLabRound,
   getPlayerView,exportSave,importSave,updateAllKnowledge
 } from '../dist/engine/index.js';
 
