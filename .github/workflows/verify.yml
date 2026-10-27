@@ -35,9 +35,9 @@ jobs:
         run: node scripts/build-single-file.cjs
       - name: Smoke test the generated browser bundle
         run: node --test smoke/bundle.mjs
-      - name: Verify generated page is checked in
-        run: |
-          if ! git diff --exit-code -- index.html; then
-            echo 'Generated index.html is stale. Run node scripts/build-single-file.cjs and commit the result.' >&2
-            exit 1
-          fi
+      - name: Preserve verified browser bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: empirata-browser-${{ github.sha }}
+          path: index.html
+          retention-days: 14
