@@ -95,7 +95,19 @@ Conduct a thorough, page-by-page review of the original **Empire: Wargame of the
 - Verify that UI labels, unit statistics, tooltips/help, and any player-facing rules explanations agree with the validated reference.
 - Publish an auditable rules-conformance report and maintain a checklist of unresolved differences.
 
-**Completion criteria:** Every manual unit and substantive rule is accounted for, with source citations, implementation status, and either a passing regression test or an explicitly documented gap. No unverified claim of full historical fidelity.
+**Completion criteria:** Every manual unit and substantive rule is accounted for, with source citations, implementation status, and either a passing regression test or an explicitly documented gap.
+
+### Mandatory independent second pass — testing and wargaming review
+
+After the primary manual-to-engine audit, conduct a separate adversarial review from **both** perspectives:
+
+- **Testing expert:** Challenge test oracles and source assumptions; examine branch/boundary coverage, combat probability distributions, invariants, property-based and metamorphic tests, deterministic replay/save-resume, fog-of-war information leaks, malformed states, and cross-rule interactions. A test that reproduces the implementation's own assumptions is not sufficient evidence of historical correctness.
+- **Wargaming expert:** Evaluate the strategic consequences of the validated rules, including unit roles and counters, scouting economics, force concentration, production opportunity costs, transport vulnerability, amphibious logistics, beachhead selection, attrition, city capture, stalemates, and victory progression. Distinguish historically intended mechanics from shortcomings of the modern AI.
+- Construct adversarial scenarios in which individually correct mechanics interact badly (e.g., embarkation timing plus movement allowances, fog plus submarine detection, transport damage plus cargo capacity, city defense plus landing tactics).
+- Publish a **separate second-pass findings report** with severity, manual evidence, reproducible fixture, expected/actual results, strategic impact, and corrective regression test. Re-run representative autonomous campaigns after significant fixes.
+
+**Second-pass exit criteria:** Every high-severity finding is fixed and regression-tested or explicitly documented as unresolved; remaining risks and original-DOS ambiguities are visible. Do not declare the audit complete solely because the first-pass tests pass.
+ No unverified claim of full historical fidelity.
 
 ## Priority 3 — Historical fidelity and deeper strategy
 
