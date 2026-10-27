@@ -83,6 +83,20 @@ This is the working roadmap for the browser-based Empire rules laboratory. Items
 - Match statistics: cities captured, production, combat losses, units sunk, idle/stalled turns, transports built/loaded/landed, and reproducible seed.
 - Bounded campaign and replacement-fleet endurance tests; compare AI strategy versions across identical seeds.
 
+## Priority 3A — Comprehensive original-manual rules and unit audit
+
+Conduct a thorough, page-by-page review of the original **Empire: Wargame of the Century (Interstel DOS 2.05C)** manual, treating the manual as the primary documented-rules source. Cross-check every claim against the current engine, UI, tests, and scenario fixtures; do not assume current implementations are correct.
+
+- Inventory **every unit type** in the manual and compare names, roles, movement allowances, terrain/domain restrictions, sight/reconnaissance, fuel and refueling, hit points/damage, combat effectiveness, production costs and first/repeat build times, carrying capacity, loading/unloading, repairs, and special orders.
+- Audit **all game rules**, including turn sequence, movement, combat odds and resolution, city capture and ownership, production, transport/carrier logistics, fog of war, exploration, stacking, terrain and coastal ports, aircraft operations, automated orders, end conditions, and edge cases.
+- Build a traceable **manual-to-implementation matrix**: manual section/page, exact rule summary, corresponding source function, existing test, status (matches / differs / unimplemented / ambiguous), and action required.
+- Distinguish documented rules from observed DOS 2.05C behavior, assumptions, and deliberate modern Empirata extensions. Where the manual is silent or ambiguous, document the uncertainty rather than inventing a definitive rule.
+- Create or improve deterministic regression tests for each rule and unit; correct engine behavior only after establishing the relevant evidence. Prioritize gameplay-impacting discrepancies.
+- Verify that UI labels, unit statistics, tooltips/help, and any player-facing rules explanations agree with the validated reference.
+- Publish an auditable rules-conformance report and maintain a checklist of unresolved differences.
+
+**Completion criteria:** Every manual unit and substantive rule is accounted for, with source citations, implementation status, and either a passing regression test or an explicitly documented gap. No unverified claim of full historical fidelity.
+
 ## Priority 3 — Historical fidelity and deeper strategy
 
 - Verify remaining rule ambiguities against Interstel DOS 2.05C behavior.
