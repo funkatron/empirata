@@ -10,6 +10,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/copy-assets.mjs",
     "test": "npm run test:coverage",
+    "evaluate:campaigns": "npm run build && node tools/evaluate-campaigns.mjs",
     "start": "node scripts/server.mjs",
     "dev": "npm run build && npm run start",
     "test:coverage": "npm run build && node --experimental-test-coverage --test --test-coverage-include='dist/engine/*.js' --test-coverage-lines=85 --test-coverage-branches=80 tests/*.test.mjs"

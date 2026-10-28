@@ -634,6 +634,55 @@ export function planAiLandingSquares(view:ReturnType<typeof getPlayerView>,ship:
   });
 }
 
+/** Coordinate ready cargo across transports assigned to the same known city.
+ * Require one more army than fresh defenders near that objective, counting
+ * connected friendly beachhead support. Reserve distinct safe landing cells
+ * before moving anyone. This is provisional strategy, not a historical rule.
+ */
+export function planAiLandingWave(view:ReturnType<typeof getPlayerView>):Array<{armyId:string;to:Coord}> {
+  const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
+  const ships=view.ownUnits.filter(u=>u.kind==='transport'&&!u.aboard&&u.aiObjective);
+  const result:Array<{armyId:string;to:Coord}>=[];
+  const reserved=new Set<number>();
+  for(const targetId of new Set(ships.map(u=>u.aiObjective!))){
+    const cityIndex=view.cells.findIndex(c=>c.city?.id===targetId&&c.city.owner!==view.active);
+    if(cityIndex<0)continue;
+    const target={x:cityIndex%view.width,y:Math.floor(cityIndex/view.width)};
+    const defenders=view.enemies.filter(e=>!e.stale&&e.kind==='army'&&distance(e.position,target)<=3).length;
+    const support=view.ownUnits.filter(u=>u.kind==='army'&&!u.aboard&&distance(u.position,target)<=2&&
+      aiLandingReachesObjective(view,u.position,targetId)).length;
+    const candidates:Array<{armyId:string;options:Coord[]}>=[];
+    for(const ship of ships.filter(u=>u.aiObjective===targetId)){
+      const options=planAiLandingSquares(view,ship).filter(p=>{
+        const cell=view.cells[p.y*view.width+p.x];
+        return !cell?.city&&!reserved.has(p.y*view.width+p.x);
+      });
+      for(const army of view.ownUnits.filter(u=>u.kind==='army'&&u.aboard===ship.id&&u.spent<movementAllowance(u)))
+        candidates.push({armyId:army.id,options});
+    }
+    // Maximum matching avoids wasting a shared beach cell when another ship
+    // has fewer reachable squares. Each army can land only beside its ship.
+    const occupants=new Map<number,number>();
+    const assign=(army:number,seen:Set<number>):boolean=>{
+      for(const p of candidates[army]!.options){
+        const k=p.y*view.width+p.x;
+        if(seen.has(k))continue;
+        seen.add(k);
+        const previous=occupants.get(k);
+        if(previous===undefined||assign(previous,seen)){occupants.set(k,army);return true;}
+      }
+      return false;
+    };
+    for(let i=0;i<candidates.length;i++)assign(i,new Set());
+    if(occupants.size+support<defenders+1)continue;
+    for(const [k,army] of occupants){
+      reserved.add(k);
+      result.push({armyId:candidates[army]!.armyId,to:{x:k%view.width,y:Math.floor(k/view.width)}});
+    }
+  }
+  return result;
+}
+
 /** Naval reconnaissance: choose a reachable sea frontier by information gained
  * per travel step. Route only through charted sea; unknown cells are endpoints,
  * never presumed safe transit. No world state outside PlayerView is consulted.
@@ -859,15 +908,9 @@ export function playRedOpponent(game:Game):Game {
 
   // Prefer landing near a known hostile/neutral objective; never target an
   // undiscovered city or use hidden terrain for route selection.
-  for(const cargo of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='army'&&u.aboard)){
-    if(cargo.spent>=movementAllowance(cargo))continue;
-    const ship=g.units.find(u=>u.id===cargo.aboard);
-    if(!ship)continue;
-    const view=getPlayerView(g,'red');
-    const options=planAiLandingSquares(view,ship);
-    for(const square of options){
-      try {g=disembarkArmy(g,cargo.id,square);break;} catch{/* No legal landing here. */}
-    }
+  for(const landing of planAiLandingWave(getPlayerView(g,'red'))){
+    try {g=disembarkArmy(g,landing.armyId,landing.to);}
+    catch {break;} // Newly revealed contact interrupts the remainder of the wave.
   }
   // Report genuine geographic blockages at a bounded cadence rather than
   // allowing silent centuries of stalled naval operations.

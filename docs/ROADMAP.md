@@ -204,6 +204,15 @@ Production now counts unembarked armies connected to each city through faction-k
 
 ## Priority — Clean campaign openings and air-unit strategy (2026-10-27)
 
+2026-10-28: Coordinated landing waves now reserve distinct beach cells for
+ready cargo assigned to the same objective, with a force minimum based on fresh
+defenders and connected landed support. A separate generated-map evaluation
+compares six clean 120-round campaigns against the deployed strategy. City,
+capture and landing totals did not improve in that sample; archipelago stalls
+remain. See [campaign evaluation](CAMPAIGN_EVALUATION.md) for policy limits,
+reproduction commands and raw paired results. Recruitment and rendezvous remain
+open work; fighter strategy remains on the roadmap below.
+
 ### Clean computer-versus-computer campaign
 - Make a clean campaign the normal AI-vs-AI evaluation: one owned city per faction, no starting mobile units, neutral remaining cities, zero production progress, and initial production chosen by the AI.
 - Initialize fresh knowledge from starting cities only. Remove inherited Close Quarters encounters, scouting memories, cargo, event logs and production advantages. Retain the constructed skirmish as a separately labeled QA fixture.
