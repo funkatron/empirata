@@ -48,6 +48,8 @@ export function importSave(json:string):Game {
       !Object.hasOwn(STATS,u.kind)||!validPosition(u.position)||
       !finiteInt(u.spent)||u.spent<0||!finiteInt(u.damage)||u.damage<0||
       !(u.fuel===null||(finiteInt(u.fuel)&&u.fuel>=0)))throw new Error('Invalid unit entry.');
+    if(u.aiObjective!==undefined&&(u.kind!=='transport'||typeof u.aiObjective!=='string'||!cityIds.has(u.aiObjective)))
+      throw new Error('Invalid AI transport objective.');
     const kind=u.order?.kind;
     if(!['none','skip','sentry','move-to','go-direction','patrol','go-home','escort','load-ship'].includes(kind))throw new Error('Invalid unit order.');
     if(kind==='move-to'&&!validPosition((u.order as any).destination))throw new Error('Invalid Move To destination.');
