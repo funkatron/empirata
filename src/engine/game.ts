@@ -759,7 +759,20 @@ export function playRedOpponent(game:Game):Game {
     const ownUnits=getPlayerView(g,'red').ownUnits;
     const armyCount=aiLocalArmyReserve(getPlayerView(g,'red'),city.position);
     const transportCount=ownUnits.filter(u=>u.kind==='transport').length;
-    const pick=armyCount>=3&&transportCount===0&&isCoastal(g,city.position)?'transport':
+    const view=getPlayerView(g,'red');
+    const scoutingAssigned=ownUnits.some(u=>u.kind==='destroyer')||
+      view.ownCities.some(c=>c.id!==city.id&&c.production==='destroyer');
+    const knownObjective=view.cells.some(c=>c.city&&c.city.owner!=='red');
+    const probe:Unit={id:'production-scout',kind:'destroyer',owner:'red',position:city.position,
+      aboard:null,damage:0,spent:0,fuel:null,order:{kind:'none'}};
+    const scoutNeeded=armyCount>=1&&!scoutingAssigned&&!knownObjective&&
+      isCoastal(g,city.position)&&planAiNavalScoutStep(view,probe)!==null;
+    // Finish committed ships rather than repeatedly discarding their progress.
+    const committedShip=city.progress>0&&
+      (city.production==='destroyer'&&!ownUnits.some(u=>u.kind==='destroyer')||
+       city.production==='transport'&&transportCount===0);
+    const pick=committedShip?city.production:scoutNeeded?'destroyer':
+      armyCount>=3&&transportCount===0&&isCoastal(g,city.position)?'transport':
       armyCount>=8?null:'army';
     // Bound local reserves even when this faction has no transport or port.
     // Resume production automatically after casualties or transport losses.

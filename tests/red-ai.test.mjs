@@ -4,6 +4,7 @@ import {makeRulesLab,endTurn,playRedOpponent,updateAllKnowledge,getPlayerView,ST
 
 const redTurn=()=>endTurn(makeRulesLab());
 const own=(g,id)=>g.units.find(u=>u.id===id);
+const learnObjective=g=>{const c=g.cities.find(c=>c.id==='c-blue');g.knowledge.red.terrain[c.position.y*g.width+c.position.x]='land';g.knowledge.red.cities[c.id]={id:c.id,owner:'blue',production:null,productionKnown:false};};
 const metric=(a,b)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
 
 test('Red AI cannot run during Blue turn and does not mutate input',()=>{
@@ -16,16 +17,18 @@ test('Red AI cannot run during Blue turn and does not mutate input',()=>{
 });
 test('Red AI assigns army production at an unassigned city',()=>{
   const red=redTurn();
+  red.units=red.units.filter(u=>u.owner!=='red');
   assert.equal(red.cities.find(c=>c.id==='c-red').production,null);
   const acted=playRedOpponent(red);
   assert.equal(acted.cities.find(c=>c.id==='c-red').production,'army');
 });
-test('Red AI switches an unassigned coastal city to transport production when army-heavy',()=>{
+test('Red AI builds a transport with reserves and a discovered objective',()=>{
   const g=makeRulesLab();
   const base=g.units.find(u=>u.id==='u3');
   g.units.push({...structuredClone(base),id:'red-a',position:{x:79,y:35}});
   g.units.push({...structuredClone(base),id:'red-b',position:{x:80,y:35}});
   updateAllKnowledge(g);
+  learnObjective(g);
   const acted=playRedOpponent(endTurn(g));
   assert.equal(acted.cities.find(c=>c.id==='c-red').production,'transport');
 });
@@ -76,6 +79,7 @@ test('Red changes existing army production to transport once three armies exist'
   g.units.push({...structuredClone(base),id:'red-a',position:{x:79,y:35}});
   g.units.push({...structuredClone(base),id:'red-b',position:{x:80,y:35}});
   updateAllKnowledge(g);
+  learnObjective(g);
   const acted=playRedOpponent(endTurn(g));
   assert.equal(acted.cities.find(c=>c.id==='c-red').production,'transport');
 });
@@ -84,6 +88,7 @@ test('Red resumes army production when a transport already exists',()=>{
   g.cities.find(c=>c.id==='c-red').production='transport';
   g.units.push({...structuredClone(base),id:'red-ship',kind:'transport',position:{x:81,y:36}});
   updateAllKnowledge(g);
+  learnObjective(g);
   const acted=playRedOpponent(endTurn(g));
   assert.equal(acted.cities.find(c=>c.id==='c-red').production,'army');
 });
