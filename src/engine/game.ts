@@ -633,36 +633,41 @@ export function planAiNavalScoutStep(view:ReturnType<typeof getPlayerView>,ship:
   return {x:at%width,y:Math.floor(at/width)};
 }
 
-function aiGroundExploreStep(view:ReturnType<typeof getPlayerView>,army:Unit):Coord|null {
-  const {width,height,cells}=view;
-  const start=army.position.y*width+army.position.x;
-  const occupied=new Set(view.ownUnits.filter(u=>!u.aboard&&u.id!==army.id)
+export function planAiGroundScoutStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|null {
+  if(ship.kind!=='army'||ship.aboard)return null;
+  const {width,height,cells}=view,start=ship.position.y*width+ship.position.x;
+  const occupied=new Set(view.ownUnits.filter(u=>!u.aboard&&u.id!==ship.id)
     .map(u=>u.position.y*width+u.position.x));
-  for(const enemy of view.enemies)if(!enemy.stale)
-    occupied.add(enemy.position.y*width+enemy.position.x);
+  for(const e of view.enemies)if(!e.stale)occupied.add(e.position.y*width+e.position.x);
   const queue=[start],seen=new Set<number>([start]),parent=new Map<number,number>();
-  let found:number|undefined;
+  const depth=new Map<number,number>([[start,0]]);
+  let best:number|undefined,bestScore=-Infinity;
   for(let head=0;head<queue.length;head++){
-    const here=queue[head]!;
-    const p={x:here%width,y:Math.floor(here/width)};
+    const here=queue[head]!,p={x:here%width,y:Math.floor(here/width)};
+    const steps=depth.get(here)!;
+    let unknown=0;
+    for(const d of directions){
+      const x=p.x+d.x,y=p.y+d.y;
+      if(x<=0||y<=0||x>=width-1||y>=height-1)continue;
+      if(cells[y*width+x]?.terrain===null)unknown++;
+    }
+    if(here!==start&&unknown>0){
+      const score=unknown/(steps+1);
+      if(score>bestScore){best=here;bestScore=score;}
+    }
     for(const d of directions){
       const x=p.x+d.x,y=p.y+d.y,k=y*width+x;
-      if(x<=0||y<=0||x>=width-1||y>=height-1||seen.has(k)||occupied.has(k))continue;
-      const cell=cells[k];
-      if(cell?.city&&cell.city.owner!=='red')continue;
-      if(cell?.terrain==='sea')continue;
-      seen.add(k);parent.set(k,here);
-      if(cell?.terrain===null){found=k;break;}
-      if(cell?.terrain==='land')queue.push(k);
+      if(x<=0||y<=0||x>=width-1||y>=height-1||seen.has(k)||
+         occupied.has(k)||cells[k]?.terrain!=='land'||(cells[k]?.city&&cells[k]?.city?.owner!==view.active))continue;
+      seen.add(k);parent.set(k,here);depth.set(k,steps+1);queue.push(k);
     }
-    if(found!==undefined)break;
   }
-  if(found===undefined)return null;
-  let at=found;
+  if(best===undefined)return null;
+  let at=best;
   while(parent.get(at)!==start){
-    const previous=parent.get(at);
-    if(previous===undefined)return null;
-    at=previous;
+    const prev=parent.get(at);
+    if(prev===undefined)return null;
+    at=prev;
   }
   return {x:at%width,y:Math.floor(at/width)};
 }
@@ -885,7 +890,7 @@ export function playRedOpponent(game:Game):Game {
       // with a unit immediately after a battle or city assault.
       if(moved)break;
       if(unit.kind==='army'){
-        const planned=groundPlan??(isScout?aiGroundExploreStep(view,unit):null);
+        const planned=groundPlan??(isScout?planAiGroundScoutStep(view,unit):null);
         if(planned){
           try {g=moveUnit(g,id,planned);continue;}
           catch {break;} // A newly revealed contact blocks this turn's route.
