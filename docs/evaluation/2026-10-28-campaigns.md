@@ -74,3 +74,27 @@ The current sweep covers only six generated maps, normal combat efficiency,
 one starting orientation and one strategy playing itself. It does not establish
 balance, victory rate, historical AI fidelity or transport durability under
 strong naval opposition. Fighter strategy remains a separate roadmap item.
+
+## Reconciliation with PR #14
+
+PR #13 is the consolidated implementation. Both alternatives reserve beaches
+with matching and use only faction intelligence. This version retains nearby
+mission grouping, readiness waits for the available expedition, and a wave-size
+cap for narrow coasts. PR #14 instead required enough armies to outnumber fresh
+nearby defenders. That hard minimum is deferred: recruitment and rendezvous are
+not implemented, so insufficient forces can wait until the mission timeout
+without a way to satisfy the requirement.
+
+PR #14's independent six paired 120-round campaigns also found no improvement
+in final city, capture or landing totals. Its generator, raw data and report
+remain available on the preserved `feat/coordinated-landings` branch in
+[PR #14](https://github.com/funkatron/empirata/pull/14). These observations concern
+that alternative policy, not the final consolidated implementation.
+
+Review of both implementations found the same safety regression: a first
+landing could reveal a defender, while subsequent orders used the original
+view. The consolidated code revalidates each reserved beach against refreshed
+intelligence. A regression test reproduces two unsafe unloads before the fix,
+then verifies one landing with the remaining cargo held, including save/replay.
+The campaign measurements above predate this safety fix; they must not be
+presented as fresh measurements of the amended commit.

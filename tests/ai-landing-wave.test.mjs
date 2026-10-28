@@ -82,3 +82,24 @@ test('Unsafe or occupied beaches and hostile city cells cannot inflate ready str
   view.enemies[0].stale=true;
   assert.equal(planAiLandingWave(view).length,3);
 });
+
+test('A landing that reveals a defender interrupts newly threatened remaining orders',()=>{
+  const g=fleet();g.active='red';
+  const ship=g.units.find(u=>u.id==='red-transport');ship.position={x:76,y:30};
+  for(const army of g.units.filter(u=>u.aboard===ship.id))army.position={...ship.position};
+  for(let y=28;y<=31;y++)for(let x=73;x<=77;x++)g.tiles[y*g.width+x]='sea';
+  for(const [x,y] of [[74,29],[75,29],[74,30],[75,30]])g.tiles[y*g.width+x]='land';
+  g.units.push({...structuredClone(g.units.find(u=>u.id==='u3')),id:'hidden-guard',
+    owner:'blue',aboard:null,position:{x:74,y:30}});
+  updateAllKnowledge(g);
+  // Remembered terrain permits a wave, but the defender starts outside sight.
+  for(const [x,y] of [[74,29],[75,29],[74,30],[75,30]])g.knowledge.red.terrain[y*g.width+x]='land';
+  assert.equal(getPlayerView(g,'red').enemies.some(e=>e.id==='hidden-guard'),false);
+  const planned=wave(g);assert.equal(planned.length,2);
+  assert.deepEqual(planned[0].position,{x:75,y:29});
+  const result=playRedOpponent(g);
+  assert.equal(result.events.filter(e=>e.message.includes('landed from red-transport')).length,1,
+    'Only the first army may land before the fresh threat is observed');
+  assert.equal(result.units.filter(u=>u.aboard===ship.id).length,2);
+  assert.deepEqual(playRedOpponent(importSave(exportSave(g))),result);
+});

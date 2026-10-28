@@ -912,6 +912,12 @@ export function playRedOpponent(game:Game):Game {
   // Prefer landing near a known hostile/neutral objective; never target an
   // undiscovered city or use hidden terrain for route selection.
   for(const landing of planAiLandingWave(getPlayerView(g,'red'))){
+    // Each landing refreshes intelligence. A newly exposed defender can make
+    // later reserved cells unsafe even though disembarkArmy still permits them.
+    const view=getPlayerView(g,'red');
+    const cargo=view.ownUnits.find(u=>u.id===landing.armyId);
+    const ship=view.ownUnits.find(u=>u.id===cargo?.aboard);
+    if(!ship||!planAiLandingSquares(view,ship).some(p=>equal(p,landing.position)))continue;
     try {g=disembarkArmy(g,landing.armyId,landing.position);}
     catch{/* Actual movement remains authoritative if a hidden contact blocks landing. */}
   }
