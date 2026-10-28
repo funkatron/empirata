@@ -421,13 +421,13 @@ export function endTurn(game:Game):Game {
  * discovered objective. Distance alone is insufficient when a bay or strait
  * separates the beach from the city. Uses only remembered PlayerView cells.
  */
-function aiLandingReachesObjective(view:ReturnType<typeof getPlayerView>,landing:Coord):boolean {
+function aiLandingReachesObjective(view:ReturnType<typeof getPlayerView>,landing:Coord,targetId?:string):boolean {
   const {width,height,cells}=view;
   const key=(p:Coord)=>p.y*width+p.x;
   const start=key(landing);
   if(cells[start]?.terrain!=='land'||cells[start]?.city?.owner==='red')return false;
   const goals:Coord[]=[];
-  for(let i=0;i<cells.length;i++)if(cells[i]?.city&&cells[i]!.city!.owner!=='red')
+  for(let i=0;i<cells.length;i++)if(cells[i]?.city&&cells[i]!.city!.owner!=='red'&&(!targetId||cells[i]!.city!.id===targetId))
     goals.push({x:i%width,y:Math.floor(i/width)});
   if(!goals.length)return false;
   const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
@@ -500,9 +500,20 @@ function aiTransportThreatened(view:ReturnType<typeof getPlayerView>,p:Coord):bo
     Math.max(Math.abs(enemy.position.x-p.x),Math.abs(enemy.position.y-p.y))<=1);
 }
 
+/** Stable city missions use private remembered intelligence, never hidden ownership. */
+export function chooseAiTransportObjective(view:ReturnType<typeof getPlayerView>,ship:Unit):string|undefined {
+  if(ship.kind!=='transport'||!view.ownUnits.some(u=>u.aboard===ship.id))return undefined;
+  const objectives=view.cells.flatMap((cell,i)=>cell.city&&cell.city.owner!==ship.owner?
+    [{id:cell.city.id,x:i%view.width,y:Math.floor(i/view.width)}]:[]);
+  if(objectives.some(c=>c.id===ship.aiObjective))return ship.aiObjective;
+  objectives.sort((a,b)=>Math.max(Math.abs(a.x-ship.position.x),Math.abs(a.y-ship.position.y))-
+    Math.max(Math.abs(b.x-ship.position.x),Math.abs(b.y-ship.position.y))||a.id.localeCompare(b.id));
+  return objectives[0]?.id;
+}
+
 function aiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|null {
   const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
-  const objectives=view.cells.flatMap((cell,i)=>cell.city&&cell.city.owner!=='red'?
+  const objectives=view.cells.flatMap((cell,i)=>cell.city&&cell.city.owner!=='red'&&(!ship.aiObjective||cell.city.id===ship.aiObjective)?
     [{x:i%view.width,y:Math.floor(i/view.width)}]:[]);
   const cells=view.cells;
   if(!objectives.length)return planAiTransportExploreStep(view,ship);
@@ -514,7 +525,7 @@ function aiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|n
       const landing={x,y},indexLanding=y*view.width+x;
       if(x<=0||y<=0||x>=view.width-1||y>=view.height-1)continue;
       if(cells[indexLanding]?.terrain!=='land'||distance(landing,city)>2||
-         !aiLandingReachesObjective(view,landing)||aiTransportThreatened(view,landing))continue;
+         !aiLandingReachesObjective(view,landing,ship.aiObjective)||aiTransportThreatened(view,landing))continue;
       for(const d of directions){
         const sea={x:x+d.x,y:y+d.y};
         if(sea.x<=0||sea.y<=0||sea.x>=view.width-1||sea.y>=view.height-1)continue;
@@ -568,7 +579,7 @@ export function planAiLandingSquares(view:ReturnType<typeof getPlayerView>,ship:
   const objectives:Coord[]=[];
   for(let i=0;i<view.cells.length;i++){
     const city=view.cells[i]?.city;
-    if(city&&city.owner!=='red')
+    if(city&&city.owner!=='red'&&(!ship.aiObjective||city.id===ship.aiObjective))
       objectives.push({x:i%view.width,y:Math.floor(i/view.width)});
   }
   if(!objectives.length)return [];
@@ -578,7 +589,7 @@ export function planAiLandingSquares(view:ReturnType<typeof getPlayerView>,ship:
     if(p.x<=0||p.y<=0||p.x>=view.width-1||p.y>=view.height-1)continue;
     const cell=view.cells[p.y*view.width+p.x];
     if(cell?.terrain!=='land'||cell.city?.owner==='red'||
-       !objectives.some(o=>cheb(p,o)<=2)||!aiLandingReachesObjective(view,p))continue;
+       !objectives.some(o=>cheb(p,o)<=2)||!aiLandingReachesObjective(view,p,ship.aiObjective))continue;
     // Disembarking into an army's immediate attack range risks the entire
     // invasion force; do not sacrifice cargo for a shorter route.
     if(aiTransportThreatened(view,p))continue;
@@ -798,6 +809,18 @@ export function playRedOpponent(game:Game):Game {
       // A partially filled AI transport may sail; do not keep it on a
       // stationary loading order forever.
       g=setOrder(g,ship.id,{kind:'none'});
+    }
+  }
+  // Persist the discovered city mission across moves and turns. Only the
+  // faction's remembered city ownership can select or invalidate a target.
+  for(const ship of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='transport')){
+    const view=getPlayerView(g,'red');
+    const objective=chooseAiTransportObjective(view,ship);
+    if(objective!==ship.aiObjective){
+      g=clone(g);const actual=g.units.find(u=>u.id===ship.id)!;
+      if(objective)actual.aiObjective=objective;else delete actual.aiObjective;
+      log(g,'red','system',objective?`Transport ${ship.id} assigned city objective ${objective}.`:
+        `Transport ${ship.id} cleared its city objective.`);
     }
   }
   // Prefer landing near a known hostile/neutral objective; never target an
