@@ -89,6 +89,21 @@ original DOS opponent. The staged fixture intentionally places forces near comba
 the clean opening evaluates development from production. The game does not run in the background when
 the tab is hidden.
 
+For broader, optional campaign evaluation, run `npm run evaluate:ai`. It runs
+200 rounds on each of six generated maps: continents, islands and archipelago,
+with two terrain/combat seeds per layout. Each starts with one city per faction,
+no units, no production progress and only city sight. The generator supplies no
+guaranteed invasion routes or scouting memory. It is an evaluation tool, not an
+original-DOS map generator or a new in-game map option.
+
+The JSON report includes city totals, exploration, production, boarding,
+landings, stalled missions and rounds since city ownership last changed.
+`ROUNDS`, `SEEDS` (comma-separated), `LAYOUTS` and `SWAP=1` control the sweep;
+`EMPIRATA_ENGINE` can point to another built engine for paired comparisons.
+Long sweeps remain outside ordinary CI. Generated-map clean-start and replay
+checks run with the normal tests. Campaign counts are observations, not pass/fail
+targets or evidence of strategic superiority.
+
 CI run `40366834046` passed **146/146 tests** on 2026-10-26, including a
 20-round autonomous endurance test, hidden-objective checks, and exact
 save/reload replay. Standalone bundle build and smoke test also passed.

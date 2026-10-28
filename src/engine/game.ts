@@ -616,7 +616,7 @@ export function planAiLandingSquares(view:ReturnType<typeof getPlayerView>,ship:
     const p={x:ship.position.x+d.x,y:ship.position.y+d.y};
     if(p.x<=0||p.y<=0||p.x>=view.width-1||p.y>=view.height-1)continue;
     const cell=view.cells[p.y*view.width+p.x];
-    if(cell?.terrain!=='land'||cell.city?.owner==='red'||
+    if(cell?.terrain!=='land'||cell.city||
        !objectives.some(o=>cheb(p,o)<=2)||!aiLandingReachesObjective(view,p,ship.aiObjective))continue;
     // Disembarking into an army's immediate attack range risks the entire
     // invasion force; do not sacrifice cargo for a shorter route.
@@ -632,6 +632,58 @@ export function planAiLandingSquares(view:ReturnType<typeof getPlayerView>,ship:
     return stalePenalty(a)-stalePenalty(b)||
       objectiveDistance(a)-objectiveDistance(b)||a.y-b.y||a.x-b.x;
   });
+}
+
+/** Coordinate the available expedition, without a fixed fleet prerequisite.
+ * Prefer two armies at a neutral city, three at a hostile one. A smaller
+ * isolated expedition may still land; spent cargo and nearby mission partners
+ * count as available strength, but cannot contribute until ready. Wave size
+ * is capped by usable beaches so a narrow coast cannot deadlock an expedition.
+ */
+export function planAiLandingWave(view:ReturnType<typeof getPlayerView>):{armyId:string;position:Coord}[] {
+  const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
+  const result:{armyId:string;position:Coord}[]=[],assigned=new Set<string>();
+  const ships=view.ownUnits.filter(u=>u.kind==='transport'&&!u.aboard)
+    .sort((a,b)=>a.id.localeCompare(b.id));
+  for(const anchor of ships){
+    if(assigned.has(anchor.id))continue;
+    const target=chooseAiTransportObjective(view,anchor);
+    if(!target||!planAiLandingSquares(view,anchor).length)continue;
+    const targetIndex=view.cells.findIndex(c=>c.city?.id===target);
+    const city=view.cells[targetIndex]!.city!,objective={x:targetIndex%view.width,y:Math.floor(targetIndex/view.width)};
+    const group=ships.filter(s=>!assigned.has(s.id)&&distance(s.position,anchor.position)<=3&&
+      chooseAiTransportObjective(view,s)===target);
+    for(const ship of group)assigned.add(ship.id);
+    const ids=new Set(group.map(s=>s.id));
+    const cargo=view.ownUnits.filter(u=>u.kind==='army'&&u.aboard&&ids.has(u.aboard));
+    const support=view.ownUnits.filter(u=>u.kind==='army'&&!u.aboard&&u.order.kind!=='sentry'&&
+      distance(u.position,objective)<=2&&aiLandingReachesObjective(view,u.position,target)).length;
+    const needed=Math.max(0,Math.min(city.owner===null?2:3,cargo.length+support)-support);
+    const choices=new Map(group.map(s=>[s.id,planAiLandingSquares(view,{...s,aiObjective:target})
+      .filter(p=>!result.some(r=>equal(r.position,p)))]));
+    // Bipartite matching: a flexible ship must not consume another ship's only
+    // beach. Each ready army gets one distinct legal square before any unload.
+    const slots=new Map<number,{armyId:string;position:Coord}>();
+    const ready=cargo.filter(u=>u.spent<movementAllowance(u)).sort((a,b)=>a.id.localeCompare(b.id));
+    const byId=new Map(cargo.map(u=>[u.id,u]));
+    const place=(army:Unit,seen:Set<number>):boolean=>{
+      for(const position of choices.get(army.aboard!)??[]){
+        const key=position.y*view.width+position.x;
+        if(seen.has(key))continue;
+        seen.add(key);
+        const previous=slots.get(key);
+        if(!previous||place(byId.get(previous.armyId)!,seen)){
+          slots.set(key,{armyId:army.id,position});return true;
+        }
+      }
+      return false;
+    };
+    for(const army of cargo)place(army,new Set());
+    const possible=slots.size;slots.clear();
+    for(const army of ready)place(army,new Set());
+    if(slots.size>=Math.min(needed,possible))result.push(...slots.values());
+  }
+  return result;
 }
 
 /** Naval reconnaissance: choose a reachable sea frontier by information gained
@@ -859,15 +911,9 @@ export function playRedOpponent(game:Game):Game {
 
   // Prefer landing near a known hostile/neutral objective; never target an
   // undiscovered city or use hidden terrain for route selection.
-  for(const cargo of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='army'&&u.aboard)){
-    if(cargo.spent>=movementAllowance(cargo))continue;
-    const ship=g.units.find(u=>u.id===cargo.aboard);
-    if(!ship)continue;
-    const view=getPlayerView(g,'red');
-    const options=planAiLandingSquares(view,ship);
-    for(const square of options){
-      try {g=disembarkArmy(g,cargo.id,square);break;} catch{/* No legal landing here. */}
-    }
+  for(const landing of planAiLandingWave(getPlayerView(g,'red'))){
+    try {g=disembarkArmy(g,landing.armyId,landing.position);}
+    catch{/* Actual movement remains authoritative if a hidden contact blocks landing. */}
   }
   // Report genuine geographic blockages at a bounded cadence rather than
   // allowing silent centuries of stalled naval operations.
