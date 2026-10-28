@@ -103,7 +103,9 @@ test('Landing planner chooses a safe beach instead of one adjacent to a known en
   const ship={...unit(g,'red-transport'),position:{x:75,y:30}};
   // A two-tile charted beach within reach of the same known city.
   for(const x of [74,75])view.cells[29*view.width+x].terrain='land';
-  view.cells[29*view.width+74].city={id:'invasion-outpost',owner:'blue',
+  view.cells[29*view.width+74].city=null;
+  view.cells[29*view.width+73].terrain='land';
+  view.cells[29*view.width+73].city={id:'invasion-outpost',owner:'blue',
     production:null,productionKnown:false};
   view.enemies.push({id:'visible-defender',kind:'army',owner:'blue',
     position:{x:73,y:29},stale:false});
@@ -117,7 +119,9 @@ test('Stale army sightings warn the landing planner without permanently blocking
   const g=makeAiInvasionLab(),view=getPlayerView(g,'red');
   const ship={...unit(g,'red-transport'),position:{x:75,y:30}};
   for(const x of [74,75])view.cells[29*view.width+x].terrain='land';
-  view.cells[29*view.width+74].city={id:'invasion-outpost',owner:'blue',
+  view.cells[29*view.width+74].city=null;
+  view.cells[29*view.width+73].terrain='land';
+  view.cells[29*view.width+73].city={id:'invasion-outpost',owner:'blue',
     production:null,productionKnown:false};
   view.enemies.push({id:'old-defender',kind:'army',owner:'blue',
     position:{x:73,y:29},stale:true});
