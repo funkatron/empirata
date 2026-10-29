@@ -539,7 +539,17 @@ export function updateAiTransportMission(view:ReturnType<typeof getPlayerView>,s
   return next;
 }
 
-function aiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|null {
+/** Navigation and unloading must agree on which charted beaches are usable.
+ * Cities require a later ground assault; occupied cells cannot receive cargo.
+ */
+function aiBeachAvailable(view:ReturnType<typeof getPlayerView>,p:Coord):boolean {
+  const cell=view.cells[p.y*view.width+p.x];
+  return cell?.terrain==='land'&&!cell.city&&!aiTransportThreatened(view,p)&&
+    !view.enemies.some(e=>!e.stale&&equal(e.position,p))&&
+    !view.ownUnits.some(u=>!u.aboard&&equal(u.position,p));
+}
+
+export function planAiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|null {
   const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
   const objectives=view.cells.flatMap((cell,i)=>cell.city&&cell.city.owner!=='red'&&!(ship.aiAvoidObjective?.id===cell.city.id&&ship.aiAvoidObjective.until>view.round)&&(!ship.aiObjective||cell.city.id===ship.aiObjective)?
     [{x:i%view.width,y:Math.floor(i/view.width)}]:[]);
@@ -550,10 +560,10 @@ function aiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|n
   // square within two cells of a discovered city.
   for(const city of objectives)for(let y=city.y-2;y<=city.y+2;y++)
     for(let x=city.x-2;x<=city.x+2;x++){
-      const landing={x,y},indexLanding=y*view.width+x;
+      const landing={x,y};
       if(x<=0||y<=0||x>=view.width-1||y>=view.height-1)continue;
-      if(cells[indexLanding]?.terrain!=='land'||distance(landing,city)>2||
-         !aiLandingReachesObjective(view,landing,ship.aiObjective)||aiTransportThreatened(view,landing))continue;
+      if(!aiBeachAvailable(view,landing)||distance(landing,city)>2||
+         !aiLandingReachesObjective(view,landing,ship.aiObjective))continue;
       for(const d of directions){
         const sea={x:x+d.x,y:y+d.y};
         if(sea.x<=0||sea.y<=0||sea.x>=view.width-1||sea.y>=view.height-1)continue;
@@ -615,14 +625,8 @@ export function planAiLandingSquares(view:ReturnType<typeof getPlayerView>,ship:
   for(const d of directions){
     const p={x:ship.position.x+d.x,y:ship.position.y+d.y};
     if(p.x<=0||p.y<=0||p.x>=view.width-1||p.y>=view.height-1)continue;
-    const cell=view.cells[p.y*view.width+p.x];
-    if(cell?.terrain!=='land'||cell.city||
+    if(!aiBeachAvailable(view,p)||
        !objectives.some(o=>cheb(p,o)<=2)||!aiLandingReachesObjective(view,p,ship.aiObjective))continue;
-    // Disembarking into an army's immediate attack range risks the entire
-    // invasion force; do not sacrifice cargo for a shorter route.
-    if(aiTransportThreatened(view,p))continue;
-    if(view.enemies.some(e=>!e.stale&&cheb(e.position,p)===0))continue;
-    if(view.ownUnits.some(u=>!u.aboard&&cheb(u.position,p)===0))continue;
     options.push(p);
   }
   return options.sort((a,b)=>{
@@ -959,7 +963,7 @@ export function playRedOpponent(game:Game):Game {
         }
       }
       if(unit.kind==='transport'&&view.ownUnits.some(u=>u.aboard===id)){
-        const step=aiInvasionStep(view,unit);
+        const step=planAiInvasionStep(view,unit);
         // Once in landing range, hold station for the next available cargo turn.
         if(!step)break;
         try {g=moveUnit(g,id,step);continue;}
