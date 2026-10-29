@@ -74,8 +74,12 @@ and exact original DOS start placement is not verified.
 
 **Computer skirmish · staged test** retains the prepared Close Quarters forces
 for tactical regression checks. Both modes use the same provisional strategy
-and ordinary movement, combat, production and fog-of-war rules. Use **Next
-round**, **+10 rounds**, or **Play / Pause** to inspect a match.
+and ordinary movement, combat, production and fog-of-war rules. Choose **1, 10,
+50, or 100 rounds per advance**, then use **Advance** for one step or **Play /
+Pause** for repeated advances. **Next round** always advances a single round.
+A spinner and completed-round count appear while a step runs. Pause remains
+available between individual rounds, including during a 100-round step.
+Changing speed applies to the next advance.
 **Observe** defaults to **Alternate each round**, switching the map between
 Blue's and Red's private intelligence after each simulated round. You can
 instead lock the map to Blue or Red. Compact scorecards show **both players'
@@ -83,6 +87,12 @@ city and unit totals simultaneously**; the map never merges private terrain
 knowledge or reveals the entire world. Changing the viewpoint does not change
 the game state. Playback pauses when
 the tab is hidden. Save/export and import work between rounds.
+
+Optional real-browser observer checks run with `npm run test:observer` after
+installing Playwright and WebKit (`npm install --no-save --package-lock=false
+playwright`, then `npx playwright install --with-deps webkit`). They exercise
+exact step counts, progress visibility, pause, speed changes and scenario
+cancellation. Browser downloads are not part of normal CI.
 
 These are deterministic **experimental AI modes**, not reconstructions of the
 original DOS opponent. The staged fixture intentionally places forces near combat;

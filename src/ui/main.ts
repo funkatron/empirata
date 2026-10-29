@@ -11,7 +11,8 @@ const ctx=context;
 let game:Game=makeCloseQuartersLab();
 let observer:'blue'|'red'='blue';
 let spectatorMode:'alternate'|'blue'|'red'='alternate';
-let playback:ReturnType<typeof setInterval>|null=null;
+let playback:ReturnType<typeof setTimeout>|null=null;
+let playbackGeneration=0,roundsPerAdvance=1;
 let view:PlayerView=getPlayerView(game,observer);
 let selectedUnit:string|null='u1',selectedCity:string|null=null;
 let spectatorContact:string|null=null,spectatorCity:string|null=null;
@@ -26,8 +27,41 @@ let choosingOrder:'move-to'|'patrol'|'go-direction'|'escort'='move-to';
 const colors={sea:'#23485f',land:'#516e50',unseen:'#0b1821',blue:'#68c4f1',red:'#f47c73',neutral:'#e2c37c'};
 function uiMessage(message:string):void {el('toast').textContent=message;}
 function pausePlayback():void {
-  if(playback!==null){clearInterval(playback);playback=null;}
+  playbackGeneration++;
+  if(playback!==null){clearTimeout(playback);playback=null;}
   const button=document.getElementById('autoPlay');if(button)button.textContent='▶ Play';
+  (el('advanceRounds') as HTMLButtonElement).disabled=false;
+  (el('nextRound') as HTMLButtonElement).disabled=false;
+  el('roundProgress').hidden=true;
+}
+/** Yield between individual rounds so painting, Pause and scenario changes
+ * can interrupt even a 100-round advance. Never run overlapping timers.
+ */
+function startRoundPlayback(repeat:boolean):void {
+  pausePlayback();if(game.scenario!=='ai-vs-ai')return;
+  const generation=playbackGeneration;
+  let target=roundsPerAdvance,completed=0;
+  el('autoPlay').textContent='Ⅱ Pause';
+  (el('advanceRounds') as HTMLButtonElement).disabled=true;
+  (el('nextRound') as HTMLButtonElement).disabled=true;
+  const progress=()=>{
+    el('roundProgress').hidden=false;
+    el('roundProgressText').textContent=`${completed} / ${target}`;
+  };
+  progress();
+  const tick=()=>{
+    if(generation!==playbackGeneration)return;
+    if(completed===0){target=roundsPerAdvance;progress();}
+    if(game.scenario!=='ai-vs-ai'||!dispatch(()=>advanceLabRound(game))){pausePlayback();return;}
+    completed++;progress();
+    if(completed===target){
+      if(!repeat){pausePlayback();uiMessage(`Advanced ${completed} ${completed===1?'round':'rounds'} to round ${game.round}.`);return;}
+      completed=0;
+      el('roundProgress').hidden=true;
+      playback=setTimeout(tick,750);
+    }else playback=setTimeout(tick,0);
+  };
+  playback=setTimeout(tick,repeat?750:0);
 }
 function dispatch(operation:()=>Game):boolean {
   try {
@@ -399,6 +433,7 @@ el('exportSave').addEventListener('click',()=>{
 el('importSave').addEventListener('click',()=>(el('saveFile') as HTMLInputElement).click());
 el('saveFile').addEventListener('change',async()=>{
   const input=el('saveFile') as HTMLInputElement,file=input.files?.[0];if(!file)return;
+  pausePlayback();
   try{const loaded=importSave(await file.text());if(loaded.active!=='blue')throw new Error('This lab UI only supports saves during the blue faction turn.');
     choosingDestination=false;game=loaded;selectedUnit=null;selectedCity=null;refresh();void saveLocally(game);uiMessage('Saved game imported.');}
   catch(error){uiMessage(error instanceof Error?error.message:'Save could not be loaded.');}finally{input.value='';}
@@ -408,7 +443,7 @@ function startScenario(kind:'close-quarters'|'classic-lab'|'ai-invasion'|'ai-vs-
   pausePlayback();observer='blue';spectatorMode='alternate';choosingDestination=false;game=kind==='ai-skirmish'?makeAiVsAiSkirmishLab():kind==='ai-vs-ai'?makeAiVsAiLab():kind==='ai-invasion'?makeAiInvasionLab():kind==='close-quarters'?makeCloseQuartersLab():makeRulesLab();
   selectedUnit=kind==='ai-invasion'||kind==='ai-vs-ai'||kind==='ai-skirmish'?null:'u1';selectedCity=null;refresh();focus(kind==='ai-invasion'?{x:76,y:29}:{x:9,y:25});
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; export JSON.'));
-  uiMessage(game.scenario==='ai-vs-ai'?'Computer vs computer ready. Use Play, Next round or +10 rounds.':kind==='ai-invasion'?'AI Invasion ready: press Next round to watch the Red landing operation.':kind==='close-quarters'?'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.':'Classic rules lab reset.');
+  uiMessage(game.scenario==='ai-vs-ai'?'Computer vs computer ready. Choose rounds per advance, then use Play or Advance.':kind==='ai-invasion'?'AI Invasion ready: press Next round to watch the Red landing operation.':kind==='close-quarters'?'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.':'Classic rules lab reset.');
 }
 el('newGame').addEventListener('click',()=>startScenario('close-quarters'));
 // Close the native Game menu after a scenario or save command.
@@ -429,16 +464,16 @@ el('spectatorSide').addEventListener('change',()=>{
   selectedUnit=null;selectedCity=null;spectatorContact=null;spectatorCity=null;refresh();
   uiMessage(spectatorMode==='alternate'?'Automatically alternating the spectator view each round.':`Observing ${observer.toUpperCase()} intelligence. Hidden enemy information remains concealed.`);
 });
-el('stepTen').addEventListener('click',()=>{
-  pausePlayback();if(game.scenario!=='ai-vs-ai')return;
-  if(dispatch(()=>{let g=game;for(let i=0;i<10;i++)g=advanceLabRound(g);return g;}))
-    uiMessage(`Simulation advanced 10 rounds to round ${game.round}.`);
+el('roundSpeed').addEventListener('change',()=>{
+  const speed=Number((el('roundSpeed') as HTMLSelectElement).value);
+  roundsPerAdvance=[1,10,50,100].includes(speed)?speed:1;
+  el('advanceRounds').textContent=`Advance ${roundsPerAdvance} ${roundsPerAdvance===1?'round':'rounds'}`;
+  uiMessage(`${roundsPerAdvance} ${roundsPerAdvance===1?'round':'rounds'} selected for the next advance.`);
 });
+el('advanceRounds').addEventListener('click',()=>startRoundPlayback(false));
 el('autoPlay').addEventListener('click',()=>{
-  if(playback!==null){pausePlayback();return;}
-  if(game.scenario!=='ai-vs-ai')return;
-  el('autoPlay').textContent='Ⅱ Pause';
-  playback=setInterval(()=>{if(!dispatch(()=>advanceLabRound(game)))pausePlayback();},750);
+  if(playback!==null){pausePlayback();uiMessage(`Paused at round ${game.round}.`);return;}
+  startRoundPlayback(true);
 });
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pausePlayback();});
 new ResizeObserver(resize).observe(canvas);

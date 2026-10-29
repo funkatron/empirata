@@ -8,6 +8,12 @@
 .ai-spectator[hidden]{display:none}
 .ai-spectator label{display:block;font-size:11px;color:#d7bf85}
 .ai-spectator select{margin-top:5px}
+.ai-spectator #roundSpeed{margin-bottom:8px}
+.round-progress{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:#d7bf85}
+.round-progress[hidden]{display:none}
+.round-spinner{width:14px;height:14px;flex:none;border:2px solid #526a77;border-top-color:#f0dd9b;border-radius:50%;animation:round-spin .8s linear infinite}
+@keyframes round-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.round-spinner{animation:none}}
 .ai-spectator .actions button{flex:1;min-height:38px}
 
 .spectator-scores{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:9px 0}

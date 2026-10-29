@@ -29,7 +29,10 @@ test('AI spectator controls support automatic viewpoint alternation and dual sco
   assert.match(html,/id="spectatorBlue"/);
   assert.match(html,/id="spectatorRed"/);
   assert.match(html,/id="autoPlay"/);
-  assert.match(html,/id="stepTen"/);
+  assert.match(html,/id="advanceRounds"/);
+  assert.match(html,/id="roundSpeed"/);
+  for(const speed of [1,10,50,100])assert.match(html,new RegExp(`<option value="${speed}">${speed} rounds?<\\/option>`));
+  assert.match(html,/id="roundProgress"[^>]*role="status"[^>]*hidden/);
   assert.match(html,/spectatorMode\s*===\s*['"]alternate['"]/);
   assert.match(html,/spectatorBlue/);
   assert.match(html,/spectatorRed/);
