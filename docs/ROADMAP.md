@@ -204,6 +204,15 @@ Production now counts unembarked armies connected to each city through faction-k
 
 ## Priority — Clean campaign openings and air-unit strategy (2026-10-27)
 
+2026-10-29: Navigation now applies the same beach eligibility checks as actual
+unloading. It continues around a city-only or occupied shore instead of holding
+at a position where cargo cannot land. Seven paired 200-round generated-map
+settings found one additional Red city in three settings and unchanged final
+holdings in four; this small self-play sample does not establish a general
+strategic advantage. See the [approach evaluation](evaluation/2026-10-29-landing-approaches.md).
+Enclosed-sea production decisions, ground exploration speed, recruitment and
+rendezvous remain open; fighter strategy remains a separate priority below.
+
 ### Clean computer-versus-computer campaign
 - Make a clean campaign the normal AI-vs-AI evaluation: one owned city per faction, no starting mobile units, neutral remaining cities, zero production progress, and initial production chosen by the AI.
 - Initialize fresh knowledge from starting cities only. Remove inherited Close Quarters encounters, scouting memories, cargo, event logs and production advantages. Retain the constructed skirmish as a separately labeled QA fixture.
