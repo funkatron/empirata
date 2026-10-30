@@ -1,3 +1,5 @@
+import {roundOutcomes} from './campaign-outcomes.mjs';
+import {performance} from 'node:perf_hooks';
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 import {makeCampaign,layouts} from './campaign-maps.mjs';
@@ -11,10 +13,17 @@ if(!Number.isInteger(rounds)||rounds<1||seeds.some(s=>!Number.isInteger(s)||s<1)
 const reports=[];
 for(const layout of selected)for(const seed of seeds){
   let g=makeCampaign(engine,layout,seed,{swap});
-  const stats=Object.fromEntries(['blue','red'].map(f=>[f,{produced:0,boarded:0,landed:0,missionPauses:0,lastCityChange:1}]));
+  const timing={totalMs:0,maxRoundMs:0};
+  const initialExplored=Object.fromEntries(['blue','red'].map(f=>[f,engine.getPlayerView(g,f).cells.filter(c=>c.terrain!==null).length]));
+  const stats=Object.fromEntries(['blue','red'].map(f=>[f,{captures:0,citiesLost:0,transportsLost:0,loadedTransportsLost:0,embarkedUnitsLost:0,produced:0,boarded:0,landed:0,missionPauses:0,lastCityChange:1}]));
   for(let r=0;r<rounds;r++){
     const eventId=g.nextEventId,owners=g.cities.map(c=>c.owner);
+    const before=structuredClone({units:g.units,cities:g.cities});
+    const started=performance.now();
     g=engine.advanceLabRound(g);
+    const elapsed=performance.now()-started;
+    timing.totalMs+=elapsed;timing.maxRoundMs=Math.max(timing.maxRoundMs,elapsed);
+    for(const f of ['blue','red'])for(const [key,value] of Object.entries(roundOutcomes(before,g,f)))stats[f][key]+=value;
     for(const e of g.events.filter(e=>e.id>=eventId)){
       const s=stats[e.recipient];if(!s)continue;
       if(e.kind==='production'&&e.message.includes('completed'))s.produced++;
@@ -36,9 +45,10 @@ for(const layout of selected)for(const seed of seeds){
       transports:v.ownUnits.filter(u=>u.kind==='transport').length,
       destroyers:v.ownUnits.filter(u=>u.kind==='destroyer').length,
       explored:v.cells.filter(c=>c.terrain!==null).length,knownCities:v.cells.filter(c=>c.city).length,
+      newlyExplored:v.cells.filter(c=>c.terrain!==null).length-initialExplored[f],
       roundsWithoutCityChange:g.round-s.lastCityChange}];
   }));
-  const report={layout,seed,swap,rounds,cities:g.cities.length,land:g.tiles.filter(t=>t==='land').length,factions};
+  const report={layout,seed,swap,rounds,timing:{...timing,meanRoundMs:timing.totalMs/rounds},cities:g.cities.length,land:g.tiles.filter(t=>t==='land').length,factions};
   reports.push(report);console.error(`${layout}/${seed}: ${Object.entries(factions).map(([f,s])=>`${f} ${s.cities} cities, ${s.landed} landings`).join('; ')}`);
 }
 console.log(JSON.stringify(reports,null,2));
