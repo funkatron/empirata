@@ -76,3 +76,27 @@ test('A distant landed scout explores instead of returning to supply on the same
  const next=playRedOpponent(g);
  assert.deepEqual(next.units.find(u=>u.id==='landed-scout').position,{x:91,y:36});
 });
+
+test('A strong expedition may scout an unguarded distant coast while retaining its assault force',()=>{
+ const g=fleet(),view=getPlayerView(g,'red'),ship=view.ownUnits.find(u=>u.id==='transport');
+ ship.position={x:50,y:30};ship.aiObjective='distant';
+ view.cells[30*view.width+51]={terrain:'land',visible:true,city:null};
+ view.cells[30*view.width+90]={terrain:'land',visible:true,city:{id:'distant',owner:null}};
+ for(let i=0;i<4;i++)view.ownUnits.push({...structuredClone(view.ownUnits[0]),id:`cargo-${i}`,aboard:ship.id,position:{...ship.position}});
+ assert.deepEqual(planAiReconLandingSquare(view,ship),{x:51,y:30});
+ view.enemies.push({id:'guard',kind:'army',owner:'blue',position:{x:52,y:30},stale:false});
+ assert.equal(planAiReconLandingSquare(view,ship),null);
+ view.enemies[0].stale=true;assert.deepEqual(planAiReconLandingSquare(view,ship),{x:51,y:30});
+ view.ownUnits.pop();assert.equal(planAiReconLandingSquare(view,ship),null);
+});
+
+test('A hostile city can receive a second transport before an easier distant neutral objective',()=>{
+ const g=fleet(),view=getPlayerView(g,'red'),ship=view.ownUnits.find(u=>u.id==='transport');
+ view.ownUnits.push({...structuredClone(view.ownUnits[0]),id:'cargo',aboard:ship.id});
+ view.cells[36*view.width+84]={terrain:'land',visible:true,city:{id:'hostile',owner:'blue'}};
+ view.cells[36*view.width+94]={terrain:'land',visible:true,city:{id:'neutral',owner:null}};
+ view.ownUnits.push({...structuredClone(ship),id:'partner',aiObjective:'hostile'});
+ assert.equal(chooseAiTransportObjective(view,ship),'hostile');
+ view.ownUnits.push({...structuredClone(ship),id:'partner-2',aiObjective:'hostile'});
+ assert.equal(chooseAiTransportObjective(view,ship),'neutral');
+});

@@ -49,14 +49,14 @@ export function selectProduction(game:Game,cityId:string,kind:UnitType):Game {
   updateAllKnowledge(g);return g;
 }
 /** Load any available adjacent or co-located friendly troops while respecting capacity. */
-function fillShip(g:Game,ship:Unit,portOnly=false):number {
+function fillShip(g:Game,ship:Unit,portOnly=false,protectedCargo:ReadonlySet<string>=new Set()):number {
   const cargoKind=ship.kind==='transport'?'army':'fighter';
   const capacityNow=capacity(ship)??0;
   let occupied=g.units.filter(u=>u.aboard===ship.id).length,loaded=0;
   for(const candidate of g.units){
     if(occupied>=capacityNow)break;
     if(candidate.owner!==ship.owner||candidate.kind!==cargoKind||candidate.aboard||
-       candidate.id===ship.id)continue;
+       candidate.id===ship.id||protectedCargo.has(candidate.id))continue;
     if(portOnly&&!equal(candidate.position,ship.position))continue;
     if(Math.max(Math.abs(candidate.position.x-ship.position.x),
                 Math.abs(candidate.position.y-ship.position.y))>1)continue;
@@ -205,7 +205,7 @@ export function launchFighter(game:Game,fighterId:string,to:Coord):Game {
   }else log(g,fighter.owner,'movement',`${fighter.id} launched from ${carrier.id}.`);
   updateAllKnowledge(g);return g;
 }
-export function moveUnit(game:Game,id:string,to:Coord):Game {
+export function moveUnit(game:Game,id:string,to:Coord,protectedCargo:ReadonlySet<string>=new Set()):Game {
   const g=clone(game),unit=g.units.find(u=>u.id===id);
   if(!unit||unit.owner!==g.active) throw new Error('That unit cannot be moved this turn.');
   if(unit.aboard) throw new RuleNotImplemented('CARGO','Transport unloading is not yet implemented.');
@@ -247,7 +247,7 @@ export function moveUnit(game:Game,id:string,to:Coord):Game {
   // Ships leaving a friendly port pick up eligible co-located troops automatically.
   const departurePort=cityAt(g,unit.position);
   if((unit.kind==='transport'||unit.kind==='carrier')&&departurePort?.owner===unit.owner)
-    fillShip(g,unit,true);
+    fillShip(g,unit,true,protectedCargo);
   unit.position={...to}; unit.spent++;
   // Embarked units physically travel with the ship, but spend no movement themselves.
   for(const cargo of g.units.filter(u=>u.aboard===unit.id))cargo.position={...to};
@@ -504,10 +504,12 @@ function aiTransportThreatened(view:ReturnType<typeof getPlayerView>,p:Coord):bo
 export function chooseAiTransportObjective(view:ReturnType<typeof getPlayerView>,ship:Unit):string|undefined {
   if(ship.kind!=='transport'||!view.ownUnits.some(u=>u.aboard===ship.id))return undefined;
   const objectives=view.cells.flatMap((cell,i)=>cell.city&&cell.city.owner!==ship.owner&&!(ship.aiAvoidObjective?.id===cell.city.id&&ship.aiAvoidObjective.until>view.round)?
-    [{id:cell.city.id,x:i%view.width,y:Math.floor(i/view.width)}]:[]);
+    [{id:cell.city.id,owner:cell.city.owner,x:i%view.width,y:Math.floor(i/view.width)}]:[]);
   if(objectives.some(c=>c.id===ship.aiObjective))return ship.aiObjective;
   const assigned=(id:string)=>view.ownUnits.filter(u=>u.kind==='transport'&&u.id!==ship.id&&u.aiObjective===id).length;
-  objectives.sort((a,b)=>assigned(a.id)-assigned(b.id)||Math.max(Math.abs(a.x-ship.position.x),Math.abs(a.y-ship.position.y))-
+  const needed=(city:typeof objectives[number])=>city.owner===null?1:Math.max(2,Math.ceil((3+
+    view.enemies.filter(e=>!e.stale&&e.kind==='army'&&Math.max(Math.abs(e.position.x-city.x),Math.abs(e.position.y-city.y))<=3).length)/6));
+  objectives.sort((a,b)=>Number(assigned(a.id)>=needed(a))-Number(assigned(b.id)>=needed(b))||Math.max(Math.abs(a.x-ship.position.x),Math.abs(a.y-ship.position.y))-
     Math.max(Math.abs(b.x-ship.position.x),Math.abs(b.y-ship.position.y))||a.id.localeCompare(b.id));
   return objectives[0]?.id;
 }
@@ -663,7 +665,7 @@ export function planAiLandingWave(view:ReturnType<typeof getPlayerView>):{armyId
     const cargo=view.ownUnits.filter(u=>u.kind==='army'&&u.aboard&&ids.has(u.aboard));
     const support=view.ownUnits.filter(u=>u.kind==='army'&&!u.aboard&&u.order.kind!=='sentry'&&
       distance(u.position,objective)<=2&&aiLandingReachesObjective(view,u.position,target)).length;
-    const needed=Math.max(0,Math.min(city.owner===null?2:3,cargo.length+support)-support);
+    const needed=Math.max(0,Math.min(city.owner===null?2:Math.max(3,group.length*3),cargo.length+support)-support);
     const choices=new Map(group.map(s=>[s.id,planAiLandingSquares(view,{...s,aiObjective:target})
       .filter(p=>!result.some(r=>equal(r.position,p)))]));
     // Bipartite matching: a flexible ship must not consume another ship's only
@@ -854,10 +856,16 @@ export function aiLocalArmyReserve(view:ReturnType<typeof getPlayerView>,origin:
  * and scouts already ashore. No undiscovered city is used as a target.
  */
 export function planAiReconLandingSquare(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|null {
-  if(ship.aiObjective||ship.kind!=='transport')return null;
+  if(ship.kind!=='transport')return null;
+  const cargo=view.ownUnits.filter(u=>u.kind==='army'&&u.aboard===ship.id).length;
+  if(ship.aiObjective&&cargo<4)return null; // Keep three armies for the city assault.
   for(const d of directions){
     const p={x:ship.position.x+d.x,y:ship.position.y+d.y};
     if(p.x<=0||p.y<=0||p.x>=view.width-1||p.y>=view.height-1||!aiBeachAvailable(view,p))continue;
+    if(ship.aiObjective){
+      const target=view.cells.findIndex(c=>c.city?.id===ship.aiObjective);
+      if(target<0||Math.max(Math.abs(target%view.width-p.x),Math.abs(Math.floor(target/view.width)-p.y))<=8)continue;
+    }
     const region=aiGroundRegion(view,p),key=(q:Coord)=>q.y*view.width+q.x;
     const nearby=(q:Coord)=>region.has(key(q))&&Math.max(Math.abs(q.x-p.x),Math.abs(q.y-p.y))<=8;
     if(view.ownCities.some(c=>nearby(c.position))||
@@ -873,6 +881,13 @@ export function planAiReconLandingSquare(view:ReturnType<typeof getPlayerView>,s
 export function playRedOpponent(game:Game):Game {
   if(game.active!=='red')throw new Error('Red AI must act during the red faction turn.');
   let g=game;
+  const defenders=new Map<string,string>();
+  for(const city of getPlayerView(g,'red').ownCities){
+    const army=getPlayerView(g,'red').ownUnits.find(u=>u.kind==='army'&&!u.aboard&&equal(u.position,city.position));
+    if(army)defenders.set(city.id,army.id);
+  }
+  const protectedCargo=new Set(defenders.values());
+  const aiMove=(state:Game,id:string,to:Coord)=>moveUnit(state,id,to,protectedCargo);
   // Deterministic, knowledge-limited production. Red assigns armies first;
   // a coastal city may switch to transport production once forces accumulate.
   // This is provisional strategy, NOT reverse-engineered historical AI.
@@ -896,19 +911,10 @@ export function playRedOpponent(game:Game):Game {
     const committedShip=city.progress>0&&
       (city.production==='destroyer'&&!scoutingAssigned||
        city.production==='transport'&&assignedTransports<desiredTransports);
-    const pick=committedShip?city.production:scoutNeeded?'destroyer':
-      armyCount>=3&&assignedTransports<desiredTransports&&isCoastal(g,city.position)?'transport':
-      armyCount>=8?null:'army';
-    // Bound local reserves even when this faction has no transport or port.
-    // Resume production automatically after casualties or transport losses.
-    if(pick===null){
-      if(city.production!==null){
-        g=clone(g);
-        const paused=g.cities.find(c=>c.id===city.id)!;
-        paused.production=null;paused.progress=0;paused.firstCycle=true;
-        log(g,'red','production',`Production paused at ${city.id}: sufficient reserve armies.`);
-      }
-    }else if(city.production!==pick)g=selectProduction(g,city.id,pick);
+    const pick=!defenders.has(city.id)?'army':committedShip?city.production!:scoutNeeded?'destroyer':
+      armyCount>=3&&assignedTransports<desiredTransports&&isCoastal(g,city.position)?'transport':'army';
+    // Production time cannot be recovered: keep every factory active.
+    if(city.production!==pick)g=selectProduction(g,city.id,pick);
   }
   // Loading consumes eligible troops' movement. Choose from own units only.
   for(const ship of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='transport'&&!u.aboard)){
@@ -919,7 +925,9 @@ export function playRedOpponent(game:Game):Game {
     // Never re-embark an invasion force at the enemy beachhead. Those armies
     // need their next turn to assault the city rather than cycling aboard.
     if(nearArmy&&atLoadingPort&&g.units.filter(u=>u.aboard===ship.id).length<(capacity(ship)??0)){
-      try{g=loadShip(g,ship.id);}catch{/* The unit remains available for normal tactics. */}
+      for(const army of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='army'&&!u.aboard&&!protectedCargo.has(u.id))){
+        try{g=embarkArmy(g,army.id,ship.id);}catch{/* Only eligible nearby troops board. */}
+      }
       // A partially filled AI transport may sail; do not keep it on a
       // stationary loading order forever.
       g=setOrder(g,ship.id,{kind:'none'});
@@ -945,7 +953,7 @@ export function playRedOpponent(game:Game):Game {
 
   // Prefer landing near a known hostile/neutral objective; never target an
   // undiscovered city or use hidden terrain for route selection.
-  for(const ship of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='transport'&&!u.aiObjective)){
+  for(const ship of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='transport')){
     const view=getPlayerView(g,'red');
     const cargo=view.ownUnits.find(u=>u.kind==='army'&&u.aboard===ship.id&&u.spent<movementAllowance(u));
     const shore=planAiReconLandingSquare(view,ship);
@@ -979,6 +987,7 @@ export function playRedOpponent(game:Game):Game {
       const view=getPlayerView(g,'red');
       const unit=view.ownUnits.find(u=>u.id===id);
       if(!unit||unit.spent>=movementAllowance(unit)||unit.order.kind==='sentry')break;
+      if(protectedCargo.has(id))break;
       if(unit.kind==='transport'&&!view.ownUnits.some(u=>u.aboard===id)){
         // Empty transports return to known friendly ports for another load.
         // A ship already in port waits for troops instead of wandering away.
@@ -991,7 +1000,7 @@ export function playRedOpponent(game:Game):Game {
           for(const port of ports){
             const step=routeStep(g,unit,port.position);
             if(!step)continue;
-            try {g=moveUnit(g,id,step);returned=true;break;}
+            try {g=aiMove(g,id,step);returned=true;break;}
             catch{/* An occupied or newly discovered square blocks this route. */}
           }
           if(returned)continue;
@@ -1002,7 +1011,7 @@ export function playRedOpponent(game:Game):Game {
         const step=planAiInvasionStep(view,unit);
         // Once in landing range, hold station for the next available cargo turn.
         if(!step)break;
-        try {g=moveUnit(g,id,step);continue;}
+        try {g=aiMove(g,id,step);continue;}
         catch {break;} // Hidden contact interrupts the route; do not attack blindly.
       }
       // Destroyers scout charted water instead of drifting into arbitrary
@@ -1013,7 +1022,7 @@ export function playRedOpponent(game:Game):Game {
         let pursued=false;
         for(const target of transports){
           if(distance(target.position,unit.position)===1){
-            try{g=moveUnit(g,id,target.position);pursued=true;}catch{/* Combat rules remain authoritative. */}
+            try{g=aiMove(g,id,target.position);pursued=true;}catch{/* Combat rules remain authoritative. */}
             if(pursued)break;
           }else{
             const approaches=directions.map(d=>({x:target.position.x+d.x,y:target.position.y+d.y}))
@@ -1021,7 +1030,7 @@ export function playRedOpponent(game:Game):Game {
               .sort((a,b)=>distance(a,unit.position)-distance(b,unit.position));
             for(const p of approaches){
               const next=routeStep(g,unit,p);if(!next)continue;
-              try{g=moveUnit(g,id,next);pursued=true;break;}catch{/* Try another charted approach. */}
+              try{g=aiMove(g,id,next);pursued=true;break;}catch{/* Try another charted approach. */}
             }
             if(pursued)break;
           }
@@ -1029,7 +1038,7 @@ export function playRedOpponent(game:Game):Game {
         if(pursued){if(transports.some(t=>distance(t.position,unit.position)===1))break;continue;}
         const next=planAiNavalScoutStep(view,unit);
         if(next){
-          try {g=moveUnit(g,id,next);continue;}
+          try {g=aiMove(g,id,next);continue;}
           catch {break;}
         }
       }
@@ -1057,7 +1066,7 @@ export function playRedOpponent(game:Game):Game {
           for(const port of ports){
             const next=routeStep(g,unit,port.position);
             if(!next)continue;
-            try{g=moveUnit(g,id,next);staged=true;break;}
+            try{g=aiMove(g,id,next);staged=true;break;}
             catch{/* Another unit may have moved into this square. */}
           }
           if(staged)continue;
@@ -1071,7 +1080,7 @@ export function playRedOpponent(game:Game):Game {
       const immediate=[...foes.map(e=>e.position),...adjacentCities.map(c=>c.pos)];
       let moved=false;
       for(const target of immediate){
-        try {g=moveUnit(g,id,target);moved=true;break;}catch{/* Try the next legal contact. */}
+        try {g=aiMove(g,id,target);moved=true;break;}catch{/* Try the next legal contact. */}
       }
       // Stop after any encounter; the AI makes no additional tactical decision
       // with a unit immediately after a battle or city assault.
@@ -1079,7 +1088,7 @@ export function playRedOpponent(game:Game):Game {
       if(unit.kind==='army'){
         const planned=groundPlan??(isScout?planAiGroundScoutStep(view,unit):null);
         if(planned){
-          try {g=moveUnit(g,id,planned);continue;}
+          try {g=aiMove(g,id,planned);continue;}
           catch {break;} // A newly revealed contact blocks this turn's route.
         }
       }
@@ -1100,13 +1109,15 @@ export function playRedOpponent(game:Game):Game {
           if(domain==='land'&&known.terrain==='sea'&&!isPort)continue;
           if(domain==='sea'&&known.terrain==='land'&&!isPort)continue;
         }
-        try {g=moveUnit(g,id,dest);moved=true;break;}catch{/* An obstacle remains an obstacle. */}
+        try {g=aiMove(g,id,dest);moved=true;break;}catch{/* An obstacle remains an obstacle. */}
       }
       if(!moved)break;
       // Movement never loops blindly through contacts: the next iteration
       // recomputes the faction's actual, newly updated knowledge.
     }
   }
+  // Captures happen after the production pass; activate their factories now.
+  for(const city of getPlayerView(g,'red').ownCities)if(city.production===null)g=selectProduction(g,city.id,'army');
   return g;
 }
 

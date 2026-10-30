@@ -31,6 +31,8 @@ for(const layout of selected)for(const seed of seeds){
   const factions=Object.fromEntries(['blue','red'].map(f=>{
     const v=engine.getPlayerView(g,f),s=stats[f];
     return [f,{...s,cities:v.ownCities.length,armies:v.ownUnits.filter(u=>u.kind==='army').length,
+      defendedCities:v.ownCities.filter(c=>v.ownUnits.some(u=>u.kind==='army'&&!u.aboard&&u.position.x===c.position.x&&u.position.y===c.position.y)).length,
+      armyProductionCities:v.ownCities.filter(c=>c.production==='army').length,
       transports:v.ownUnits.filter(u=>u.kind==='transport').length,
       destroyers:v.ownUnits.filter(u=>u.kind==='destroyer').length,
       explored:v.cells.filter(c=>c.terrain!==null).length,knownCities:v.cells.filter(c=>c.city).length,
