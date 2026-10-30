@@ -103,6 +103,9 @@ export function setOrder(game:Game,unitId:string,order:UnitOrder):Game {
   if(!['sentry','skip','none','move-to','go-direction','patrol','go-home','escort'].includes(order.kind)) throw new RuleNotImplemented('STANDING_ORDERS','This standing order is not implemented yet.');
   const g=clone(game),unit=g.units.find(u=>u.id===unitId);
   if(!unit||unit.owner!==g.active) throw new Error('Unit not available to the active player.');
+  if(order.kind==='sentry'&&unit.kind==='fighter'&&!unit.aboard&&
+    cityAt(g,unit.position)?.owner!==unit.owner)
+    throw new Error('Sentry requires a fighter to be based in a friendly city or aboard a carrier.');
   if(order.kind==='move-to'){
     if(!playable(g,order.destination))throw new Error('Destination must be inside the playable map.');
     if(equal(unit.position,order.destination))unit.order={kind:'none'};

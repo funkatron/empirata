@@ -98,3 +98,21 @@ independent expert review. The roadmap's independent review remains open.
 Tests should fail for the documented behavior before a fix, preserve replay and
 private intelligence, and test boundary/interacting rules rather than just copy
 constants. No full historical-conformance claim is warranted by the current suite.
+
+## Sentry follow-up
+
+A PR stacked on the detection fix addresses MF-04 and MF-08. After authoritative
+knowledge updates, unembarked sentries with a fresh adjacent faction-known enemy
+contact clear sentry and emit a private activation event. Repeated updates do not
+repeat the event. Activation preserves position, spent movement and RNG state;
+it never initiates combat. Embarked troops and Load Ship orders remain separate.
+
+This uses shared faction intelligence: a nearby contact detected by another
+capable friendly observer can wake a sentry. Exact DOS scheduling/activation
+ordering still needs runtime comparison. Stale reports never trigger activation.
+
+Airborne fighters cannot receive sentry orders; save import enforces the same
+friendly-city/carrier requirement. Regression coverage includes opposing-turn
+movement, hidden submarines, distant contacts, cargo, loading, replay and based
+versus airborne fighters. Full fighter patrol validation and temporary standing
+order interruption remain subsequent work.
