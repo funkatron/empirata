@@ -1,0 +1,59 @@
+# Initial AI aircraft production and reconnaissance
+
+The production planner can now choose fighters and carriers, using normal factory
+progress and shared faction-known geography. Blue and Red use the same policy.
+This is modern experimental strategy, not a reconstruction of DOS AI.
+
+## Production decisions
+
+- Missing city defenders still require armies first.
+- A fighter requires at least three locally connected armies, unsatisfied aircraft
+  demand, and a useful fuel-feasible scouting route from the factory. Army supply
+  for existing transport capacity takes priority over a new fighter assignment.
+- Fighter demand starts at one per two cities (rounded up, minimum one) plus four
+  per existing carrier. Other factories assigned fighters count toward demand.
+- A coastal carrier requires local army supply, an existing transport, a destroyer
+  and at least two fighters. Carrier demand scales at one per two transports,
+  rounded up. Already assigned factories count toward demand.
+- Preserve committed aircraft/carrier progress while demand remains; routine troop
+  boarding must not reset a partially completed carrier. Production stays active.
+
+These are provisional demand heuristics, not unit caps or guaranteed optimal build
+orders. The completion regressions run the AI on every production turn and verify
+actual fighter/carrier creation, not merely a selected production label.
+
+## Reconnaissance and fuel
+
+`planAiFighterStep` reads only PlayerView. It searches air routes around known
+occupied cells and nonfriendly cities, calculates return routes to owned cities
+and carriers, and favors adjacent unknown terrain per travel cost. Outbound
+reconnaissance retains a two-move return margin; near the reserve boundary it
+returns to a friendly base. Each decision searches at most the fixed world grid.
+
+Hidden contacts may invalidate a route. Future loss or movement of a base cannot
+be guaranteed against by the current snapshot. If no feasible step exists the
+fighter holds; active interception and no-safe-base recovery remain follow-ups.
+Fighters do not use the generic wandering fallback.
+
+## Carrier scope
+
+Initial carriers hold as refueling stations; fighters can use them as return bases.
+Automatic launch of embarked aircraft and mobile carrier group coordination are
+not implemented here. Carrier presence should not be read as evidence of a fully
+functional carrier air campaign. Those execution tasks remain on the technical
+implementation plan alongside carrier-relative patrols.
+
+## Verification
+
+Tests cover both production choices through normal completion, completion while
+supply armies board transports, replay, fuel-driven return and defender priority.
+Generated-map campaigns supplement constructed fixtures; they are observations,
+not a general claim of stronger play. Monitor computation cost and aircraft loss
+rates in longer campaigns before tuning demand upward.
+
+A 100-round clean-start check on seed 17 completed for continents, islands and
+archipelago, with final Blue/Red city holdings 4/2, 1/2 and 1/1 respectively.
+All final saves passed normal export/import validation. These three observations
+are not a win-rate or comparative improvement estimate; carrier completion is
+established by the explicit production-cycle regression. The current campaign
+report does not enumerate aircraft classes. [Raw campaign results](evaluation/2026-10-30-air-production.json).

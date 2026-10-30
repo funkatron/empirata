@@ -10,9 +10,9 @@ function inland(){
  for(let i=0;i<8;i++)g.units.push({...structuredClone(army),id:`reserve-${i}`,position:{x:48+i%4,y:29+Math.floor(i/4)}});
  updateAllKnowledge(g);return g;
 }
-test('Inland AI keeps producing armies above eight reserves and after local losses',()=>{
+test('Inland AI keeps production active with reconnaissance aircraft and replaces army losses',()=>{
  let g=playRedOpponent(endTurn(inland()));
- assert.equal(g.cities.find(c=>c.id==='c-red').production,'army');
+ assert.equal(g.cities.find(c=>c.id==='c-red').production,'fighter');
  g.units=g.units.filter(u=>!u.id.startsWith('reserve-')||u.id==='reserve-0');
  g=playRedOpponent(g);
  assert.equal(g.cities.find(c=>c.id==='c-red').production,'army');

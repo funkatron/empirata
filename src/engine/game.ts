@@ -891,6 +891,48 @@ export function planAiReconLandingSquare(view:ReturnType<typeof getPlayerView>,s
   return null;
 }
 
+/** Fuel-safe aerial reconnaissance over faction-known obstacles. Return distances
+ * are actual air routes to owned cities/carriers, not hidden-map estimates. */
+export function planAiFighterStep(view:ReturnType<typeof getPlayerView>,fighter:Unit):Coord|null {
+  if(fighter.kind!=='fighter')return null;
+  const key=(p:Coord)=>p.y*view.width+p.x;
+  const bases=[...view.ownCities.map(c=>c.position),...view.ownUnits.filter(u=>u.kind==='carrier').map(u=>u.position)];
+  if(!bases.length)return null;
+  const baseKeys=new Set(bases.map(key));
+  const blocked=new Set(view.ownUnits.filter(u=>!u.aboard&&u.id!==fighter.id&&!baseKeys.has(key(u.position))).map(u=>key(u.position)));
+  for(const enemy of view.enemies)if(!enemy.stale)blocked.add(key(enemy.position));
+  const legal=(p:Coord)=>playable(view,p)&&!blocked.has(key(p))&&
+    (!view.cells[key(p)]?.city||view.cells[key(p)]!.city!.owner===fighter.owner);
+  const returns=new Map<number,number>(),queue:Coord[]=[];
+  for(const p of bases){returns.set(key(p),0);queue.push(p);}
+  for(let h=0;h<queue.length;h++)for(const d of directions){
+    const p={x:queue[h]!.x+d.x,y:queue[h]!.y+d.y},k=key(p);
+    if(!legal(p)||returns.has(k))continue;
+    returns.set(k,returns.get(key(queue[h]!))!+1);queue.push(p);
+  }
+  const start=key(fighter.position),fuel=fighter.fuel??0;
+  const paths=[fighter.position],depth=new Map<number,number>([[start,0]]),parent=new Map<number,number>();
+  let best:number|undefined,score=-Infinity;
+  const returning=(returns.get(start)??Infinity)+5>=fuel;
+  for(let h=0;h<paths.length;h++){
+    const here=paths[h]!,k=key(here),steps=depth.get(k)!;
+    if(k!==start&&steps+(returns.get(k)??Infinity)<=fuel){
+      const unknown=directions.filter(d=>{const p={x:here.x+d.x,y:here.y+d.y};return playable(view,p)&&view.cells[key(p)]?.terrain===null;}).length;
+      const value=returning?(baseKeys.has(k)?1000-steps:-Infinity):
+        steps+(returns.get(k)??Infinity)+2<=fuel&&unknown>0?unknown/(steps+1):-Infinity;
+      if(value>score){score=value;best=k;}
+    }
+    if(steps>=fuel)continue;
+    for(const d of directions){const p={x:here.x+d.x,y:here.y+d.y},next=key(p);
+      if(!legal(p)||depth.has(next))continue;
+      depth.set(next,steps+1);parent.set(next,k);paths.push(p);
+    }
+  }
+  if(best===undefined)return null;
+  let next=best;while(parent.get(next)!==start){const previous=parent.get(next);if(previous===undefined)return null;next=previous;}
+  return {x:next%view.width,y:Math.floor(next/view.width)};
+}
+
 export function playRedOpponent(game:Game):Game {
   if(game.active!=='red')throw new Error('Red AI must act during the red faction turn.');
   let g=game;
@@ -921,11 +963,21 @@ export function playRedOpponent(game:Game):Game {
     // Finish committed ships rather than repeatedly discarding their progress.
     const desiredTransports=Math.max(1,Math.ceil(ownUnits.filter(u=>u.kind==='army').length/6));
     const assignedTransports=transportCount+view.ownCities.filter(c=>c.id!==city.id&&c.production==='transport').length;
+    const fighterCount=ownUnits.filter(u=>u.kind==='fighter').length;
+    const carrierCount=ownUnits.filter(u=>u.kind==='carrier').length;
+    const fighterTarget=Math.max(1,Math.ceil(view.ownCities.length/2))+carrierCount*4;
+    const fightersAssigned=fighterCount+view.ownCities.filter(c=>c.id!==city.id&&c.production==='fighter').length;
+    const airProbe:Unit={...probe,kind:'fighter',fuel:20};
+    const fighterNeeded=armyCount>=3&&(transportCount===0||ownUnits.filter(u=>u.kind==='army').length>=transportCount*6)&&fightersAssigned<fighterTarget&&planAiFighterStep(view,airProbe)!==null;
+    const carrierNeeded=armyCount>=3&&transportCount>0&&fighterCount>=2&&
+      ownUnits.some(u=>u.kind==='destroyer')&&carrierCount+view.ownCities.filter(c=>c.id!==city.id&&c.production==='carrier').length<Math.ceil(transportCount/2)&&isCoastal(g,city.position);
     const committedShip=city.progress>0&&
       (city.production==='destroyer'&&!scoutingAssigned||
-       city.production==='transport'&&assignedTransports<desiredTransports);
+       city.production==='transport'&&assignedTransports<desiredTransports||
+       city.production==='fighter'&&fightersAssigned<fighterTarget||city.production==='carrier'&&fighterCount>=2&&carrierCount<Math.ceil(transportCount/2));
     const pick=!defenders.has(city.id)?'army':committedShip?city.production!:scoutNeeded?'destroyer':
-      armyCount>=3&&assignedTransports<desiredTransports&&isCoastal(g,city.position)?'transport':'army';
+      armyCount>=3&&assignedTransports<desiredTransports&&isCoastal(g,city.position)?'transport':
+      carrierNeeded?'carrier':fighterNeeded?'fighter':'army';
     // Production time cannot be recovered: keep every factory active.
     if(city.production!==pick)g=selectProduction(g,city.id,pick);
   }
@@ -1001,6 +1053,13 @@ export function playRedOpponent(game:Game):Game {
       const unit=view.ownUnits.find(u=>u.id===id);
       if(!unit||unit.spent>=movementAllowance(unit)||unit.order.kind==='sentry')break;
       if(protectedCargo.has(id))break;
+      if(unit.kind==='fighter'){
+        const next=planAiFighterStep(view,unit);if(!next)break;
+        try{g=aiMove(g,id,next);continue;}catch{break;}
+      }
+      // Initial carrier role: remain a safe refueling station. Moving naval air
+      // groups require the subsequent carrier/patrol coordination milestone.
+      if(unit.kind==='carrier')break;
       if(unit.kind==='transport'&&!view.ownUnits.some(u=>u.aboard===id)){
         // Empty transports return to known friendly ports for another load.
         // A ship already in port waits for troops instead of wandering away.
