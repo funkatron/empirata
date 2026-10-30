@@ -63,6 +63,9 @@ export function importSave(json:string):Game {
     }
     const kind=u.order?.kind;
     if(!['none','skip','sentry','move-to','go-direction','patrol','go-home','escort','load-ship'].includes(kind))throw new Error('Invalid unit order.');
+    if(kind==='sentry'&&u.kind==='fighter'&&u.aboard===null&&
+      !g.cities.some(c=>c.owner===u.owner&&equal(c.position,u.position)))
+      throw new Error('Sentry fighter requires a friendly base.');
     if(kind==='move-to'&&!validPosition((u.order as any).destination))throw new Error('Invalid Move To destination.');
     if(kind==='go-direction'){
       const d=(u.order as any).direction;
@@ -106,7 +109,7 @@ export function importSave(json:string):Game {
   }
   const result=structuredClone(g as Game);
   // Rebuild known visibility from current authoritative state while retaining remembered terrain and sightings.
-  updateAllKnowledge(result);
+  updateAllKnowledge(result,false); // Restoring a save must not execute activation transitions.
   return result;
 }
 function openDB():Promise<IDBDatabase>{
