@@ -17,6 +17,15 @@ Round 753/758 screenshots show Blue with 186–189 units and three cities, with 
 
 Prioritize this investigation alongside reconnaissance: expansion must result in usable production capacity.
 
+## Campaign evaluation follow-up (2026-10-30)
+
+Twelve 100-round clean campaigns across three layouts, two seeds and swapped
+starts establish a post-PR-17 baseline. Eight gained one city; four gained none.
+See [results and measurement limits](evaluation/2026-10-30-campaign-outcomes.md).
+Next: trace discovery-to-capture delay, land access, port access and landed-unit
+objectives in ordinary campaigns before tuning invasion size or adding fighters.
+Long-distance transport rendezvous remains open.
+
 ## Immediate priority — General gameplay reconnaissance (2026-10-27)
 
 Scenario success is regression evidence, not evidence of a generally effective strategy.
