@@ -108,6 +108,8 @@ export function setOrder(game:Game,unitId:string,order:UnitOrder):Game {
     throw new Error('Sentry requires a fighter to be based in a friendly city or aboard a carrier.');
   if(order.kind==='move-to'){
     if(!playable(g,order.destination))throw new Error('Destination must be inside the playable map.');
+    if(unit.kind==='fighter'&&Math.max(Math.abs(order.destination.x-unit.position.x),Math.abs(order.destination.y-unit.position.y))>(unit.fuel??0))
+      throw new Error('Move To destination exceeds remaining fighter fuel.');
     if(equal(unit.position,order.destination))unit.order={kind:'none'};
     else unit.order={kind:'move-to',destination:{...order.destination}};
   }else if(order.kind==='go-direction'){
@@ -116,6 +118,14 @@ export function setOrder(game:Game,unitId:string,order:UnitOrder):Game {
     unit.order={kind:'go-direction',direction:{x,y}};
   }else if(order.kind==='patrol'){
     if(!playable(g,order.to)||!playable(g,order.from)||!equal(order.from,unit.position)||equal(order.to,order.from))throw new Error('Patrol requires a different playable destination and current starting position.');
+    if(unit.kind==='fighter'){
+      const carrier=unit.aboard?g.units.find(u=>u.id===unit.aboard&&u.kind==='carrier'&&u.owner===unit.owner):undefined;
+      if(!carrier&&cityAt(g,unit.position)?.owner!==unit.owner)
+        throw new Error('Fighter patrol requires a friendly city or carrier base.');
+      const distance=Math.max(Math.abs(order.to.x-order.from.x),Math.abs(order.to.y-order.from.y));
+      if(distance>(carrier?6:10))throw new Error(`Fighter patrol exceeds ${carrier?6:10}-square base range.`);
+      if(distance*2>(unit.fuel??0))throw new Error('Fighter patrol requires enough fuel for the return flight.');
+    }
     unit.order={kind:'patrol',from:{...order.from},to:{...order.to},outbound:true};
   }else if(order.kind==='escort'){
     const target=g.units.find(u=>u.id===order.targetId);

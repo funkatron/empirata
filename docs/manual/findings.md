@@ -116,3 +116,19 @@ friendly-city/carrier requirement. Regression coverage includes opposing-turn
 movement, hidden submarines, distant contacts, cargo, loading, replay and based
 versus airborne fighters. Full fighter patrol validation and temporary standing
 order interruption remain subsequent work.
+
+## Fighter order-assignment follow-up
+
+A subsequent PR adds command-time checks for MF-05 and MF-11: fighter patrols
+must begin at an owned city or aboard a friendly carrier, with respective limits
+of ten and six squares. Distance uses the eight-direction grid metric. Assignment
+requires fuel for both patrol legs; Move To requires fuel for its outbound leg.
+Failed assignments preserve the source state through the existing immutable API.
+
+This is partial order validation. Existing save import still validates structural
+patrol fields rather than reconstructing assignment-time basing/fuel. An airborne
+fighter executing an already assigned route is valid, so import must not simply
+require every patrolling fighter to be currently at a base. Carrier-relative
+endpoint metadata, automatic launch/return cycles, moving-base fuel reassessment
+and loss-of-base behavior remain required before MF-05 can be closed. No AI
+fighter production policy is introduced by these assignment checks.

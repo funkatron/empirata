@@ -4,6 +4,14 @@
 **Status:** proposed engineering design and verification sequence. Unchecked items
 are work to complete, not promises of historical parity or deployed features.
 
+## Implementation progress
+
+2026-10-30: PRs #18, #19, #21 and #23 have merged. The open-PR table below
+is retained as the plan's original snapshot, not current merge status. Main
+`73673db` includes campaign metrics, mobile scouts/naval holding, detection and
+sentry activation. Fighter order assignment is the next scoped change; full
+carrier-relative patrol execution remains outstanding.
+
 ## 1. Scope and delivery policy
 
 Build a dependable Interstel DOS 2.05 rules implementation and a useful modern
