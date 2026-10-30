@@ -62,3 +62,17 @@ test('Reconnaissance can add a distant drop site on the same charted landmass',(
  view.ownUnits.push({...structuredClone(view.ownUnits[0]),id:'distant-scout',aboard:null,position:{x:64,y:30}});
  assert.deepEqual(planAiReconLandingSquare(view,ship),{x:51,y:30});
 });
+
+test('A distant landed scout explores instead of returning to supply on the same landmass',()=>{
+ const g=endTurn(makeRulesLab()),base=g.units.find(u=>u.owner==='red');
+ g.units.push({...structuredClone(base),id:'landed-scout',position:{x:90,y:36}});
+ g.units.push({...structuredClone(base),id:'ship',kind:'transport',position:{x:90,y:35}});
+ g.units.push({...structuredClone(base),id:'cargo',aboard:'ship',position:{x:90,y:35}});
+ g.tiles.fill('sea');
+ for(const city of g.cities)g.tiles[city.position.y*g.width+city.position.x]='land';
+ for(let x=79;x<=95;x++)g.tiles[36*g.width+x]='land';
+ updateAllKnowledge(g);
+ g.knowledge.red.terrain=g.tiles.map((tile,i)=>i%g.width<=95?tile:null);
+ const next=playRedOpponent(g);
+ assert.deepEqual(next.units.find(u=>u.id==='landed-scout').position,{x:91,y:36});
+});

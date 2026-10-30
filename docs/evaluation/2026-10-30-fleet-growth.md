@@ -2,18 +2,18 @@
 
 ## Behavior
 
-- Transport demand grows with available armies (one per six armies, maximum four).
-- Destroyer demand grows with city count, supplied transport fleets and fresh enemy transport sightings (maximum four). Factories already assigned to ships count toward demand. Committed production retains progress while that demand remains.
+- Transport demand grows with available armies (one per six armies).
+- Destroyer demand grows with city count, supplied transport fleets and fresh enemy transport sightings without a fixed fleet ceiling. Factories already assigned to ships count toward demand. Committed production retains progress while that demand remains.
 - Destroyers attack adjacent freshly sighted transports before scouting, or approach a freshly sighted transport using charted sea approaches. Stale contacts do not trigger pursuit.
 - New loaded transports prefer known cities without another assigned transport. Existing missions remain stable; shared assaults remain possible when no other objective is known.
 - With no active city mission, a transport may land one army at a safe charted land frontier. Nearby supply and scouts suppress duplicate drops within eight squares; distant drops on the same charted region remain possible. Remaining cargo stays aboard.
 - Ground reconnaissance selects a scout per nearby group rather than one for the entire faction, so distant landed scouts can explore.
 
-The four-ship limits, eight-square spacing and force ratios are provisional strategy choices, not historical DOS rules. Reconnaissance drops are opportunistic; dedicated persistent coastal waypoint missions and diversion of assault cargo are not implemented. Combat and movement still use normal rules and faction intelligence. No save migration is included.
+The eight-square spacing and force ratios are provisional strategy choices, not historical DOS rules. Reconnaissance drops are opportunistic; dedicated persistent coastal waypoint missions and diversion of assault cargo are not implemented. Combat and movement still use normal rules and faction intelligence. No save migration is included.
 
 ## Verification
 
-- [x] 202 tests pass, including second-ship production, assignment distribution, reconnaissance spacing and fresh/stale transport combat.
+- [x] 203 tests pass, including second-ship production, assignment distribution, reconnaissance spacing and fresh/stale transport combat.
 - [x] Four bundle checks pass; engine coverage gates pass.
 - [x] A direct integration check lands one reconnaissance army and retains the second aboard.
 - [x] Three paired generated-map campaigns run for 200 rounds each (1,200 simulated rounds), with ordinary final-save validation.
@@ -37,3 +37,7 @@ SEEDS=101 ROUNDS=200 node scripts/evaluate-ai.mjs
 EMPIRATA_ENGINE=/path/to/built/baseline/dist/engine/index.js \
   SEEDS=101 ROUNDS=200 node scripts/evaluate-ai.mjs
 ```
+
+## Review amendments
+
+The measurements above precede two amendments: distant scouts now apply the eight-square supply restriction when deciding to explore, and the provisional four-ship ceilings have been removed. Fleet targets scale with armies and cities rather than a permanent fixed cap. The original DOS overpopulation limit remains unverified and unimplemented. The existing eight-army local reserve pause is an AI policy, not upkeep or a game rule. These measurements must not be described as fresh measurements of the amended commit.

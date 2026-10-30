@@ -882,7 +882,7 @@ export function playRedOpponent(game:Game):Game {
     const transportCount=ownUnits.filter(u=>u.kind==='transport').length;
     const view=getPlayerView(g,'red');
     const navalThreat=view.enemies.some(e=>!e.stale&&e.kind==='transport');
-    const desiredScouts=Math.min(4,Math.max(navalThreat||transportCount>0&&armyCount>=3&&ownUnits.some(u=>u.kind==='destroyer')?2:1,Math.ceil(view.ownCities.length/2)));
+    const desiredScouts=Math.max(navalThreat||transportCount>0&&armyCount>=3&&ownUnits.some(u=>u.kind==='destroyer')?2:1,Math.ceil(view.ownCities.length/2));
     const scoutingAssigned=ownUnits.filter(u=>u.kind==='destroyer').length+
       view.ownCities.filter(c=>c.id!==city.id&&c.production==='destroyer').length>=desiredScouts;
     const knownObjective=view.cells.some(c=>c.city&&c.city.owner!=='red');
@@ -891,7 +891,7 @@ export function playRedOpponent(game:Game):Game {
     const scoutNeeded=armyCount>=1&&!scoutingAssigned&&(!knownObjective||desiredScouts>1)&&
       isCoastal(g,city.position)&&(navalThreat||planAiNavalScoutStep(view,probe)!==null);
     // Finish committed ships rather than repeatedly discarding their progress.
-    const desiredTransports=Math.min(4,Math.max(1,Math.ceil(ownUnits.filter(u=>u.kind==='army').length/6)));
+    const desiredTransports=Math.max(1,Math.ceil(ownUnits.filter(u=>u.kind==='army').length/6));
     const assignedTransports=transportCount+view.ownCities.filter(c=>c.id!==city.id&&c.production==='transport').length;
     const committedShip=city.progress>0&&
       (city.production==='destroyer'&&!scoutingAssigned||
@@ -1045,7 +1045,7 @@ export function playRedOpponent(game:Game):Game {
       const region=unit.kind==='army'?aiGroundRegion(view,unit.position):new Set<number>();
       const firstArmy=view.ownUnits.find(u=>u.kind==='army'&&!u.aboard&&region.has(u.position.y*view.width+u.position.x)&&distance(u.position,unit.position)<=8);
       const isScout=unit.kind==='army'&&firstArmy?.id===unit.id&&
-        (!view.ownCities.some(c=>region.has(c.position.y*view.width+c.position.x))||!view.ownUnits.some(u=>u.kind==='transport')||
+        (!view.ownCities.some(c=>region.has(c.position.y*view.width+c.position.x)&&distance(c.position,unit.position)<=8)||!view.ownUnits.some(u=>u.kind==='transport')||
          view.ownUnits.filter(u=>u.kind==='army'&&!u.aboard).length>=3);
       if(unit.kind==='army'&&!isScout&&visibleEnemies.length===0&&groundPlan===null&&
          !knownCities.some(c=>distance(c.pos,unit.position)<=1)){
