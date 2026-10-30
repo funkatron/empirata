@@ -87,7 +87,7 @@ Values below are transcribed from the Interstel manual pp. 20–25, especially i
 
 **IMP-034 [M]** Troop transport: two spaces per turn; carries six armies when undamaged; each damage point reduces capacity by **two armies**. If overloaded after damage, excess cargo is destroyed when the transport next attempts to move unless unloaded first. Cannot attack armies; cannot detect adjacent enemy submarines. (pp. 21–22, 26.)
 
-**IMP-035 [M]** Submarine: two spaces per turn; cannot see or attack armies and cannot see adjacent fighters. Its three damage per hit applies when striking ships. Whether **cities detect adjacent submarines** is ambiguous in the available scan and remains **unresolved**; destroyers and cruisers can detect submarines. (pp. 22–24, 26.)
+**IMP-035 [M]** Submarine: two spaces per turn; cannot see or attack armies and cannot see adjacent fighters. Its three damage per hit applies when striking ships. **Cities can detect adjacent submarines**; this sentence was visually confirmed on printed p. 22 on 2026-10-30, resolving the earlier OCR ambiguity. Destroyers and cruisers also detect submarines. The current engine omits city detection; see [MF-01](manual/findings.md). (pp. 22–24, 26.)
 
 **IMP-036 [M]** Cruiser: two spaces per turn; eight damage to sink; two damage per hit; can detect/attack submarines and can bombard adjacent armies on land. (pp. 22–24, 28.)
 

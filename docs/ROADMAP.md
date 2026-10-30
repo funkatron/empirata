@@ -2,6 +2,17 @@
 
 This is the working roadmap for the browser-based Empire rules laboratory. Items are proposals until marked implemented and verified. Historical rule fidelity, reproducibility, and accessibility remain core constraints.
 
+## Manual research follow-up (2026-10-30)
+
+The [expanded manual reference](manual/README.md) records selected scan checks,
+strategy guidance and twelve implementation findings. Prioritize city/submarine
+and observer-specific detection, combat factor verification, sentry activation,
+and fighter order constraints before evaluating additional fleet/air composition.
+The manual's major-invasion advice supports distant convoy rendezvous and repeat
+reinforcement, while neutral expansion must continue during war. Add evaluation
+maps near the documented 60–70-city density and validator constraints alongside
+unusual stress maps. Remaining visual checks and independent review stay open.
+
 ## Gameplay issue — Lost ports and stale ownership (2026-10-27)
 
 Round 753/758 screenshots show Blue with 186–189 units and three cities, with remembered friendly city markers where Red shows ownership. Capture notifications must update the former owner's ownership memory without revealing subsequent enemy production or movements. Add lost-port recovery objectives using known reachable targets, and bound reserve production even when no transport exists. Test landlocked starts and loss of the last port; do not assume a fleet can always be rebuilt. Use the supplied save as diagnostic evidence; validate fixes in newly constructed games. Existing-save repair and backward compatibility are explicitly out of scope.
@@ -101,6 +112,35 @@ Implement incrementally; keep existing invasion fixtures as regressions. Do not 
 4. Rework sidebar for selected-object actions, status and event log; reduce text clutter and place local help beside section headings.
 5. Audit responsive layout, touch targets, focus/keyboard/screen-reader access, and screenshots. Fix any regressions.
 6. Run engine and UI smoke tests; confirm successful standalone bundle and GitHub Pages deployment.
+
+## Observer performance with large armies (2026-10-30)
+
+**Observed:** AI turns become noticeably slower as unit counts grow. Investigate
+whether suppressing intermediate round movement/map redraws speeds up observer
+mode. This is a performance hypothesis, not a measured diagnosis.
+
+- Profile AI decisions, pathfinding, state cloning, view construction and map/UI
+  rendering separately at representative small and large unit counts.
+- Compare current playback with rendering only the final state of a 10/50/100-round
+  step, plus an optional reduced redraw cadence for continuous playback. Check
+  whether the present implementation animates moves or merely redraws round ends;
+  avoid removing rendering work that does not actually occur.
+- Preserve the same rounds, RNG draws, decisions and final save under every
+  display policy. Keep progress/spinner updates, cancellation between rounds,
+  accessible status and responsive input even when the map is not redrawn.
+- Measure wall time, time spent computing/rendering, pause latency and memory on
+  iPad portrait/landscape. Include prolonged high-unit campaigns; do not infer
+  benefits from the initial small-force scenario alone.
+- If computation dominates, separately investigate bounded/reused navigation,
+  repeated scans and cloning rather than claiming display suppression solves it.
+
+**Verification checklist**
+
+- [ ] Profile representative large-unit observer sessions.
+- [ ] Compare current redraws with batch-end/reduced redraw modes.
+- [ ] Confirm identical deterministic outcomes and save/resume behavior.
+- [ ] Confirm responsive progress and pause on iPad.
+- [ ] Document measured benefit and remaining computation costs.
 
 ## Priority 2 — Computer-versus-computer observability
 

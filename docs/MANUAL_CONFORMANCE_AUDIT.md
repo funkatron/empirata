@@ -1,7 +1,9 @@
 # Empirata — Interstel 2.05 manual-conformance audit
 
 **Started:** 2026-10-26  
-**Status:** Initial source-to-code inventory; **not** a completed page-by-page primary-manual verification.
+**Status:** Expanded gameplay/strategy reading and selected scan verification (2026-10-30); **not** a completed page-by-page primary-manual verification.
+
+Start with the [manual research reference](manual/README.md), including source hash, reading coverage, strategy and twelve implementation findings. The historical inventory below predates that pass; its uncertainty notes are superseded where explicitly resolved below.
 
 ## Evidence standard
 
@@ -51,7 +53,7 @@ Consulted the publicly available text transcription of the original [Interstel D
 
 **Strategic implication for the AI roadmap:** The original manual's destroyer description (pp. 21–22) explicitly recommends early destroyers for fast scouting and shoreline/city discovery. Current experimental AI predominantly starts with armies and then transports. This is a documented strategy gap worth testing: build a dedicated destroyer scout and measure useful coast/city discovery versus the current transport-led exploration. This is a *strategy recommendation from the manual*, not a claim that the original computer AI followed that policy.
 
-**Unresolved scan detail:** The submarine section (p. 23) has an OCR-damaged statement concerning detection by cities. Verify against the actual scanned page image before changing submarine visibility rules.
+**Resolved scan detail (2026-10-30):** Printed p. 22 explicitly states that cities can detect submarines. PDF spread 16 was visually inspected. The classic specification now records this; `knowledge.ts:detectedBy` lacks city observers (MF-01). This resolves the manual wording, not independent DOS runtime verification.
 
 ## Next audit passes
 
