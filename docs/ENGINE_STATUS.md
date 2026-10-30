@@ -1,5 +1,10 @@
 # Empirata engine status — v0.4
 
+> Historical milestone record. Introductory claims below are stale, including RNG,
+> AI scope and outstanding transport work. For the 2026-10-30 baseline and remaining
+> work, use the [technical implementation plan](TECHNICAL_IMPLEMENTATION_PLAN.md)
+> and [manual findings](manual/findings.md).
+
 **Rules target:** Interstel *Empire: Wargame of the Century*, DOS 2.05, classic edition. All implementation work should use the same reference edition.
 
 ## Working systems

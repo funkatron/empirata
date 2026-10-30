@@ -32,3 +32,12 @@ test('Escort already beside a loaded transport holds its station',()=>{
  g.units.push({...structuredClone(base),kind:'army',id:'cargo',position:{x:11,y:10},aboard:'tr'});
  assert.deepEqual(playRedOpponent(g).units.find(u=>u.id==='dd').position,{x:10,y:10});
 });
+
+for(const kind of ['submarine','cruiser'])test(`Idle escort attacks adjacent ${kind} before holding`,()=>{
+ const g=charted(),base=g.units[0];
+ g.units.push({...structuredClone(base),id:'threat',kind,owner:'blue',position:{x:11,y:10}});
+ g.units.push({...structuredClone(base),id:'convoy',kind:'transport',position:{x:9,y:10}});
+ g.units.push({...structuredClone(base),id:'cargo',kind:'army',aboard:'convoy',position:{x:9,y:10}});
+ updateAllKnowledge(g);
+ assert.ok(playRedOpponent(g).events.some(e=>e.kind==='combat'&&e.message.includes('threat')));
+});
