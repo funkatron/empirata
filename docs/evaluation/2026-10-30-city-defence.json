@@ -1,0 +1,128 @@
+[
+  {
+    "layout": "continents",
+    "seed": 101,
+    "swap": false,
+    "rounds": 200,
+    "cities": 12,
+    "land": 3614,
+    "factions": {
+      "blue": {
+        "produced": 17,
+        "boarded": 0,
+        "landed": 0,
+        "missionPauses": 0,
+        "lastCityChange": 171,
+        "cities": 4,
+        "armies": 7,
+        "defendedCities": 4,
+        "armyProductionCities": 0,
+        "transports": 0,
+        "destroyers": 0,
+        "explored": 1092,
+        "knownCities": 5,
+        "roundsWithoutCityChange": 30
+      },
+      "red": {
+        "produced": 10,
+        "boarded": 0,
+        "landed": 0,
+        "missionPauses": 0,
+        "lastCityChange": 106,
+        "cities": 2,
+        "armies": 9,
+        "defendedCities": 2,
+        "armyProductionCities": 0,
+        "transports": 0,
+        "destroyers": 0,
+        "explored": 551,
+        "knownCities": 2,
+        "roundsWithoutCityChange": 95
+      }
+    }
+  },
+  {
+    "layout": "islands",
+    "seed": 101,
+    "swap": false,
+    "rounds": 200,
+    "cities": 12,
+    "land": 2917,
+    "factions": {
+      "blue": {
+        "produced": 29,
+        "boarded": 3,
+        "landed": 3,
+        "missionPauses": 0,
+        "lastCityChange": 190,
+        "cities": 4,
+        "armies": 15,
+        "defendedCities": 4,
+        "armyProductionCities": 2,
+        "transports": 1,
+        "destroyers": 2,
+        "explored": 1975,
+        "knownCities": 6,
+        "roundsWithoutCityChange": 11
+      },
+      "red": {
+        "produced": 24,
+        "boarded": 8,
+        "landed": 5,
+        "missionPauses": 0,
+        "lastCityChange": 170,
+        "cities": 3,
+        "armies": 13,
+        "defendedCities": 3,
+        "armyProductionCities": 0,
+        "transports": 1,
+        "destroyers": 1,
+        "explored": 1775,
+        "knownCities": 6,
+        "roundsWithoutCityChange": 31
+      }
+    }
+  },
+  {
+    "layout": "archipelago",
+    "seed": 101,
+    "swap": false,
+    "rounds": 200,
+    "cities": 12,
+    "land": 1687,
+    "factions": {
+      "blue": {
+        "produced": 53,
+        "boarded": 16,
+        "landed": 13,
+        "missionPauses": 1,
+        "lastCityChange": 185,
+        "cities": 6,
+        "armies": 31,
+        "defendedCities": 6,
+        "armyProductionCities": 4,
+        "transports": 4,
+        "destroyers": 2,
+        "explored": 2932,
+        "knownCities": 11,
+        "roundsWithoutCityChange": 16
+      },
+      "red": {
+        "produced": 18,
+        "boarded": 8,
+        "landed": 2,
+        "missionPauses": 0,
+        "lastCityChange": 1,
+        "cities": 1,
+        "armies": 8,
+        "defendedCities": 1,
+        "armyProductionCities": 1,
+        "transports": 2,
+        "destroyers": 1,
+        "explored": 2880,
+        "knownCities": 6,
+        "roundsWithoutCityChange": 200
+      }
+    }
+  }
+]

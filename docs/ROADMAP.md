@@ -204,6 +204,14 @@ Production now counts unembarked armies connected to each city through faction-k
 
 ## Priority — Clean campaign openings and air-unit strategy (2026-10-27)
 
+2026-10-30: AI factories now remain active rather than pausing at reserve
+thresholds. Each city reserves a stationed army and prioritizes producing a
+replacement when missing; transport loading excludes those defenders. Fleet
+targets scale without fixed ship ceilings. Hostile objectives can attract
+multiple transports, nearby groups coordinate larger landing waves, and strong
+expeditions can make opportunistic distant coastal scout drops while retaining
+their assault reserve. Long-distance rendezvous scheduling remains open work.
+
 2026-10-29: Navigation now applies the same beach eligibility checks as actual
 unloading. It continues around a city-only or occupied shore instead of holding
 at a position where cargo cannot land. Seven paired 200-round generated-map

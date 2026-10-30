@@ -27,6 +27,7 @@ test('Red AI builds a transport with reserves and a discovered objective',()=>{
   const base=g.units.find(u=>u.id==='u3');
   g.units.push({...structuredClone(base),id:'red-a',position:{x:79,y:35}});
   g.units.push({...structuredClone(base),id:'red-b',position:{x:80,y:35}});
+  g.units.find(u=>u.id==='u3').position={x:80,y:36};
   updateAllKnowledge(g);
   learnObjective(g);
   const acted=playRedOpponent(endTurn(g));
@@ -36,6 +37,7 @@ test('Red AI boards a nearby friendly transport without extra moves or RNG draws
   const g=makeRulesLab();
   const red=g.units.find(u=>u.id==='u3');
   red.position={x:80,y:36};
+  g.units.unshift({...structuredClone(red),id:'home-guard'});
   const ship={...structuredClone(red),id:'red-ship',kind:'transport',position:{x:81,y:36},fuel:null};
   g.units.push(ship);updateAllKnowledge(g);
   const before=g.rng;
@@ -76,6 +78,7 @@ test('AI city production selection ignores undiscovered opponent city production
 test('Red changes existing army production to transport once three armies exist',()=>{
   const g=makeRulesLab(),base=g.units.find(u=>u.id==='u3');
   g.cities.find(c=>c.id==='c-red').production='army';
+  base.position={x:80,y:36};
   g.units.push({...structuredClone(base),id:'red-a',position:{x:79,y:35}});
   g.units.push({...structuredClone(base),id:'red-b',position:{x:80,y:35}});
   updateAllKnowledge(g);

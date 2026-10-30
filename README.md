@@ -106,6 +106,16 @@ no units, no production progress and only city sight. The generator supplies no
 guaranteed invasion routes or scouting memory. It is an evaluation tool, not an
 original-DOS map generator or a new in-game map option.
 
+Current experimental AI policy keeps every owned factory producing. A city
+without a stationed defensive army prioritizes armies; otherwise it produces
+needed ships or more armies. City defenders are protected from AI transport
+loading. Ship targets scale with troops and city count, with no fixed fleet
+ceiling. Hostile-city missions can receive multiple transports, and nearby
+transports coordinate larger landing waves within available safe beach space.
+Large expeditions may drop a reconnaissance army at a distant apparently
+unguarded coast while retaining three armies for their city mission. These are
+strategy choices; city capture probabilities and human loading rules are unchanged.
+
 The JSON report includes city totals, exploration, production, boarding,
 landings, stalled missions and rounds since city ownership last changed.
 `ROUNDS`, `SEEDS` (comma-separated), `LAYOUTS` and `SWAP=1` control the sweep;

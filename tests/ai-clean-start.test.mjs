@@ -24,6 +24,6 @@ test('Both clean-start factions produce their first units through normal product
  }
  for(const faction of ['blue','red']){
   assert.ok(a.events.some(e=>e.recipient===faction&&e.kind==='production'&&e.message.includes('completed Army')));
-  assert.ok(getPlayerView(a,faction).cells.filter(c=>c.terrain!==null).length>9,'Produced armies explore');
+  assert.ok(getPlayerView(a,faction).ownCities.every(c=>getPlayerView(a,faction).ownUnits.some(u=>u.kind==='army'&&!u.aboard&&u.position.x===c.position.x&&u.position.y===c.position.y)),'First produced armies defend their cities');
  }
 });
