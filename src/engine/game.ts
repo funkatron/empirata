@@ -442,7 +442,7 @@ function aiLandingReachesObjective(view:ReturnType<typeof getPlayerView>,landing
       const next={x:p.x+d.x,y:p.y+d.y};
       if(next.x<=0||next.y<=0||next.x>=width-1||next.y>=height-1)continue;
       const k=key(next),cell=cells[k];
-      if(seen.has(k)||cell?.terrain!=='land'||cell?.city&&cell.city.owner!=='red')continue;
+      if(seen.has(k)||cell?.terrain!=='land'||cell?.city&&cell.city.owner!==view.active)continue;
       seen.add(k);queue.push(k);
     }
   }
@@ -791,7 +791,7 @@ export function planAiGroundStep(view:ReturnType<typeof getPlayerView>,army:Unit
   const targets:Coord[]=[];
   for(let i=0;i<view.cells.length;i++){
     const cell=view.cells[i];
-    if(cell?.city&&cell.city.owner!=='red')
+    if(cell?.city&&cell.city.owner!==view.active)
       targets.push({x:i%width,y:Math.floor(i/width)});
   }
   if(!targets.length)return null;
@@ -814,7 +814,7 @@ export function planAiGroundStep(view:ReturnType<typeof getPlayerView>,army:Unit
       // unknown, not a magical bridge across an undiscovered ocean.
       if(seen.has(k)||occupied.has(k)||cell?.terrain!=='land')continue;
       // A city owned by another faction must be assaulted, not routed through.
-      if(cell?.city&&cell.city.owner!=='red')continue;
+      if(cell?.city&&cell.city.owner!==view.active)continue;
       seen.add(k);parent.set(k,here);queue.push(k);
     }
   }
@@ -1020,6 +1020,14 @@ export function playRedOpponent(game:Game):Game {
       // Destroyers scout charted water instead of drifting into arbitrary
       // nearby cells; this is modern experimental strategy, not DOS AI parity.
       if(unit.kind==='destroyer'){
+        const adjacent=view.enemies.filter(e=>!e.stale&&e.kind!=='army'&&
+          distance(e.position,unit.position)===1)
+          .sort((a,b)=>Number(b.kind==='transport')-Number(a.kind==='transport')||a.id.localeCompare(b.id));
+        let engaged=false;
+        for(const target of adjacent){
+          try{g=aiMove(g,id,target.position);engaged=true;break;}catch{/* Try the next legal contact. */}
+        }
+        if(engaged)break; // Resolve immediate threats before scouting or holding.
         const transports=view.enemies.filter(e=>!e.stale&&e.kind==='transport')
           .sort((a,b)=>distance(a.position,unit.position)-distance(b.position,unit.position));
         let pursued=false;
@@ -1044,6 +1052,26 @@ export function playRedOpponent(game:Game):Game {
           try {g=aiMove(g,id,next);continue;}
           catch {break;}
         }
+        // Reconnaissance exhausted: protect a loaded expedition instead of
+        // drifting toward a map corner. Hold when adjacent, and reassess every
+        // turn so fresh enemy contacts always retain priority over escort duty.
+        const expeditions=view.ownUnits.filter(u=>u.kind==='transport'&&
+          view.ownUnits.some(c=>c.aboard===u.id))
+          .sort((a,b)=>distance(a.position,unit.position)-distance(b.position,unit.position)||a.id.localeCompare(b.id));
+        const escort=expeditions[0];
+        if(escort&&distance(escort.position,unit.position)>1){
+          const stations=directions.map(d=>({x:escort.position.x+d.x,y:escort.position.y+d.y}))
+            .filter(p=>playable(view,p)&&view.cells[p.y*view.width+p.x]?.terrain==='sea'&&
+              !view.ownUnits.some(u=>!u.aboard&&equal(u.position,p)))
+            .sort((a,b)=>distance(a,unit.position)-distance(b,unit.position));
+          let repositioned=false;
+          for(const station of stations){
+            const step=routeStep(g,unit,station);if(!step)continue;
+            try{g=aiMove(g,id,step);repositioned=true;break;}catch{/* Try another known station. */}
+          }
+          if(repositioned)continue;
+        }
+        break; // Reassessed sentry behavior, without a permanent sentry order.
       }
       const visibleEnemies=view.enemies.filter(e=>!e.stale);
       const knownCities=view.cells.flatMap((cell,i)=>cell.city&&cell.city.owner!=='red'?
@@ -1055,10 +1083,10 @@ export function playRedOpponent(game:Game):Game {
       // Keep one active ground scout per nearby group. Other armies stage at ports
       // for transport loading rather than clogging the island with wanderers.
       const region=unit.kind==='army'?aiGroundRegion(view,unit.position):new Set<number>();
-      const firstArmy=view.ownUnits.find(u=>u.kind==='army'&&!u.aboard&&region.has(u.position.y*view.width+u.position.x)&&distance(u.position,unit.position)<=8);
-      const isScout=unit.kind==='army'&&firstArmy?.id===unit.id&&
-        (!view.ownCities.some(c=>region.has(c.position.y*view.width+c.position.x)&&distance(c.position,unit.position)<=8)||!view.ownUnits.some(u=>u.kind==='transport')||
-         view.ownUnits.filter(u=>u.kind==='army'&&!u.aboard).length>=3);
+      const firstArmy=view.ownUnits.find(u=>u.kind==='army'&&!u.aboard&&!protectedCargo.has(u.id)&&region.has(u.position.y*view.width+u.position.x)&&distance(u.position,unit.position)<=8);
+      // Stationed defenders cannot scout. Select the first mobile army even
+      // when a transport exists; fleet presence must not suppress discovery.
+      const isScout=unit.kind==='army'&&firstArmy?.id===unit.id;
       if(unit.kind==='army'&&!isScout&&visibleEnemies.length===0&&groundPlan===null&&
          !knownCities.some(c=>distance(c.pos,unit.position)<=1)){
         const ports=view.ownCities.filter(c=>isCoastal(g,c.position))
