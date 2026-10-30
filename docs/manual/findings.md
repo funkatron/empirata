@@ -5,6 +5,20 @@ No engine fixes are included in this research change. Severity describes gamepla
 impact, not certainty of DOS implementation. Scan references use printed pages;
 see the source record for PDF mapping and hash.
 
+## Detection follow-up
+
+A separate implementation PR addresses MF-01 and MF-12: city observers detect
+adjacent submarines, while submarine-only coverage cannot detect armies or
+fighters. Terrain visibility is kept separate. Per-update coverage sets serve
+both fresh detection and stale-report invalidation without rescanning observers
+for each contact. This is not a claim of a measured overall performance gain.
+
+The new regression file `tests/manual-detection.test.mjs` covers all 64 unit-type
+observer/target pairs, city range and save/reload, stale reports after detector
+loss, and hidden submarine movement equivalence. Three tests failed against
+`7922f54` before the implementation. The historical findings table below records
+the pre-fix baseline; other findings remain open.
+
 ## Findings with direct implementation evidence
 
 | ID / priority | Manual evidence | Code evidence and consequence | Concrete verification task |
@@ -73,7 +87,7 @@ independent expert review. The roadmap's independent review remains open.
 
 ## Follow-up order
 
-- [ ] Fix city/submarine and observer-specific detection with regressions.
+- [x] Implement city/submarine and observer-specific detection with regressions in a separate PR; deployment tracked separately.
 - [ ] Verify combat factor application against executable evidence.
 - [ ] Fix sentry activation and fighter standing-order validation.
 - [ ] Resolve cargo-overload and home/escort command discrepancies.
