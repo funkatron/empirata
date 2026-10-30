@@ -4,22 +4,28 @@ import { directions, index, inMap, terrainAt, cityAt } from './world.js';
 export function emptyKnowledge(game:Game): Knowledge {
   return {terrain:Array.from({length:game.tiles.length},()=>null),visible:[], sightings:[],freshEnemies:[],cities:{}};
 }
-function detectedBy(game:Game, faction:FactionId, target:Unit):boolean {
-  if(target.kind!=='submarine') return true;
-  return game.units.some(observer=>observer.owner===faction && !observer.aboard &&
-    (observer.kind==='cruiser'||observer.kind==='destroyer') &&
-    Math.max(Math.abs(observer.position.x-target.position.x),Math.abs(observer.position.y-target.position.y))<=1);
-}
 /** Knowledge is an independent snapshot, never a live alias of the omniscient state. */
 export function updateKnowledge(game:Game, faction:FactionId): void {
   const k=game.knowledge[faction];
   const visible=new Set<number>();
-  const origins=[...game.cities.filter(c=>c.owner===faction).map(c=>c.position),
-    ...game.units.filter(u=>u.owner===faction&&!u.aboard).map(u=>u.position)];
-  for(const p of origins) for(const d of [{x:0,y:0},...directions]) {
-    const q={x:p.x+d.x,y:p.y+d.y};
-    if(inMap(game,q)) visible.add(index(game,q));
+  // Terrain sight and target detection differ: submarines do not detect armies
+  // or adjacent fighters. Cities, destroyers and cruisers detect submarines
+  // (Interstel manual pp. 22–24, 26). Index coverage once per knowledge update.
+  const surfaceObservers=new Set<number>(),submarineDetectors=new Set<number>();
+  const origins=[...game.cities.filter(c=>c.owner===faction)
+      .map(c=>({position:c.position,surface:true,submarines:true})),
+    ...game.units.filter(u=>u.owner===faction&&!u.aboard)
+      .map(u=>({position:u.position,surface:u.kind!=='submarine',
+        submarines:u.kind==='cruiser'||u.kind==='destroyer'}))];
+  for(const origin of origins)for(const d of [{x:0,y:0},...directions]){
+    const q={x:origin.position.x+d.x,y:origin.position.y+d.y};
+    if(!inMap(game,q))continue;
+    const cell=index(game,q);visible.add(cell);
+    if(origin.surface)surfaceObservers.add(cell);
+    if(origin.submarines)submarineDetectors.add(cell);
   }
+  const detected=(kind:Unit['kind'],cell:number)=>kind==='submarine'?submarineDetectors.has(cell):
+    kind==='army'||kind==='fighter'?surfaceObservers.has(cell):visible.has(cell);
   const freshEnemies=new Set<string>();
   const previousSightings=new Map(k.sightings.map(s=>[s.id,s]));
   for(const i of visible) {
@@ -40,7 +46,7 @@ export function updateKnowledge(game:Game, faction:FactionId): void {
   }
   for(const enemy of game.units){
     if(enemy.owner===faction||enemy.aboard) continue;
-    const isSeen=visible.has(index(game,enemy.position)) && detectedBy(game,faction,enemy);
+    const isSeen=detected(enemy.kind,index(game,enemy.position));
     if(isSeen){
       freshEnemies.add(enemy.id);
       previousSightings.set(enemy.id,{id:enemy.id,kind:enemy.kind,owner:enemy.owner,
@@ -49,8 +55,7 @@ export function updateKnowledge(game:Game, faction:FactionId): void {
   }
   for(const [id,sight] of previousSightings){
     // If this square is visible and the type is detectable, stale enemy reports are disproven.
-    const probe:Unit={id,kind:sight.kind,owner:sight.owner,position:sight.position,damage:0,spent:0,fuel:null,order:{kind:'none'},aboard:null};
-    if(visible.has(index(game,sight.position)) && detectedBy(game,faction,probe) && !freshEnemies.has(id)) previousSightings.delete(id);
+    if(detected(sight.kind,index(game,sight.position)) && !freshEnemies.has(id)) previousSightings.delete(id);
   }
   k.visible=Array.from(visible).sort((a,b)=>a-b);
   k.freshEnemies=Array.from(freshEnemies);
