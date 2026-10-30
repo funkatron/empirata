@@ -102,6 +102,15 @@ Implement incrementally; keep existing invasion fixtures as regressions. Do not 
 5. Audit responsive layout, touch targets, focus/keyboard/screen-reader access, and screenshots. Fix any regressions.
 6. Run engine and UI smoke tests; confirm successful standalone bundle and GitHub Pages deployment.
 
+## AI role allocation and neutral expansion (2026-10-30)
+
+Mobile scouting must exclude reserved city defenders and remain available with a
+small fleet. Destroyers with exhausted reconnaissance should escort a loaded
+transport or hold and reassess, instead of moving without a useful goal.
+See [unit roles and proposed patrol assignments](ai-unit-roles.md). Follow up with
+escort distribution, corridor coverage and role-transition diagnostics. Other
+naval and air roles remain proposals pending rules and campaign verification.
+
 ## Priority 2 — Computer-versus-computer observability
 
 - Automatic alternating faction viewpoints (implemented in source; preserve fog-of-war separation).

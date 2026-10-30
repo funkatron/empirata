@@ -37,6 +37,7 @@ test('A loaded transport is not sent home by the empty-ship rule',()=>{
 
 test('An idle Red army moves toward its coastal loading city',()=>{
   const g=fleet();
+  g.units.unshift({...structuredClone(g.units.find(u=>u.id==='u3')),id:'recon',position:{x:76,y:34}});
   // Staging is justified by an existing fleet, not hypothetical future ships.
   updateAllKnowledge(g);
   const original=g.units.find(u=>u.id==='u3').position;
@@ -47,6 +48,7 @@ test('An idle Red army moves toward its coastal loading city',()=>{
 });
 test('An army already near its coastal city waits for transport pickup',()=>{
   const g=fleet();
+  g.units.unshift({...structuredClone(g.units.find(u=>u.id==='u3')),id:'recon',position:{x:76,y:34}});
   g.units.find(u=>u.id==='u3').position={x:79,y:36};
   updateAllKnowledge(g);
   const acted=playRedOpponent(endTurn(g));
