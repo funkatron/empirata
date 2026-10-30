@@ -506,7 +506,8 @@ export function chooseAiTransportObjective(view:ReturnType<typeof getPlayerView>
   const objectives=view.cells.flatMap((cell,i)=>cell.city&&cell.city.owner!==ship.owner&&!(ship.aiAvoidObjective?.id===cell.city.id&&ship.aiAvoidObjective.until>view.round)?
     [{id:cell.city.id,x:i%view.width,y:Math.floor(i/view.width)}]:[]);
   if(objectives.some(c=>c.id===ship.aiObjective))return ship.aiObjective;
-  objectives.sort((a,b)=>Math.max(Math.abs(a.x-ship.position.x),Math.abs(a.y-ship.position.y))-
+  const assigned=(id:string)=>view.ownUnits.filter(u=>u.kind==='transport'&&u.id!==ship.id&&u.aiObjective===id).length;
+  objectives.sort((a,b)=>assigned(a.id)-assigned(b.id)||Math.max(Math.abs(a.x-ship.position.x),Math.abs(a.y-ship.position.y))-
     Math.max(Math.abs(b.x-ship.position.x),Math.abs(b.y-ship.position.y))||a.id.localeCompare(b.id));
   return objectives[0]?.id;
 }
@@ -831,7 +832,7 @@ export function planAiGroundStep(view:ReturnType<typeof getPlayerView>,army:Unit
 /** Local reserve accounting uses charted land connectivity, never hidden terrain.
  * Occupancy does not split a strategic supply region; hostile cities do.
  */
-export function aiLocalArmyReserve(view:ReturnType<typeof getPlayerView>,origin:Coord):number {
+function aiGroundRegion(view:ReturnType<typeof getPlayerView>,origin:Coord):Set<number> {
   const key=(p:Coord)=>p.y*view.width+p.x;
   const seen=new Set<number>([key(origin)]),queue=[origin];
   for(let head=0;head<queue.length;head++)for(const d of directions){
@@ -841,7 +842,32 @@ export function aiLocalArmyReserve(view:ReturnType<typeof getPlayerView>,origin:
     if(seen.has(k)||cell?.terrain!=='land'||cell.city&&cell.city.owner!==view.active)continue;
     seen.add(k);queue.push(p);
   }
-  return view.ownUnits.filter(u=>u.kind==='army'&&!u.aboard&&seen.has(key(u.position))).length;
+  return seen;
+}
+export function aiLocalArmyReserve(view:ReturnType<typeof getPlayerView>,origin:Coord):number {
+  const seen=aiGroundRegion(view,origin);
+  return view.ownUnits.filter(u=>u.kind==='army'&&!u.aboard&&seen.has(u.position.y*view.width+u.position.x)).length;
+}
+
+/** Opportunistic reconnaissance: land one scout on an unoccupied charted land
+ * region with an unknown frontier. Space drop sites away from nearby supply
+ * and scouts already ashore. No undiscovered city is used as a target.
+ */
+export function planAiReconLandingSquare(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|null {
+  if(ship.aiObjective||ship.kind!=='transport')return null;
+  for(const d of directions){
+    const p={x:ship.position.x+d.x,y:ship.position.y+d.y};
+    if(p.x<=0||p.y<=0||p.x>=view.width-1||p.y>=view.height-1||!aiBeachAvailable(view,p))continue;
+    const region=aiGroundRegion(view,p),key=(q:Coord)=>q.y*view.width+q.x;
+    const nearby=(q:Coord)=>region.has(key(q))&&Math.max(Math.abs(q.x-p.x),Math.abs(q.y-p.y))<=8;
+    if(view.ownCities.some(c=>nearby(c.position))||
+       view.ownUnits.some(u=>u.kind==='army'&&!u.aboard&&nearby(u.position)))continue;
+    if([...region].some(k=>directions.some(d=>{
+      const q={x:k%view.width+d.x,y:Math.floor(k/view.width)+d.y};
+      return playable(view,q)&&view.cells[key(q)]?.terrain===null;
+    })))return p;
+  }
+  return null;
 }
 
 export function playRedOpponent(game:Game):Game {
@@ -855,19 +881,23 @@ export function playRedOpponent(game:Game):Game {
     const armyCount=aiLocalArmyReserve(getPlayerView(g,'red'),city.position);
     const transportCount=ownUnits.filter(u=>u.kind==='transport').length;
     const view=getPlayerView(g,'red');
-    const scoutingAssigned=ownUnits.some(u=>u.kind==='destroyer')||
-      view.ownCities.some(c=>c.id!==city.id&&c.production==='destroyer');
+    const navalThreat=view.enemies.some(e=>!e.stale&&e.kind==='transport');
+    const desiredScouts=Math.min(4,Math.max(navalThreat||transportCount>0&&armyCount>=3&&ownUnits.some(u=>u.kind==='destroyer')?2:1,Math.ceil(view.ownCities.length/2)));
+    const scoutingAssigned=ownUnits.filter(u=>u.kind==='destroyer').length+
+      view.ownCities.filter(c=>c.id!==city.id&&c.production==='destroyer').length>=desiredScouts;
     const knownObjective=view.cells.some(c=>c.city&&c.city.owner!=='red');
     const probe:Unit={id:'production-scout',kind:'destroyer',owner:'red',position:city.position,
       aboard:null,damage:0,spent:0,fuel:null,order:{kind:'none'}};
-    const scoutNeeded=armyCount>=1&&!scoutingAssigned&&!knownObjective&&
-      isCoastal(g,city.position)&&planAiNavalScoutStep(view,probe)!==null;
+    const scoutNeeded=armyCount>=1&&!scoutingAssigned&&(!knownObjective||desiredScouts>1)&&
+      isCoastal(g,city.position)&&(navalThreat||planAiNavalScoutStep(view,probe)!==null);
     // Finish committed ships rather than repeatedly discarding their progress.
+    const desiredTransports=Math.min(4,Math.max(1,Math.ceil(ownUnits.filter(u=>u.kind==='army').length/6)));
+    const assignedTransports=transportCount+view.ownCities.filter(c=>c.id!==city.id&&c.production==='transport').length;
     const committedShip=city.progress>0&&
-      (city.production==='destroyer'&&!ownUnits.some(u=>u.kind==='destroyer')||
-       city.production==='transport'&&transportCount===0);
+      (city.production==='destroyer'&&!scoutingAssigned||
+       city.production==='transport'&&assignedTransports<desiredTransports);
     const pick=committedShip?city.production:scoutNeeded?'destroyer':
-      armyCount>=3&&transportCount===0&&isCoastal(g,city.position)?'transport':
+      armyCount>=3&&assignedTransports<desiredTransports&&isCoastal(g,city.position)?'transport':
       armyCount>=8?null:'army';
     // Bound local reserves even when this faction has no transport or port.
     // Resume production automatically after casualties or transport losses.
@@ -915,6 +945,12 @@ export function playRedOpponent(game:Game):Game {
 
   // Prefer landing near a known hostile/neutral objective; never target an
   // undiscovered city or use hidden terrain for route selection.
+  for(const ship of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='transport'&&!u.aiObjective)){
+    const view=getPlayerView(g,'red');
+    const cargo=view.ownUnits.find(u=>u.kind==='army'&&u.aboard===ship.id&&u.spent<movementAllowance(u));
+    const shore=planAiReconLandingSquare(view,ship);
+    if(cargo&&shore){try{g=disembarkArmy(g,cargo.id,shore);}catch{/* Actual movement remains authoritative. */}}
+  }
   for(const landing of planAiLandingWave(getPlayerView(g,'red'))){
     // Each landing refreshes intelligence. A newly exposed defender can make
     // later reserved cells unsafe even though disembarkArmy still permits them.
@@ -972,6 +1008,25 @@ export function playRedOpponent(game:Game):Game {
       // Destroyers scout charted water instead of drifting into arbitrary
       // nearby cells; this is modern experimental strategy, not DOS AI parity.
       if(unit.kind==='destroyer'){
+        const transports=view.enemies.filter(e=>!e.stale&&e.kind==='transport')
+          .sort((a,b)=>distance(a.position,unit.position)-distance(b.position,unit.position));
+        let pursued=false;
+        for(const target of transports){
+          if(distance(target.position,unit.position)===1){
+            try{g=moveUnit(g,id,target.position);pursued=true;}catch{/* Combat rules remain authoritative. */}
+            if(pursued)break;
+          }else{
+            const approaches=directions.map(d=>({x:target.position.x+d.x,y:target.position.y+d.y}))
+              .filter(p=>playable(view,p)&&view.cells[p.y*view.width+p.x]?.terrain==='sea')
+              .sort((a,b)=>distance(a,unit.position)-distance(b,unit.position));
+            for(const p of approaches){
+              const next=routeStep(g,unit,p);if(!next)continue;
+              try{g=moveUnit(g,id,next);pursued=true;break;}catch{/* Try another charted approach. */}
+            }
+            if(pursued)break;
+          }
+        }
+        if(pursued){if(transports.some(t=>distance(t.position,unit.position)===1))break;continue;}
         const next=planAiNavalScoutStep(view,unit);
         if(next){
           try {g=moveUnit(g,id,next);continue;}
@@ -985,11 +1040,12 @@ export function playRedOpponent(game:Game):Game {
       // A known overseas city must not lure armies away from their transports.
       const groundPlan=unit.kind==='army'?planAiGroundStep(view,unit):null;
       // Scout from the opening turn, without waiting for a fleet or reserves.
-      // Keep one active ground scout per faction. Other armies stage at ports
+      // Keep one active ground scout per nearby group. Other armies stage at ports
       // for transport loading rather than clogging the island with wanderers.
-      const firstArmy=view.ownUnits.find(u=>u.kind==='army'&&!u.aboard);
+      const region=unit.kind==='army'?aiGroundRegion(view,unit.position):new Set<number>();
+      const firstArmy=view.ownUnits.find(u=>u.kind==='army'&&!u.aboard&&region.has(u.position.y*view.width+u.position.x)&&distance(u.position,unit.position)<=8);
       const isScout=unit.kind==='army'&&firstArmy?.id===unit.id&&
-        (!view.ownUnits.some(u=>u.kind==='transport')||
+        (!view.ownCities.some(c=>region.has(c.position.y*view.width+c.position.x))||!view.ownUnits.some(u=>u.kind==='transport')||
          view.ownUnits.filter(u=>u.kind==='army'&&!u.aboard).length>=3);
       if(unit.kind==='army'&&!isScout&&visibleEnemies.length===0&&groundPlan===null&&
          !knownCities.some(c=>distance(c.pos,unit.position)<=1)){
