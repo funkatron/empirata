@@ -222,6 +222,11 @@ reinforcement groups remain outstanding.
 
 ## 5. Coordinated invasions and logistics
 
+The [invasion operations review](AI_INVASION_OPERATIONS_REVIEW.md) expands this
+milestone into recruitment, departure, coordinated delivery and repeat supply.
+Its first priority is creating large loaded expeditions at supply ports, rather
+than only gathering transports that happen to carry troops near the target.
+
 Existing `aiObjective`, `aiMissionProgress` and `aiAvoidObjective` fields support
 persistent individual missions. Nearby landing groups do not supply distant
 rendezvous scheduling. Introduce a minimal expedition record only when grouping
