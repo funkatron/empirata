@@ -63,3 +63,11 @@ position. Extend the bound to 150 rounds while retaining actual loaded sea
 movement, production, boarding and cargo-integrity assertions for both factions.
 This is an explicit timing-window change, not a reduced movement requirement.
 The separate production-to-overseas-capture regression remains unchanged.
+
+## Detection-aware reconnaissance review
+
+Fighter stale-contact scoring excludes submarines. Fighters cannot detect or
+clear those reports, so rewarding their locations would produce repeated futile
+investigations. The regression uses fully charted terrain and a stale submarine
+report to verify no flight is requested. Transport-area investigation remains
+available to fighters and capable naval units as described above.

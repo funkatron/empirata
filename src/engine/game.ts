@@ -1182,7 +1182,7 @@ export function planAiFighterStep(view:ReturnType<typeof getPlayerView>,fighter:
     const here=paths[h]!,k=key(here),steps=depth.get(k)!;
     if(k!==start&&steps+(returns.get(k)??Infinity)<=fuel){
       const unknown=directions.filter(d=>{const p={x:here.x+d.x,y:here.y+d.y};return playable(view,p)&&view.cells[key(p)]?.terrain===null;}).length;
-      const stale=view.enemies.filter(e=>e.stale&&Math.max(Math.abs(e.position.x-here.x),Math.abs(e.position.y-here.y))<=1).length;
+      const stale=view.enemies.filter(e=>e.stale&&e.kind!=='submarine'&&Math.max(Math.abs(e.position.x-here.x),Math.abs(e.position.y-here.y))<=1).length;
       const information=unknown+stale*4;
       const value=returning?(baseKeys.has(k)?1000-steps:-Infinity):
         steps+(returns.get(k)??Infinity)+2<=fuel&&information>0?information/(steps+1):-Infinity;
