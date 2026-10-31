@@ -44,6 +44,9 @@ for(const layout of selected)for(const seed of seeds){
       armyProductionCities:v.ownCities.filter(c=>c.production==='army').length,
       transports:v.ownUnits.filter(u=>u.kind==='transport').length,
       destroyers:v.ownUnits.filter(u=>u.kind==='destroyer').length,
+      fighters:v.ownUnits.filter(u=>u.kind==='fighter').length,carriers:v.ownUnits.filter(u=>u.kind==='carrier').length,
+      embarkedArmies:v.ownUnits.filter(u=>u.kind==='army'&&u.aboard).length,
+      unembarkedArmies:v.ownUnits.filter(u=>u.kind==='army'&&!u.aboard).length,
       explored:v.cells.filter(c=>c.terrain!==null).length,knownCities:v.cells.filter(c=>c.city).length,
       newlyExplored:v.cells.filter(c=>c.terrain!==null).length-initialExplored[f],
       roundsWithoutCityChange:g.round-s.lastCityChange}];

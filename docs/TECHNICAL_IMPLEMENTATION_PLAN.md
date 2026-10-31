@@ -408,3 +408,5 @@ last deployed SHA and leave other open PRs untouched unless authorized.
 `ENGINE_STATUS.md` contains dated historical milestones and stale introductory
 claims. Use this plan's explicit baseline and the actual source/PR state when
 making implementation decisions; refresh that document as milestones ship.
+
+Supply regression follow-up: [fighter starvation and troop pickup correction](AI_SUPPLY_BACKLOG_FIX.md) records the conflicting aircraft gate, barren-port return behavior, port-approach congestion and six-map evidence.
