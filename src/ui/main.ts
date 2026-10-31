@@ -13,6 +13,12 @@ let observer:'blue'|'red'='blue';
 let spectatorMode:'alternate'|'blue'|'red'='alternate';
 let playback:ReturnType<typeof setTimeout>|null=null;
 let playbackGeneration=0,roundsPerAdvance=1;
+let observerRefreshPending=false;
+function flushObserverBatch():void {
+  if(!observerRefreshPending)return;
+  observerRefreshPending=false;refresh();
+  void saveLocally(game).catch(()=>uiMessage('Local save unavailable; use Export JSON.'));
+}
 let view:PlayerView=getPlayerView(game,observer);
 let selectedUnit:string|null='u1',selectedCity:string|null=null;
 let spectatorContact:string|null=null,spectatorCity:string|null=null;
@@ -33,6 +39,7 @@ function pausePlayback():void {
   (el('advanceRounds') as HTMLButtonElement).disabled=false;
   (el('nextRound') as HTMLButtonElement).disabled=false;
   el('roundProgress').hidden=true;
+  flushObserverBatch();
 }
 /** Yield between individual rounds so painting, Pause and scenario changes
  * can interrupt even a 100-round advance. Never run overlapping timers.
@@ -52,9 +59,10 @@ function startRoundPlayback(repeat:boolean):void {
   const tick=()=>{
     if(generation!==playbackGeneration)return;
     if(completed===0){target=roundsPerAdvance;progress();}
-    if(game.scenario!=='ai-vs-ai'||!dispatch(()=>advanceLabRound(game))){pausePlayback();return;}
+    if(game.scenario!=='ai-vs-ai'||!dispatch(()=>advanceLabRound(game),true)){pausePlayback();return;}
     completed++;progress();
     if(completed===target){
+      flushObserverBatch();
       if(!repeat){pausePlayback();uiMessage(`Advanced ${completed} ${completed===1?'round':'rounds'} to round ${game.round}.`);return;}
       completed=0;
       el('roundProgress').hidden=true;
@@ -63,7 +71,7 @@ function startRoundPlayback(repeat:boolean):void {
   };
   playback=setTimeout(tick,repeat?750:0);
 }
-function dispatch(operation:()=>Game):boolean {
+function dispatch(operation:()=>Game,deferObserverRefresh=false):boolean {
   try {
     const before=game.nextEventId;
     const previousRound=game.round;
@@ -73,6 +81,7 @@ function dispatch(operation:()=>Game):boolean {
       observer=(game.round-1)%2===0?'blue':'red';
       selectedUnit=null;selectedCity=null;spectatorContact=null;spectatorCity=null;
     }
+    if(deferObserverRefresh){observerRefreshPending=true;return true;}
     view=getPlayerView(game,observer);
     if(selectedUnit&&!view.ownUnits.some(u=>u.id===selectedUnit))selectedUnit=null;
     refresh();

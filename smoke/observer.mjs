@@ -39,6 +39,7 @@ test('Observer speed, progress and cancellation in WebKit',async t=>{
       assert.deepEqual(await page.locator('#roundSpeed option').evaluateAll(nodes=>nodes.map(n=>n.value)),['1','10','50','100']);
       for(const count of [1,10,50,100]){
         const before=await round();
+        await page.evaluate(()=>{window.observerPaints=0;const ctx=document.querySelector('#map').getContext('2d');if(!window.observerPaintHook){window.observerPaintHook=true;const clear=ctx.clearRect.bind(ctx);ctx.clearRect=(...args)=>{window.observerPaints++;return clear(...args);};}});
         await page.locator('#roundSpeed').selectOption(String(count));
         await page.locator('#advanceRounds').click();
         if(count===100){
@@ -50,6 +51,7 @@ test('Observer speed, progress and cancellation in WebKit',async t=>{
           }
         }
         await page.waitForFunction(expected=>document.querySelector('#round').textContent===`ROUND ${expected}`&&document.querySelector('#roundProgress').hidden,before+count);
+        assert.equal(await page.evaluate(()=>window.observerPaints),1,'One map redraw per completed batch');
         assert.equal(await page.locator('#advanceRounds').isEnabled(),true);
         assert.equal(await page.locator('#nextRound').isEnabled(),true);
       }
@@ -66,9 +68,9 @@ test('Observer speed, progress and cancellation in WebKit',async t=>{
       await page.locator('#roundSpeed').selectOption('100');
       const before=await round();
       const paused=await page.evaluate(min=>new Promise(done=>{
-        const node=document.querySelector('#round');
+        const node=document.querySelector('#roundProgressText');
         const observer=new MutationObserver(()=>{
-          const current=Number(node.textContent.replace('ROUND ',''));
+          const current=Number(document.querySelector('#round').textContent.replace('ROUND ',''))+Number(node.textContent.split(' / ')[0]);
           if(current>=min){
             const visible=!document.querySelector('#roundProgress').hidden;
             document.querySelector('#autoPlay').click();observer.disconnect();done({current,visible});
@@ -98,9 +100,9 @@ test('Observer speed, progress and cancellation in WebKit',async t=>{
     await t.test('Starting another scenario cancels pending round work',async()=>{
       await page.locator('#roundSpeed').selectOption('100');const before=await round();
       await page.evaluate(min=>new Promise(done=>{
-        const node=document.querySelector('#round');
+        const node=document.querySelector('#roundProgressText');
         const observer=new MutationObserver(()=>{
-          if(Number(node.textContent.replace('ROUND ',''))>=min){observer.disconnect();document.querySelector('#classicGame').click();done();}
+          if(Number(document.querySelector('#round').textContent.replace('ROUND ',''))+Number(node.textContent.split(' / ')[0])>=min){observer.disconnect();document.querySelector('#classicGame').click();done();}
         });observer.observe(node,{childList:true,subtree:true});document.querySelector('#advanceRounds').click();
       }),before+3);
       await page.waitForTimeout(850);assert.equal(await round(),1);
