@@ -208,6 +208,11 @@ switching factories so often that their progress is repeatedly discarded.
 - [ ] Hidden ownership/terrain changes cannot change decisions before observation.
 - [ ] Paired clean campaigns report discovery-to-capture delays, losses and CPU cost.
 
+Assembly follow-up: save a bounded per-objective recruitment/rendezvous wait on
+transports, release approaching partners to move, and prefer full available hostile
+landing waves. Validate expiry, replay, narrow shores and ongoing neutral expansion.
+Shared staging coordinates and route-time synchronization remain outstanding.
+
 ## 5. Coordinated invasions and logistics
 
 Existing `aiObjective`, `aiMissionProgress` and `aiAvoidObjective` fields support

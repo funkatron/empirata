@@ -541,6 +541,26 @@ export function chooseAiTransportObjective(view:ReturnType<typeof getPlayerView>
   return objectives[0]?.id;
 }
 
+/** Bounded recruitment/rendezvous wait for a real multi-transport hostile force.
+ * Remember the first wait per objective so an impossible rendezvous cannot reset
+ * its timer forever. Neutral missions and isolated transports continue normally. */
+export function planAiTransportAssembly(view:ReturnType<typeof getPlayerView>,ship:Unit):{ship:Unit;wait:boolean} {
+  const next=structuredClone(ship),objective=chooseAiTransportObjective(view,ship);
+  if(next.aiAssembly?.objective!==objective)delete next.aiAssembly;
+  const cell=view.cells.findIndex(c=>c.city?.id===objective);
+  if(!objective||cell<0||view.cells[cell]!.city!.owner===null)return {ship:next,wait:false};
+  const target={x:cell%view.width,y:Math.floor(cell/view.width)};
+  const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
+  const cargo=(id:string)=>view.ownUnits.filter(u=>u.kind==='army'&&u.aboard===id).length;
+  const partners=view.ownUnits.filter(u=>u.kind==='transport'&&u.id!==ship.id&&cargo(u.id)>0&&chooseAiTransportObjective(view,u)===objective);
+  if(ship.kind!=='transport'||!cargo(ship.id)||!partners.length||aiTransportThreatened(view,ship.position))return {ship:next,wait:false};
+  const recruiting=cargo(ship.id)<(capacity(ship)??0)&&view.ownCities.some(c=>c.production==='army'&&distance(c.position,ship.position)<=1);
+  const rendezvous=distance(ship.position,target)<=6&&partners.some(u=>distance(u.position,target)>distance(ship.position,target)+3);
+  if(!recruiting&&!rendezvous)return {ship:next,wait:false};
+  if(!next.aiAssembly)next.aiAssembly={objective,startedRound:view.round};
+  return {ship:next,wait:view.round-next.aiAssembly.startedRound<12};
+}
+
 /** Experimental timeout: 24 rounds without closer approach or unloading.
  * Retry a stalled objective after 12 rounds; never consult hidden ownership.
  */
@@ -692,7 +712,7 @@ export function planAiLandingWave(view:ReturnType<typeof getPlayerView>):{armyId
     const cargo=view.ownUnits.filter(u=>u.kind==='army'&&u.aboard&&ids.has(u.aboard));
     const support=view.ownUnits.filter(u=>u.kind==='army'&&!u.aboard&&u.order.kind!=='sentry'&&
       distance(u.position,objective)<=2&&aiLandingReachesObjective(view,u.position,target)).length;
-    const needed=Math.max(0,Math.min(city.owner===null?2:Math.max(3,group.length*3),cargo.length+support)-support);
+    const needed=Math.max(0,Math.min(city.owner===null?2:Math.max(3,group.length*6),cargo.length+support)-support);
     const choices=new Map(group.map(s=>[s.id,planAiLandingSquares(view,{...s,aiObjective:target})
       .filter(p=>!result.some(r=>equal(r.position,p)))]));
     // Bipartite matching: a flexible ship must not consume another ship's only
@@ -1034,15 +1054,25 @@ export function playRedOpponent(game:Game):Game {
     }
   }
 
+  const assembling=new Set<string>();
+  for(const ship of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='transport')){
+    const plan=planAiTransportAssembly(getPlayerView(g,'red'),ship);
+    if(JSON.stringify(plan.ship.aiAssembly)!==JSON.stringify(ship.aiAssembly)){
+      g=clone(g);const actual=g.units.find(u=>u.id===ship.id)!;
+      if(plan.ship.aiAssembly)actual.aiAssembly=plan.ship.aiAssembly;else delete actual.aiAssembly;
+      if(plan.ship.aiAssembly)log(g,'red','system',`Transport ${ship.id} assembling for ${plan.ship.aiAssembly.objective}; wait limited to 12 rounds.`);
+    }
+    if(plan.wait)assembling.add(ship.id);
+  }
   // Prefer landing near a known hostile/neutral objective; never target an
   // undiscovered city or use hidden terrain for route selection.
   for(const ship of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='transport')){
     const view=getPlayerView(g,'red');
     const cargo=view.ownUnits.find(u=>u.kind==='army'&&u.aboard===ship.id&&u.spent<movementAllowance(u));
-    const shore=planAiReconLandingSquare(view,ship);
+    const shore=assembling.has(ship.id)?null:planAiReconLandingSquare(view,ship);
     if(cargo&&shore){try{g=disembarkArmy(g,cargo.id,shore);}catch{/* Actual movement remains authoritative. */}}
   }
-  for(const landing of planAiLandingWave(getPlayerView(g,'red'))){
+  for(const landing of planAiLandingWave({...getPlayerView(g,'red'),ownUnits:getPlayerView(g,'red').ownUnits.filter(u=>!assembling.has(u.id)&&!assembling.has(u.aboard??''))})){
     // Each landing refreshes intelligence. A newly exposed defender can make
     // later reserved cells unsafe even though disembarkArmy still permits them.
     const view=getPlayerView(g,'red');
@@ -1070,7 +1100,7 @@ export function playRedOpponent(game:Game):Game {
       const view=getPlayerView(g,'red');
       const unit=view.ownUnits.find(u=>u.id===id);
       if(!unit||unit.spent>=movementAllowance(unit)||unit.order.kind==='sentry')break;
-      if(protectedCargo.has(id))break;
+      if(protectedCargo.has(id)||assembling.has(id))break;
       if(unit.kind==='fighter'){
         const next=planAiFighterStep(view,unit);if(!next)break;
         try{g=aiMove(g,id,next);continue;}catch{break;}
