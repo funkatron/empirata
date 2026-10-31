@@ -27,9 +27,12 @@ test('An undefended city builds armies even when its connected region has large 
 });
 test('Empty transport capacity resumes army supply above the old eight-army threshold',()=>{
  const g=port(),base=g.units.find(u=>u.id==='troop');
+ // Existing aircraft isolate army/scout supply from the first-aircraft priority.
+ for(let i=0;i<1;i++)g.units.push({...structuredClone(g.units.find(u=>u.owner==='red')),id:`existing-air-${i}`,kind:'fighter',fuel:20,position:{x:80,y:36}});
  for(let i=0;i<7;i++)g.units.push({...structuredClone(base),id:`supply-${i}`,position:{x:79,y:36}});
  g.units.push({...structuredClone(g.units.find(u=>u.id==='scout')),id:'second-scout',position:{x:85,y:36}});
  g.units.push({...structuredClone(g.units.find(u=>u.id==='ship')),id:'second-ship',position:{x:86,y:36}});
+ g.knowledge.red.terrain=[...g.tiles];
  updateAllKnowledge(g);
  assert.equal(playRedOpponent(g).cities.find(c=>c.id==='c-red').production,'army');
 });

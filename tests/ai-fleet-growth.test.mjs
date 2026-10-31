@@ -19,6 +19,8 @@ test('A supplied faction commissions a second transport and retains its progress
 });
 test('An expanding faction commissions a second reconnaissance destroyer',()=>{
  const g=fleet();
+ // Existing aircraft isolate army/scout supply from the first-aircraft priority.
+ for(let i=0;i<1;i++)g.units.push({...structuredClone(g.units.find(u=>u.owner==='red')),id:`existing-air-${i}`,kind:'fighter',fuel:20,position:{x:80,y:36}});
  g.units.push({...structuredClone(g.units.find(u=>u.id==='transport')),id:'sufficient-transport',position:{x:86,y:36}});
  for(const [id,x,y] of [['port-a',79,35],['port-b',79,37]])g.cities.push({id,position:{x,y},owner:'red',production:null,progress:0,firstCycle:true});
  updateAllKnowledge(g);

@@ -1046,10 +1046,10 @@ export function playRedOpponent(game:Game):Game {
     const assignedTransports=transportCount+view.ownCities.filter(c=>c.id!==city.id&&c.production==='transport').length;
     const fighterCount=ownUnits.filter(u=>u.kind==='fighter').length;
     const carrierCount=ownUnits.filter(u=>u.kind==='carrier').length;
-    const fighterTarget=Math.max(1,Math.ceil(view.ownCities.length/2))+carrierCount*4;
+    const fighterTarget=Math.max(transportCount>0?2:1,Math.ceil(view.ownCities.length/2))+carrierCount*4;
     const fightersAssigned=fighterCount+view.ownCities.filter(c=>c.id!==city.id&&c.production==='fighter').length;
     const airProbe:Unit={...probe,kind:'fighter',fuel:20};
-    const fighterNeeded=armyCount>=3&&(transportCount===0||ownUnits.filter(u=>u.kind==='army').length>=transportCount*6)&&fightersAssigned<fighterTarget&&planAiFighterStep(view,airProbe)!==null;
+    const fighterNeeded=armyCount>=2&&fightersAssigned<fighterTarget&&planAiFighterStep(view,airProbe)!==null;
     const carrierNeeded=armyCount>=3&&transportCount>0&&fighterCount>=2&&
       ownUnits.some(u=>u.kind==='destroyer')&&carrierCount+view.ownCities.filter(c=>c.id!==city.id&&c.production==='carrier').length<Math.ceil(transportCount/2)&&isCoastal(g,city.position);
     const committedShip=city.progress>0&&
@@ -1057,7 +1057,7 @@ export function playRedOpponent(game:Game):Game {
        city.production==='transport'&&assignedTransports<desiredTransports||
        city.production==='fighter'&&fightersAssigned<fighterTarget||city.production==='carrier'&&fighterCount>=2&&carrierCount<Math.ceil(transportCount/2));
     const pick=!defenders.has(city.id)?'army':committedShip?city.production!:
-      armyCount>=3&&assignedTransports<desiredTransports&&isCoastal(g,city.position)?'transport':scoutNeeded?'destroyer':
+      armyCount>=3&&assignedTransports<desiredTransports&&isCoastal(g,city.position)?'transport':fighterCount===0&&fighterNeeded?'fighter':scoutNeeded?'destroyer':
       carrierNeeded?'carrier':fighterNeeded?'fighter':'army';
     // Production time cannot be recovered: keep every factory active.
     if(city.production!==pick)g=selectProduction(g,city.id,pick);
@@ -1169,11 +1169,16 @@ export function playRedOpponent(game:Game):Game {
       if(unit.kind==='transport'&&!view.ownUnits.some(u=>u.aboard===id)){
         // Empty transports return to known friendly ports for another load.
         // A ship already in port waits for troops instead of wandering away.
+        const queued=new Map(view.ownCities.map(c=>{
+          const region=aiGroundRegion(view,c.position);
+          return [c.id,view.ownUnits.filter(u=>u.kind==='army'&&!u.aboard&&!protectedCargo.has(u.id)&&
+            distance(u.position,c.position)<=3&&region.has(u.position.y*view.width+u.position.x)).length];
+        }));
         const ports=view.ownCities.filter(c=>isCoastal(g,c.position))
-          .sort((a,b)=>Math.max(Math.abs(a.position.x-unit.position.x),Math.abs(a.position.y-unit.position.y))-
-            Math.max(Math.abs(b.position.x-unit.position.x),Math.abs(b.position.y-unit.position.y)));
+          .sort((a,b)=>queued.get(b.id)!-queued.get(a.id)!||
+            distance(a.position,unit.position)-distance(b.position,unit.position));
         if(ports.length){
-          if(ports.some(port=>equal(port.position,unit.position)))break;
+          if(equal(ports[0]!.position,unit.position))break;
           let returned=false;
           for(const port of ports){
             const step=routeStep(g,unit,port.position);
@@ -1265,9 +1270,13 @@ export function playRedOpponent(game:Game):Game {
       if(unit.kind==='army'&&!isScout&&visibleEnemies.length===0&&groundPlan===null&&
          !knownCities.some(c=>distance(c.pos,unit.position)<=1)){
         const ports=view.ownCities.filter(c=>isCoastal(g,c.position))
-          .sort((a,b)=>distance(a.position,unit.position)-distance(b.position,unit.position));
+          .sort((a,b)=>{
+            const service=(p:Coord)=>view.ownUnits.some(u=>u.kind==='transport'&&
+              view.ownUnits.filter(c=>c.aboard===u.id).length<(capacity(u)??0)&&distance(u.position,p)<=3);
+            return Number(service(b.position))-Number(service(a.position))||distance(a.position,unit.position)-distance(b.position,unit.position);
+          });
         if(ports.length){
-          if(ports.some(port=>distance(port.position,unit.position)<=1))break;
+          if(equal(ports[0]!.position,unit.position))break;
           let staged=false;
           for(const port of ports){
             const next=routeStep(g,unit,port.position);

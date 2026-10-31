@@ -7,10 +7,10 @@ This is modern experimental strategy, not a reconstruction of DOS AI.
 ## Production decisions
 
 - Missing city defenders still require armies first.
-- A fighter requires at least three locally connected armies, unsatisfied aircraft
-  demand, and a useful fuel-feasible scouting route from the factory. Army supply
-  for existing transport capacity takes priority over a new fighter assignment.
-- Fighter demand starts at one per two cities (rounded up, minimum one) plus four
+- A fighter requires at least two locally connected armies, unsatisfied aircraft
+  demand, and a useful fuel-feasible scouting route from the factory. Missing transport production capacity retains priority at supplied ports; spare
+  transport slots no longer block all fighter production.
+- Fighter demand starts at one per two cities (rounded up, minimum one, or two when transports exist) plus four
   per existing carrier. Other factories assigned fighters count toward demand.
 - A coastal carrier requires local army supply, an existing transport, a destroyer
   and at least two fighters. Carrier demand scales at one per two transports,

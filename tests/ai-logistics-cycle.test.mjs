@@ -46,13 +46,13 @@ test('An idle Red army moves toward its coastal loading city',()=>{
   const dist=p=>Math.max(Math.abs(p.x-80),Math.abs(p.y-36));
   assert.ok(dist(moved)<dist(original));
 });
-test('An army already near its coastal city waits for transport pickup',()=>{
+test('An army near its coastal city enters the port to free the approach',()=>{
   const g=fleet();
   g.units.unshift({...structuredClone(g.units.find(u=>u.id==='u3')),id:'recon',position:{x:76,y:34}});
   g.units.find(u=>u.id==='u3').position={x:79,y:36};
   updateAllKnowledge(g);
   const acted=playRedOpponent(endTurn(g));
-  assert.deepEqual(acted.units.find(u=>u.id==='u3').position,{x:79,y:36});
+  assert.deepEqual(acted.units.find(u=>u.id==='u3').position,{x:80,y:36});
 });
 
 test('AI never reboards an army from an enemy beachhead before its assault',()=>{
