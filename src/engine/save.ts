@@ -60,7 +60,7 @@ export function importSave(json:string):Game {
     if(u.aiMissionProgress!==undefined){
       const p=u.aiMissionProgress;
       if(!u.aiObjective||!p||!finiteInt(p.round)||p.round<1||p.round>g.round!||
-        !finiteInt(p.bestDistance)||p.bestDistance<0||!finiteInt(p.cargo)||p.cargo<0)
+        (p.metric!=='sea'&&p.metric!=='city')||!finiteInt(p.bestDistance)||p.bestDistance<0||!finiteInt(p.cargo)||p.cargo<0)
         throw new Error('Invalid AI mission progress.');
     }
     if(u.aiAvoidObjective!==undefined){

@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {makeRulesLab,endTurn,playRedOpponent,updateAllKnowledge,emptyKnowledge,getPlayerView,planAiInvasionStep,planAiLandingSquares,planAiConvoyStaging,exportSave,importSave} from '../dist/engine/index.js';
+import {makeRulesLab,endTurn,playRedOpponent,updateAllKnowledge,emptyKnowledge,getPlayerView,planAiInvasionStep,planAiLandingSquares,planAiConvoyStaging,updateAiTransportMission,exportSave,importSave} from '../dist/engine/index.js';
 function inland(){
  const g=endTurn(makeRulesLab()),base=g.units.find(u=>u.owner==='red');g.tiles.fill('sea');
  for(let y=25;y<=35;y++)for(let x=45;x<=55;x++)g.tiles[y*g.width+x]='land';
@@ -44,4 +44,44 @@ for(const automatic of [false,true])test(`Ground assault troops remain ashore du
  g.units[0].position={x:automatic?45:44,y:30};for(const u of g.units.filter(u=>u.aboard==='ship'))u.position={...g.units[0].position};
  updateAllKnowledge(g);const next=playRedOpponent(g),army=next.units.find(u=>u.id==='assault');
  assert.equal(army.aboard,null);assert.deepEqual(importSave(exportSave(next)),next);assert.notDeepEqual(army.position,g.units.find(u=>u.id==='assault').position,'Ground assault advances instead of remaining reserved');
+});
+
+function detour(){
+ const g=inland();g.tiles.fill('sea');
+ // A separate long peninsula blocks the direct crossing to the city island.
+ for(let y=5;y<=58;y++)g.tiles[y*g.width+52]='land';
+ for(let y=28;y<=32;y++)for(let x=60;x<=62;x++)g.tiles[y*g.width+x]='land';
+ g.cities[0].position={x:61,y:30};g.units[0].position={x:50,y:30};
+ for(const u of g.units.filter(u=>u.aboard))u.position={x:50,y:30};
+ for(const f of ['blue','red','green'])g.knowledge[f]=emptyKnowledge(g);
+ g.knowledge.red.terrain=[...g.tiles];g.knowledge.red.cities.inland={id:'inland',owner:'blue',production:null,productionKnown:false};updateAllKnowledge(g);return g;
+}
+test('A long peninsula detour makes route progress while city distance grows',()=>{
+ const g=detour(),v=getPlayerView(g,'red');let ship=v.ownUnits[0],moves=0,grew=false;
+ const city=g.cities[0].position,cheb=p=>Math.max(Math.abs(p.x-city.x),Math.abs(p.y-city.y));
+ const initial=cheb(ship.position);
+ for(let i=0;i<100;i++){
+  v.round=g.round+i;v.ownUnits[0]=ship;
+  ship=updateAiTransportMission(v,ship);
+  assert.equal(ship.aiObjective,'inland');assert.equal(ship.aiAvoidObjective,undefined);
+  assert.equal(ship.aiMissionProgress.metric,'sea');assert.equal(ship.aiMissionProgress.round,v.round);
+  const step=planAiInvasionStep(v,ship);if(!step)break;
+  ship.position=step;moves++;if(cheb(step)>initial)grew=true;
+ }
+ assert.ok(moves>24,'The valid approach exceeds the stall deadline');assert.ok(grew);
+ assert.equal(ship.aiMissionProgress.bestDistance,0);assert.ok(planAiLandingSquares(v,ship).length);
+ // Remaining at the final approach without delivering still times out.
+ v.round+=24;ship=updateAiTransportMission(v,ship);assert.equal(ship.aiObjective,undefined);
+});
+test('Discovery rebases the progress metric and then preserves the stall deadline',()=>{
+ const g=detour(),v=getPlayerView(g,'red');
+ const city=g.cities[0].position;
+ for(let y=28;y<=32;y++)for(let x=60;x<=62;x++)if(x!==city.x||y!==city.y)v.cells[y*v.width+x].terrain=null;
+ let ship=updateAiTransportMission(v,v.ownUnits[0]);assert.equal(ship.aiMissionProgress.metric,'city');
+ v.round+=23;
+ for(let y=28;y<=32;y++)for(let x=60;x<=62;x++)v.cells[y*v.width+x].terrain='land';
+ ship=updateAiTransportMission(v,ship);assert.equal(ship.aiMissionProgress.metric,'sea');assert.equal(ship.aiMissionProgress.round,v.round);
+ g.round=v.round;Object.assign(g.units[0],ship);assert.deepEqual(importSave(exportSave(g)),g);
+ const invalid=structuredClone(g);invalid.units[0].aiMissionProgress.metric='teleport';assert.throws(()=>importSave(exportSave(invalid)),/progress/);
+ v.round+=24;ship=updateAiTransportMission(v,ship);assert.equal(ship.aiObjective,undefined);
 });

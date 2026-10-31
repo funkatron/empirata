@@ -12,7 +12,7 @@ export type Unit = {
   id: string; owner: FactionId; kind: UnitType; position: Coord;
   damage: number; spent: number; fuel: number | null; order: UnitOrder;
   aboard: string | null;
-  aiMissionProgress?: {round:number; bestDistance:number; cargo:number};
+  aiMissionProgress?: {round:number; bestDistance:number; metric:'sea'|'city'; cargo:number};
   aiAvoidObjective?: {id:string; until:number};
   aiBeachhead?: string; // City objective attached to AI-delivered assault troops.
   aiAssembly?: {objective:string;startedRound:number;staging?:Coord;gathered?:boolean};

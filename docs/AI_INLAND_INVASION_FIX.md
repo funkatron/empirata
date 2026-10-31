@@ -41,7 +41,8 @@ This removes one definite invasion blocker, not every logistics limitation.
 Nearest navigable delivery may still trade sea travel for a longer ground march;
 combined sea/ground travel-time scoring is future work. City-only islands without
 an ordinary landing square remain a separate rules/landing question. Mission
-progress timeout still uses city distance and can misclassify long coastal detours.
+progress now uses the remaining sea route to a usable connected beach when one
+can be planned; see [route progress](AI_INVASION_ROUTE_PROGRESS.md).
 Existing arbitrary-world connectivity and stale intelligence uncertainties remain.
 
 ## Protect the land assault after delivery
