@@ -128,6 +128,7 @@ test('Autonomous match tracks production, embarkation and real sea travel within
   const firstRound={blue:null,red:null};
   // Fuel losses change production timing; retain a bounded voyage requirement.
   for(let i=0;i<150;i++){
+    const departure=new Map(g.units.filter(u=>u.kind==='transport'&&u.order.kind==='none').map(u=>[u.id,{...u.position}]));
     g=advanceLabRound(g);
     for(const side of ['blue','red']){
       for(const unit of g.units.filter(u=>u.owner===side)){
@@ -137,6 +138,10 @@ test('Autonomous match tracks production, embarkation and real sea travel within
         if(!cargo.length)continue;
         loaded[side]=true;
         const visited=voyages[side].get(unit.id)??new Set();
+        // AI loading precedes discretionary movement. Include the departure
+        // square so a crossing completed within one turn remains observable.
+        const from=departure.get(unit.id);
+        if(from)visited.add(from.y*g.width+from.x);
         visited.add(unit.position.y*g.width+unit.position.x);
         voyages[side].set(unit.id,visited);
         if(visited.size>=2&&firstRound[side]===null)firstRound[side]=g.round;

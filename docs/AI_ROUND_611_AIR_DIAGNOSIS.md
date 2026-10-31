@@ -71,3 +71,15 @@ clear those reports, so rewarding their locations would produce repeated futile
 investigations. The regression uses fully charted terrain and a stale submarine
 report to verify no flight is requested. Transport-area investigation remains
 available to fighters and capable naval units as described above.
+
+## Voyage observation correction
+
+After the detection-aware review, the autonomous match produced multiple real
+Red deliveries (including landings in rounds 111, 129 and 134) but still failed
+the loaded-position snapshot oracle. These crossings begin and finish within a
+single turn, leaving only one sampled loaded sea square. Record the departure
+position of unordered AI transports before advancing and include it when that
+ship ends the round carrying cargo. The AI's loading pass precedes discretionary
+movement, so this captures the otherwise missed departure-to-arrival movement.
+Retain distinct positions, boarding, production and orphan-cargo checks; do not
+require a ship to spend two separate round boundaries afloat with cargo.
