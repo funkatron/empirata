@@ -541,6 +541,42 @@ export function chooseAiTransportObjective(view:ReturnType<typeof getPlayerView>
   return objectives[0]?.id;
 }
 
+/** Route a loaded convoy to distinct stations around its leading ship. Searches
+ * charted sea only; arrival estimates include damage-reduced movement. */
+export function planAiConvoyStaging(view:ReturnType<typeof getPlayerView>,ship:Unit):{staging:Coord;next:Coord|null;eta:number;groupEta:number}|null {
+  const objective=chooseAiTransportObjective(view,ship);
+  const cell=view.cells.findIndex(c=>c.city?.id===objective);
+  if(!objective||cell<0||view.cells[cell]!.city!.owner===null)return null;
+  const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
+  const target={x:cell%view.width,y:Math.floor(cell/view.width)};
+  const group=view.ownUnits.filter(u=>u.kind==='transport'&&view.ownUnits.some(a=>a.aboard===u.id)&&chooseAiTransportObjective(view,u)===objective)
+    .sort((a,b)=>distance(a.position,target)-distance(b.position,target)||a.id.localeCompare(b.id));
+  const leader=group[0];if(!leader||group.length<2||!group.some(u=>u.id===ship.id)||distance(leader.position,target)>6)return null;
+  if(group.every(u=>distance(u.position,leader.position)<=3))return null;
+  const staging=group.find(u=>u.aiAssembly?.objective===objective&&u.aiAssembly.staging)?.aiAssembly?.staging??leader.position;
+  const key=(p:Coord)=>p.y*view.width+p.x;
+  const stations=[staging,...directions.map(d=>({x:staging.x+d.x,y:staging.y+d.y}))];
+  const reserved=new Set<number>();let own:{next:Coord|null;eta:number}|undefined,groupEta=0;
+  for(const member of group){
+    const blocked=new Set(view.ownUnits.filter(u=>!u.aboard&&u.id!==member.id).map(u=>key(u.position)));
+    for(const e of view.enemies)if(!e.stale)blocked.add(key(e.position));
+    const legal=(p:Coord)=>playable(view,p)&&!blocked.has(key(p))&&view.cells[key(p)]?.terrain==='sea'&&!aiTransportThreatened(view,p);
+    const queue=[member.position],depth=new Map<number,number>([[key(member.position),0]]),parent=new Map<number,number>();
+    for(let h=0;h<queue.length;h++)for(const d of directions){const p={x:queue[h]!.x+d.x,y:queue[h]!.y+d.y},k=key(p);
+      if(!legal(p)||depth.has(k))continue;depth.set(k,depth.get(key(queue[h]!))!+1);parent.set(k,key(queue[h]!));queue.push(p);
+    }
+    const station=stations.filter(p=>!reserved.has(key(p))&&(equal(p,member.position)||legal(p))&&depth.has(key(p)))
+      .sort((a,b)=>depth.get(key(a))!-depth.get(key(b))!||a.y-b.y||a.x-b.x)[0];
+    if(!station)return null;reserved.add(key(station));
+    const steps=depth.get(key(station))!,speed=movementAllowance(member),remaining=Math.max(0,speed-member.spent);
+    const eta=steps===0?0:1+Math.ceil(Math.max(0,steps-remaining)/speed);groupEta=Math.max(groupEta,eta);
+    let next:Coord|null=null;
+    if(steps){let k=key(station);while(parent.get(k)!==key(member.position)){const previous=parent.get(k);if(previous===undefined)return null;k=previous;}next={x:k%view.width,y:Math.floor(k/view.width)};}
+    if(member.id===ship.id)own={next,eta};
+  }
+  return own?{staging:{...staging},...own,groupEta}:null;
+}
+
 /** Bounded recruitment/rendezvous wait for a real multi-transport hostile force.
  * Remember the first wait per objective so an impossible rendezvous cannot reset
  * its timer forever. Neutral missions and isolated transports continue normally. */
@@ -555,10 +591,16 @@ export function planAiTransportAssembly(view:ReturnType<typeof getPlayerView>,sh
   const partners=view.ownUnits.filter(u=>u.kind==='transport'&&u.id!==ship.id&&cargo(u.id)>0&&chooseAiTransportObjective(view,u)===objective);
   if(ship.kind!=='transport'||!cargo(ship.id)||!partners.length||aiTransportThreatened(view,ship.position))return {ship:next,wait:false};
   const recruiting=cargo(ship.id)<(capacity(ship)??0)&&view.ownCities.some(c=>c.production==='army'&&distance(c.position,ship.position)<=1);
-  const rendezvous=distance(ship.position,target)<=6&&partners.some(u=>distance(u.position,target)>distance(ship.position,target)+3);
-  if(!recruiting&&!rendezvous)return {ship:next,wait:false};
+  if(next.aiAssembly?.gathered)return {ship:next,wait:false};
+  const staging=planAiConvoyStaging(view,ship);
+  const rendezvous=staging!==null;
+  if(!recruiting&&!rendezvous){
+    if(next.aiAssembly?.staging&&partners.every(u=>distance(u.position,ship.position)<=3))next.aiAssembly.gathered=true;
+    return {ship:next,wait:false};
+  }
   if(!next.aiAssembly)next.aiAssembly={objective,startedRound:view.round};
-  return {ship:next,wait:view.round-next.aiAssembly.startedRound<12};
+  if(staging)next.aiAssembly.staging=staging.staging;
+  return {ship:next,wait:view.round-next.aiAssembly.startedRound<12&&(!staging||staging.groupEta<=12-(view.round-next.aiAssembly.startedRound))};
 }
 
 /** Experimental timeout: 24 rounds without closer approach or unloading.
@@ -1100,7 +1142,14 @@ export function playRedOpponent(game:Game):Game {
       const view=getPlayerView(g,'red');
       const unit=view.ownUnits.find(u=>u.id===id);
       if(!unit||unit.spent>=movementAllowance(unit)||unit.order.kind==='sentry')break;
-      if(protectedCargo.has(id)||assembling.has(id))break;
+      if(protectedCargo.has(id))break;
+      if(assembling.has(id)){
+        const recruiting=view.ownCities.some(c=>c.production==='army'&&distance(c.position,unit.position)<=1)&&
+          view.ownUnits.filter(u=>u.aboard===id).length<(capacity(unit)??0);
+        const staging=recruiting?null:planAiConvoyStaging(view,unit);
+        if(staging?.next){try{g=aiMove(g,id,staging.next);continue;}catch{/* Reassess blocked station next turn. */}}
+        break;
+      }
       if(unit.kind==='fighter'){
         const next=planAiFighterStep(view,unit);if(!next)break;
         try{g=aiMove(g,id,next);continue;}catch{break;}
