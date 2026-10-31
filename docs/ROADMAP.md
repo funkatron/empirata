@@ -135,6 +135,13 @@ See [unit roles and proposed patrol assignments](ai-unit-roles.md). Follow up wi
 escort distribution, corridor coverage and role-transition diagnostics. Other
 naval and air roles remain proposals pending rules and campaign verification.
 
+2026-10-31 follow-up: [additional unit roles](AI_ADDITIONAL_UNIT_ROLES.md) records
+escort replacement, fresh-transport interception and coastal perimeter duty for
+naval combat ships. Perimeters favor charted friendly landmasses without known
+hostiles ashore; unseen interiors remain reconnaissance gaps. New submarine and
+heavy-ship production, coordinated bombardment and shared hunter/escort allocation
+remain planned work.
+
 ## Observer performance with large armies (2026-10-30)
 
 **Observed:** AI turns become noticeably slower as unit counts grow. Investigate

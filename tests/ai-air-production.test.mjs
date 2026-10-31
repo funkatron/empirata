@@ -5,7 +5,8 @@ function ready(carrier=false){
  for(let y=18;y<=24;y++)for(let x=18;x<=24;x++)g.tiles[y*g.width+x]='land';
  g.cities=[{id:'home',owner:'red',position:{x:carrier?24:21,y:21},production:null,progress:0,firstCycle:true}];
  g.units=Array.from({length:3},(_,i)=>({...structuredClone(base),id:`army-${i}`,position:{...g.cities[0].position}}));
- if(carrier)for(const [i,kind] of ['transport','destroyer','fighter','fighter'].entries())g.units.push({...structuredClone(base),id:`support-${i}`,kind,position:{x:25+i,y:21},fuel:kind==='fighter'?20:null});
+ // Carrier commissioning assumes the transport's two-hull protection demand is supplied.
+ if(carrier)for(const [i,kind] of ['transport','destroyer','fighter','fighter','destroyer'].entries())g.units.push({...structuredClone(base),id:`support-${i}`,kind,position:{x:25+i,y:21},fuel:kind==='fighter'?20:null});
  for(const f of ['blue','red','green'])g.knowledge[f]=emptyKnowledge(g);
  if(carrier)g.knowledge.red.terrain=[...g.tiles];updateAllKnowledge(g);return g;
 }

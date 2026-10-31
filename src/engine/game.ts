@@ -785,6 +785,91 @@ export function planAiLandingWave(view:ReturnType<typeof getPlayerView>):{armyId
   return result;
 }
 
+/** Intercept freshly detected transports using only charted navigable cells.
+ * A shortest-route search prefers reachable contacts over geometric proximity.
+ * Stale reports are not live targets; delivery/basing hulls are not hunters.
+ */
+export function planAiNavalTransportIntercept(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|null {
+  if(!['destroyer','submarine','cruiser','battleship'].includes(ship.kind)||ship.aboard||ship.order.kind==='sentry')return null;
+  const key=(p:Coord)=>p.y*view.width+p.x;
+  const targets=new Set(view.enemies.filter(e=>!e.stale&&e.kind==='transport').map(e=>key(e.position)));
+  if(!targets.size)return null;
+  const blocked=new Set(view.ownUnits.filter(u=>!u.aboard&&u.id!==ship.id).map(u=>key(u.position)));
+  for(const enemy of view.enemies)if(!enemy.stale&&!targets.has(key(enemy.position)))blocked.add(key(enemy.position));
+  const start=key(ship.position),queue=[start],seen=new Set([start]),parent=new Map<number,number>();
+  let found:number|undefined;
+  for(let h=0;h<queue.length;h++){
+    const at=queue[h]!;
+    if(at!==start&&targets.has(at)){found=at;break;}
+    for(const d of directions){
+      const p={x:at%view.width+d.x,y:Math.floor(at/view.width)+d.y},k=key(p),cell=view.cells[k];
+      if(!playable(view,p)||seen.has(k)||blocked.has(k)||
+        cell?.city&&cell.city.owner!==ship.owner||cell?.terrain!=='sea'&&!cell?.city)continue;
+      seen.add(k);parent.set(k,at);queue.push(k);
+    }
+  }
+  if(found===undefined)return null;
+  let next=found;while(parent.get(next)!==start){const previous=parent.get(next);if(previous===undefined)return null;next=previous;}
+  return {x:next%view.width,y:Math.floor(next/view.width)};
+}
+
+/** Idle combat ships cover charted coastlines, spreading out from other
+ * warships and staying off friendly port entrances. Recomputed each turn:
+ * this is an AI duty, not a permanent player Sentry order.
+ */
+export function planAiCoastalSentryStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|null {
+  const combatShip=(u:Unit)=>['destroyer','submarine','cruiser','battleship'].includes(u.kind)&&!u.aboard;
+  if(!combatShip(ship)||ship.order.kind==='sentry')return null;
+  const key=(p:Coord)=>p.y*view.width+p.x,distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
+  const blocked=new Set(view.ownUnits.filter(u=>!u.aboard&&u.id!==ship.id).map(u=>key(u.position)));
+  for(const e of view.enemies)if(!e.stale)blocked.add(key(e.position));
+  const peers=view.ownUnits.filter(u=>u.id!==ship.id&&combatShip(u));
+  // Secure the perimeter of a friendly landmass rather than occupying any
+  // convenient coast. Unknown interiors remain unknown; this is an assessment
+  // of charted connected land and remembered/fresh faction intelligence only.
+  const eligibleLand=new Set<number>(),seenLand=new Set<number>();
+  const enemyLand=new Set(view.enemies.filter(e=>!e.stale).map(e=>key(e.position)));
+  for(let i=0;i<view.cells.length;i++){
+    if(seenLand.has(i)||view.cells[i]?.terrain!=='land')continue;
+    const region=[i];seenLand.add(i);let friendly=false,hostile=false;
+    for(let h=0;h<region.length;h++){
+      const at=region[h]!,city=view.cells[at]?.city;
+      if(city?.owner===ship.owner)friendly=true;
+      if(city&&city.owner!==null&&city.owner!==ship.owner||enemyLand.has(at))hostile=true;
+      for(const d of directions){
+        const q={x:at%view.width+d.x,y:Math.floor(at/view.width)+d.y},k=key(q);
+        if(!playable(view,q)||seenLand.has(k)||view.cells[k]?.terrain!=='land')continue;
+        seenLand.add(k);region.push(k);
+      }
+    }
+    if(friendly&&!hostile)for(const k of region)eligibleLand.add(k);
+  }
+  if(!eligibleLand.size)return null;
+  const queue=[ship.position],depth=new Map([[key(ship.position),0]]),parent=new Map<number,number>();
+  let best:Coord|undefined,bestScore=0,bestDepth=Infinity;
+  for(let h=0;h<queue.length;h++){
+    const p=queue[h]!,at=key(p),cell=view.cells[at];
+    const neighbors=directions.map(d=>({x:p.x+d.x,y:p.y+d.y})).filter(q=>playable(view,q));
+    const coast=neighbors.some(q=>eligibleLand.has(key(q)));
+    if(cell?.terrain==='sea'&&!cell.city&&coast&&
+      !view.ownCities.some(c=>distance(c.position,p)<=1)&&
+      neighbors.filter(q=>view.cells[key(q)]?.terrain==='sea').length>=3){
+      const nearHome=view.ownCities.some(c=>distance(c.position,p)<=4);
+      const covered=peers.some(u=>distance(u.position,p)<=3);
+      const score=(nearHome?30:10)-(covered?30:0),steps=depth.get(at)!;
+      if(score>bestScore||score===bestScore&&score>0&&steps<bestDepth){best=p;bestScore=score;bestDepth=steps;}
+    }
+    for(const q of neighbors){
+      const k=key(q),next=view.cells[k];
+      if(depth.has(k)||blocked.has(k)||next?.city&&next.city.owner!==ship.owner||next?.terrain!=='sea'&&!next?.city)continue;
+      depth.set(k,depth.get(at)!+1);parent.set(k,at);queue.push(q);
+    }
+  }
+  if(!best||equal(best,ship.position))return null;
+  let next=key(best);while(parent.get(next)!==key(ship.position)){const previous=parent.get(next);if(previous===undefined)return null;next=previous;}
+  return {x:next%view.width,y:Math.floor(next/view.width)};
+}
+
 /** Naval reconnaissance: choose a reachable sea frontier by information gained
  * per travel step. Route only through charted sea; unknown cells are endpoints,
  * never presumed safe transit. No world state outside PlayerView is consulted.
@@ -1043,14 +1128,16 @@ export function playRedOpponent(game:Game):Game {
     const transportCount=ownUnits.filter(u=>u.kind==='transport').length;
     const view=getPlayerView(g,'red');
     const navalThreat=view.enemies.some(e=>!e.stale&&e.kind==='transport');
-    const desiredScouts=Math.max(navalThreat||transportCount>0&&armyCount>=3&&ownUnits.some(u=>u.kind==='destroyer')?2:1,Math.ceil(view.ownCities.length/2));
+    // Transport protection survives casualties and the end of reconnaissance.
+    // This is ongoing demand, not a fixed cap on fleet production.
+    const desiredScouts=Math.max(navalThreat||transportCount>0?2:1,Math.ceil(view.ownCities.length/2));
     const scoutingAssigned=ownUnits.filter(u=>u.kind==='destroyer').length+
       view.ownCities.filter(c=>c.id!==city.id&&c.production==='destroyer').length>=desiredScouts;
     const knownObjective=view.cells.some(c=>c.city&&c.city.owner!=='red');
     const probe:Unit={id:'production-scout',kind:'destroyer',owner:'red',position:city.position,
       aboard:null,damage:0,spent:0,fuel:null,order:{kind:'none'}};
     const scoutNeeded=armyCount>=1&&!scoutingAssigned&&(!knownObjective||desiredScouts>1)&&
-      isCoastal(g,city.position)&&(navalThreat||planAiNavalScoutStep(view,probe)!==null);
+      isCoastal(g,city.position)&&(transportCount>0||navalThreat||planAiNavalScoutStep(view,probe)!==null);
     // Finish committed ships rather than repeatedly discarding their progress.
     const totalArmies=ownUnits.filter(u=>u.kind==='army').length;
     const hostileKnown=view.cells.some(c=>c.city&&c.city.owner!==null&&c.city.owner!=='red');
@@ -1177,6 +1264,11 @@ export function playRedOpponent(game:Game):Game {
         if(staging?.next){try{g=aiMove(g,id,staging.next);continue;}catch{/* Reassess blocked station next turn. */}}
         break;
       }
+      const intercept=planAiNavalTransportIntercept(view,unit);
+      if(intercept){
+        const attacking=view.enemies.some(e=>!e.stale&&e.kind==='transport'&&equal(e.position,intercept));
+        try{g=aiMove(g,id,intercept);if(attacking)break;continue;}catch{break;}
+      }
       if(unit.kind==='fighter'){
         const next=planAiFighterStep(view,unit);if(!next)break;
         try{g=aiMove(g,id,next);continue;}catch{break;}
@@ -1215,9 +1307,9 @@ export function playRedOpponent(game:Game):Game {
         try {g=aiMove(g,id,step);continue;}
         catch {break;} // Hidden contact interrupts the route; do not attack blindly.
       }
-      // Destroyers scout charted water instead of drifting into arbitrary
-      // nearby cells; this is modern experimental strategy, not DOS AI parity.
-      if(unit.kind==='destroyer'){
+      // Combat ships handle nearby threats, then reconnaissance (destroyers),
+      // convoy protection and coastal stations. This is experimental strategy.
+      if(['destroyer','submarine','cruiser','battleship'].includes(unit.kind)){
         const adjacent=view.enemies.filter(e=>!e.stale&&e.kind!=='army'&&
           distance(e.position,unit.position)===1)
           .sort((a,b)=>Number(b.kind==='transport')-Number(a.kind==='transport')||a.id.localeCompare(b.id));
@@ -1226,25 +1318,6 @@ export function playRedOpponent(game:Game):Game {
           try{g=aiMove(g,id,target.position);engaged=true;break;}catch{/* Try the next legal contact. */}
         }
         if(engaged)break; // Resolve immediate threats before scouting or holding.
-        const transports=view.enemies.filter(e=>!e.stale&&e.kind==='transport')
-          .sort((a,b)=>distance(a.position,unit.position)-distance(b.position,unit.position));
-        let pursued=false;
-        for(const target of transports){
-          if(distance(target.position,unit.position)===1){
-            try{g=aiMove(g,id,target.position);pursued=true;}catch{/* Combat rules remain authoritative. */}
-            if(pursued)break;
-          }else{
-            const approaches=directions.map(d=>({x:target.position.x+d.x,y:target.position.y+d.y}))
-              .filter(p=>playable(view,p)&&view.cells[p.y*view.width+p.x]?.terrain==='sea')
-              .sort((a,b)=>distance(a,unit.position)-distance(b,unit.position));
-            for(const p of approaches){
-              const next=routeStep(g,unit,p);if(!next)continue;
-              try{g=aiMove(g,id,next);pursued=true;break;}catch{/* Try another charted approach. */}
-            }
-            if(pursued)break;
-          }
-        }
-        if(pursued){if(transports.some(t=>distance(t.position,unit.position)===1))break;continue;}
         const next=planAiNavalScoutStep(view,unit);
         if(next){
           try {g=aiMove(g,id,next);continue;}
@@ -1269,7 +1342,10 @@ export function playRedOpponent(game:Game):Game {
           }
           if(repositioned)continue;
         }
-        break; // Reassessed sentry behavior, without a permanent sentry order.
+        if(escort)break; // Hold protection beside an active loaded transport.
+        const station=planAiCoastalSentryStep(view,unit);
+        if(station){try{g=aiMove(g,id,station);continue;}catch{break;}}
+        break; // Coastal sentry is reassessed next turn, including fresh contacts.
       }
       const visibleEnemies=view.enemies.filter(e=>!e.stale);
       const knownCities=view.cells.flatMap((cell,i)=>cell.city&&cell.city.owner!=='red'?
