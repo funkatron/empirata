@@ -14,6 +14,7 @@ export type Unit = {
   aboard: string | null;
   aiMissionProgress?: {round:number; bestDistance:number; cargo:number};
   aiAvoidObjective?: {id:string; until:number};
+  aiBeachhead?: string; // City objective attached to AI-delivered assault troops.
   aiAssembly?: {objective:string;startedRound:number;staging?:Coord;gathered?:boolean};
   aiObjective?: string; // Experimental AI city mission, independent of player orders.
 };

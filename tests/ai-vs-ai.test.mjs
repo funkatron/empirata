@@ -121,6 +121,9 @@ test('Autonomous match tracks production, embarkation and real sea travel over 1
   const produced={blue:new Set(),red:new Set()};
   const loaded={blue:false,red:false};
   const voyages={blue:new Map(),red:new Map()};
+  // A valid beach can now shorten the crossing. Require actual loaded movement,
+  // not an arbitrary three-cell route; the dedicated overseas campaign still
+  // checks its longer crossing and capture end to end.
   const initial=new Set(g.units.map(u=>u.id));
   const firstRound={blue:null,red:null};
   for(let i=0;i<100;i++){
@@ -135,7 +138,7 @@ test('Autonomous match tracks production, embarkation and real sea travel over 1
         const visited=voyages[side].get(unit.id)??new Set();
         visited.add(unit.position.y*g.width+unit.position.x);
         voyages[side].set(unit.id,visited);
-        if(visited.size>=3&&firstRound[side]===null)firstRound[side]=g.round;
+        if(visited.size>=2&&firstRound[side]===null)firstRound[side]=g.round;
       }
     }
     for(const cargo of g.units.filter(u=>u.aboard)){
@@ -149,7 +152,7 @@ test('Autonomous match tracks production, embarkation and real sea travel over 1
   for(const side of ['blue','red']){
     assert.ok(loaded[side],side+' must load at least one transport');
     assert.ok(firstRound[side]!==null,
-      side+' must sail loaded through at least three distinct sea cells; observed '+JSON.stringify({
+      side+' must change sea position while loaded; observed '+JSON.stringify({
         round:g.round,ships:[...voyages[side]].map(([id,cells])=>({id,visited:cells.size})),
         production:produced[side].size
       }));

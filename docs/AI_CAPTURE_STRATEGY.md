@@ -126,3 +126,5 @@ This smoke sample does not prove a campaign advantage or exercise every large
 convoy case; focused regressions cover damage-sensitive arrival estimates,
 unknown/disconnected routes, deadline feasibility and gathered-state behavior.
 [Raw staging observations](evaluation/2026-10-30-convoy-staging.json).
+
+Inland-objective follow-up: [landing connectivity correction](AI_INLAND_INVASION_FIX.md) removes the two-square beach exclusion and permits a confirmed ground approach from a more distant coast.
