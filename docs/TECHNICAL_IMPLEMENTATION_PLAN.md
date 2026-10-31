@@ -261,6 +261,9 @@ more than a single successful landing event.
 
 ## 6. Naval duties and air strategy
 
+See the [additional unit-role plan](AI_ADDITIONAL_UNIT_ROLES.md) for submarine
+interception, cruiser support, heavy naval combat and replacement priorities.
+
 ### Role allocation
 
 Keep AI roles separate from user standing orders. Assign deterministic roles such

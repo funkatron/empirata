@@ -135,7 +135,21 @@ See [unit roles and proposed patrol assignments](ai-unit-roles.md). Follow up wi
 escort distribution, corridor coverage and role-transition diagnostics. Other
 naval and air roles remain proposals pending rules and campaign verification.
 
+2026-10-31 follow-up: [additional unit roles](AI_ADDITIONAL_UNIT_ROLES.md) records
+escort replacement, fresh-transport interception and coastal perimeter duty for
+naval combat ships. Perimeters favor charted friendly landmasses without known
+hostiles ashore; unseen interiors remain reconnaissance gaps. New submarine and
+heavy-ship production, coordinated bombardment and shared hunter/escort allocation
+remain planned work.
+
 ## Observer performance with large armies (2026-10-30)
+
+**Implemented follow-up (2026-10-31):** observer batches refresh the map and save
+once after the selected round count completes. Progress still updates between
+rounds; Pause refreshes and saves the completed partial batch. Six coordinator
+checks cover counts 1/10/50/100, cancellation and repeated playback. Browser smoke
+checks now assert one map redraw per batch and observe live progress for Pause.
+No measured overall speed improvement is claimed.
 
 **Observed:** AI turns become noticeably slower as unit counts grow. Investigate
 whether suppressing intermediate round movement/map redraws speeds up observer
