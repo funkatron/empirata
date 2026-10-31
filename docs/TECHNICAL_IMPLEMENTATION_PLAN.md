@@ -12,6 +12,11 @@ is retained as the plan's original snapshot, not current merge status. Main
 sentry activation. Fighter order assignment is the next scoped change; full
 carrier-relative patrol execution remains outstanding.
 
+Carrier flight follow-up: implement repeated AI reconnaissance sorties from
+stationary carriers using ordinary launch, boarding and fuel actions. Keep
+mobile carrier groups and carrier-relative player patrol execution separate;
+completion requires the full launch/recovery/refuel/relaunch cycle and replay.
+
 ## 1. Scope and delivery policy
 
 Build a dependable Interstel DOS 2.05 rules implementation and a useful modern
