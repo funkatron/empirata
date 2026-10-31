@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {makeRulesLab,getPlayerView,updateAllKnowledge,planAiFighterStep} from '../dist/engine/index.js';
+function report(){const g=makeRulesLab(),base=g.units[0];g.units=[{...structuredClone(base),id:'scout',owner:'blue',kind:'fighter',fuel:20,position:{...g.cities.find(c=>c.owner==='blue').position}}];g.knowledge.blue.terrain=[...g.tiles];updateAllKnowledge(g);const v=getPlayerView(g,'blue');v.enemies=[{id:'old-fighter',owner:'red',kind:'fighter',position:{x:g.units[0].position.x+4,y:g.units[0].position.y+2},stale:true,observedRound:1}];return {v,ship:v.ownUnits[0]};}
+test('Fully charted terrain still permits fuel-safe investigation of stale contacts',()=>{const {v,ship}=report(),before=structuredClone(v);const step=planAiFighterStep(v,ship);assert.ok(step);assert.ok(step.x>ship.position.x);assert.deepEqual(v,before);v.enemies=[];assert.equal(planAiFighterStep(v,ship),null);});
+test('Stale investigation yields to return fuel and cannot launch beyond fuel budget',()=>{const {v,ship}=report();ship.fuel=2;assert.equal(planAiFighterStep(v,ship),null);});

@@ -116,7 +116,7 @@ test('A loaded Red transport can depart the generated eastern harbor',()=>{
   assert.deepEqual(after.units.find(u=>u.id==='test-cargo').position,moved.position);
 });
 
-test('Autonomous match tracks production, embarkation and real sea travel over 100 rounds',()=>{
+test('Autonomous match tracks production, embarkation and real sea travel within 150 rounds',()=>{
   let g=makeAiVsAiLab();
   const produced={blue:new Set(),red:new Set()};
   const loaded={blue:false,red:false};
@@ -126,7 +126,8 @@ test('Autonomous match tracks production, embarkation and real sea travel over 1
   // checks its longer crossing and capture end to end.
   const initial=new Set(g.units.map(u=>u.id));
   const firstRound={blue:null,red:null};
-  for(let i=0;i<100;i++){
+  // Fuel losses change production timing; retain a bounded voyage requirement.
+  for(let i=0;i<150;i++){
     g=advanceLabRound(g);
     for(const side of ['blue','red']){
       for(const unit of g.units.filter(u=>u.owner===side)){
