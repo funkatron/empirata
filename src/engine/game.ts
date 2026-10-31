@@ -1050,7 +1050,7 @@ export function playRedOpponent(game:Game):Game {
   // flight can board/refuel normally; another sortie starts on a later AI turn.
   for(const id of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='fighter'&&u.aboard).map(u=>u.id)){
     const view=getPlayerView(g,'red'),fighter=view.ownUnits.find(u=>u.id===id);
-    if(!fighter||fighter.spent>=movementAllowance(fighter))continue;
+    if(!fighter||fighter.order.kind==='sentry'||fighter.spent>=movementAllowance(fighter))continue;
     const next=planAiFighterStep(view,fighter);if(!next)continue;
     try{g=launchFighter(g,id,next);}catch{/* Hidden or changed contacts interrupt launch. */}
   }

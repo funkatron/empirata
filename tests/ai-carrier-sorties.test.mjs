@@ -32,3 +32,9 @@ test('Airborne fighter cannot plan its return to a full or destroyed carrier',()
  g.units=g.units.filter(u=>u.id==='air');updateAllKnowledge(g);
  assert.equal(planAiFighterStep(getPlayerView(g,'red'),g.units[0]),null);
 });
+
+test('Automatic carrier launch preserves sentry fighters and reloadable state',()=>{
+ const g=carrier();g.units[1].order={kind:'sentry'};const next=playRedOpponent(g);
+ assert.equal(next.units[1].aboard,'cv');assert.equal(next.units[1].order.kind,'sentry');
+ assert.deepEqual(importSave(exportSave(next)),next);
+});
