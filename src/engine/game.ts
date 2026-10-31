@@ -434,29 +434,23 @@ export function endTurn(game:Game):Game {
  * discovered objective. Distance alone is insufficient when a bay or strait
  * separates the beach from the city. Uses only remembered PlayerView cells.
  */
-function aiLandingReachesObjective(view:ReturnType<typeof getPlayerView>,landing:Coord,targetId?:string):boolean {
-  const {width,height,cells}=view;
-  const key=(p:Coord)=>p.y*width+p.x;
-  const start=key(landing);
-  if(cells[start]?.terrain!=='land'||cells[start]?.city?.owner==='red')return false;
-  const goals:Coord[]=[];
-  for(let i=0;i<cells.length;i++)if(cells[i]?.city&&cells[i]!.city!.owner!=='red'&&(!targetId||cells[i]!.city!.id===targetId))
-    goals.push({x:i%width,y:Math.floor(i/width)});
-  if(!goals.length)return false;
-  const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
-  const queue=[start],seen=new Set<number>([start]);
-  for(let head=0;head<queue.length;head++){
-    const p={x:queue[head]!%width,y:Math.floor(queue[head]!/width)};
-    if(goals.some(goal=>distance(p,goal)<=1))return true;
-    for(const d of directions){
-      const next={x:p.x+d.x,y:p.y+d.y};
-      if(next.x<=0||next.y<=0||next.x>=width-1||next.y>=height-1)continue;
-      const k=key(next),cell=cells[k];
-      if(seen.has(k)||cell?.terrain!=='land'||cell?.city&&cell.city.owner!==view.active)continue;
-      seen.add(k);queue.push(k);
-    }
+function aiObjectiveLandRegion(view:ReturnType<typeof getPlayerView>,ids?:ReadonlySet<string>):Set<number> {
+  const {width,height,cells}=view,seen=new Set<number>(),queue:number[]=[];
+  const faction=view.ownUnits[0]?.owner??view.ownCities[0]?.owner??view.active;
+  for(let i=0;i<cells.length;i++)if(cells[i]?.city&&cells[i]!.city!.owner!==faction&&(!ids||ids.has(cells[i]!.city!.id))){seen.add(i);queue.push(i);}
+  for(let h=0;h<queue.length;h++)for(const d of directions){
+    const x=queue[h]!%width+d.x,y=Math.floor(queue[h]!/width)+d.y,k=y*width+x;
+    if(x<=0||y<=0||x>=width-1||y>=height-1||seen.has(k))continue;
+    const cell=cells[k];if(cell?.terrain!=='land'||cell.city&&cell.city.owner!==faction)continue;
+    seen.add(k);queue.push(k);
   }
-  return false;
+  return seen;
+}
+function aiLandingReachesObjective(view:ReturnType<typeof getPlayerView>,landing:Coord,targetId?:string):boolean {
+  const cell=view.cells[landing.y*view.width+landing.x];
+  const faction=view.ownUnits[0]?.owner??view.ownCities[0]?.owner??view.active;
+  return cell?.terrain==='land'&&cell.city?.owner!==faction&&
+    aiObjectiveLandRegion(view,targetId?new Set([targetId]):undefined).has(landing.y*view.width+landing.x);
 }
 
 /** Choose a short sea route to a landing area near a *known* non-Red city.
@@ -551,7 +545,7 @@ export function planAiConvoyStaging(view:ReturnType<typeof getPlayerView>,ship:U
   const target={x:cell%view.width,y:Math.floor(cell/view.width)};
   const group=view.ownUnits.filter(u=>u.kind==='transport'&&view.ownUnits.some(a=>a.aboard===u.id)&&chooseAiTransportObjective(view,u)===objective)
     .sort((a,b)=>distance(a.position,target)-distance(b.position,target)||a.id.localeCompare(b.id));
-  const leader=group[0];if(!leader||group.length<2||!group.some(u=>u.id===ship.id)||distance(leader.position,target)>6)return null;
+  const leader=group[0];if(!leader||group.length<2||!group.some(u=>u.id===ship.id)||(distance(leader.position,target)>6&&planAiLandingSquares(view,leader).length===0))return null;
   if(group.every(u=>distance(u.position,leader.position)<=3))return null;
   const staging=group.find(u=>u.aiAssembly?.objective===objective&&u.aiAssembly.staging)?.aiAssembly?.staging??leader.position;
   const key=(p:Coord)=>p.y*view.width+p.x;
@@ -644,18 +638,16 @@ function aiBeachAvailable(view:ReturnType<typeof getPlayerView>,p:Coord):boolean
 export function planAiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|null {
   const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
   const objectives=view.cells.flatMap((cell,i)=>cell.city&&cell.city.owner!=='red'&&!(ship.aiAvoidObjective?.id===cell.city.id&&ship.aiAvoidObjective.until>view.round)&&(!ship.aiObjective||cell.city.id===ship.aiObjective)?
-    [{x:i%view.width,y:Math.floor(i/view.width)}]:[]);
+    [{id:cell.city.id,x:i%view.width,y:Math.floor(i/view.width)}]:[]);
   const cells=view.cells;
   if(!objectives.length)return planAiTransportExploreStep(view,ship);
   const destinations=new Set<number>();
-  // Target known or unexplored sea squares that border a plausible landing
-  // square within two cells of a discovered city.
-  for(const city of objectives)for(let y=city.y-2;y<=city.y+2;y++)
-    for(let x=city.x-2;x<=city.x+2;x++){
-      const landing={x,y};
-      if(x<=0||y<=0||x>=view.width-1||y>=view.height-1)continue;
-      if(!aiBeachAvailable(view,landing)||distance(landing,city)>2||
-         !aiLandingReachesObjective(view,landing,ship.aiObjective))continue;
+  // Reverse known-land connectivity once, then find every usable coastline
+  // leading to the objective, including shores far from an inland city.
+  const region=aiObjectiveLandRegion(view,new Set(objectives.map(c=>c.id)));
+  for(const k of region){
+      const x=k%view.width,y=Math.floor(k/view.width),landing={x,y};
+      if(!aiBeachAvailable(view,landing))continue;
       for(const d of directions){
         const sea={x:x+d.x,y:y+d.y};
         if(sea.x<=0||sea.y<=0||sea.x>=view.width-1||sea.y>=view.height-1)continue;
@@ -717,8 +709,7 @@ export function planAiLandingSquares(view:ReturnType<typeof getPlayerView>,ship:
   for(const d of directions){
     const p={x:ship.position.x+d.x,y:ship.position.y+d.y};
     if(p.x<=0||p.y<=0||p.x>=view.width-1||p.y>=view.height-1)continue;
-    if(!aiBeachAvailable(view,p)||
-       !objectives.some(o=>cheb(p,o)<=2)||!aiLandingReachesObjective(view,p,ship.aiObjective))continue;
+    if(!aiBeachAvailable(view,p)||!aiLandingReachesObjective(view,p,ship.aiObjective))continue;
     options.push(p);
   }
   return options.sort((a,b)=>{
@@ -1019,7 +1010,18 @@ export function playRedOpponent(game:Game):Game {
     if(army)defenders.set(city.id,army.id);
   }
   const protectedCargo=new Set(defenders.values());
-  const aiMove=(state:Game,id:string,to:Coord)=>moveUnit(state,id,to,protectedCargo);
+  // Troops with a known ground objective should not be swept back aboard at a
+  // friendly supply port after landing. Keep this distinct from city guards:
+  // assigned assault troops must still be allowed to move and capture.
+  const boardingProtected=new Set(protectedCargo),groundView=getPlayerView(g,'red');
+  for(const army of groundView.ownUnits.filter(u=>u.kind==='army'&&!u.aboard&&u.aiBeachhead&&
+    groundView.cells.some(c=>c.city&&c.city.id===u.aiBeachhead&&c.city.owner!=='red'))){
+    if(protectedCargo.has(army.id))continue;
+    const adjacent=groundView.cells.some((c,i)=>c.city&&c.city.owner!=='red'&&
+      Math.max(Math.abs(i%groundView.width-army.position.x),Math.abs(Math.floor(i/groundView.width)-army.position.y))<=1);
+    if(adjacent||planAiGroundStep(groundView,army))boardingProtected.add(army.id);
+  }
+  const aiMove=(state:Game,id:string,to:Coord)=>moveUnit(state,id,to,boardingProtected);
   // Deterministic, knowledge-limited production. Red assigns armies first;
   // a coastal city may switch to transport production once forces accumulate.
   // This is provisional strategy, NOT reverse-engineered historical AI.
@@ -1071,7 +1073,7 @@ export function playRedOpponent(game:Game):Game {
     // Never re-embark an invasion force at the enemy beachhead. Those armies
     // need their next turn to assault the city rather than cycling aboard.
     if(nearArmy&&atLoadingPort&&g.units.filter(u=>u.aboard===ship.id).length<(capacity(ship)??0)){
-      for(const army of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='army'&&!u.aboard&&!protectedCargo.has(u.id))){
+      for(const army of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='army'&&!u.aboard&&!boardingProtected.has(u.id))){
         try{g=embarkArmy(g,army.id,ship.id);}catch{/* Only eligible nearby troops board. */}
       }
       // A partially filled AI transport may sail; do not keep it on a
@@ -1122,7 +1124,11 @@ export function playRedOpponent(game:Game):Game {
     const cargo=view.ownUnits.find(u=>u.id===landing.armyId);
     const ship=view.ownUnits.find(u=>u.id===cargo?.aboard);
     if(!ship||!planAiLandingSquares(view,ship).some(p=>equal(p,landing.position)))continue;
-    try {g=disembarkArmy(g,landing.armyId,landing.position);}
+    try {
+      g=disembarkArmy(g,landing.armyId,landing.position);
+      const landed=g.units.find(u=>u.id===landing.armyId);
+      if(landed&&ship.aiObjective)landed.aiBeachhead=ship.aiObjective;
+    }
     catch{/* Actual movement remains authoritative if a hidden contact blocks landing. */}
   }
   // Report genuine geographic blockages at a bounded cadence rather than
