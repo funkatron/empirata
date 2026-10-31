@@ -61,3 +61,30 @@ test('Broad beach waits for the full available two-transport wave to become read
  view.ownUnits.find(u=>u.id==='two-0').spent=1;
  assert.deepEqual(planAiLandingWave(view),[]);
 });
+function recruiting(){
+ const g=force(),v=getPlayerView(g,'red'),lead=v.ownUnits.find(u=>u.id==='lead'),rear=v.ownUnits.find(u=>u.id==='rear');
+ rear.position={x:43,y:30};delete rear.aiObjective;v.ownUnits=v.ownUnits.filter(u=>u.aboard!=='rear');
+ v.ownCities.push({id:'supply',position:{x:43,y:30},owner:'red',production:'army',progress:0,firstCycle:false});
+ v.cells[30*v.width+43]={terrain:'land',visible:true,city:{id:'supply',owner:'red'}};
+ return {v,lead,rear};
+}
+test('Hostile recruitment waits for an empty nearby supply partner before its first load',()=>{
+ const {v,lead}=recruiting(),before=structuredClone(v),plan=planAiTransportAssembly(v,lead);
+ assert.equal(plan.wait,true);assert.deepEqual(v,before);
+ v.round+=12;assert.equal(planAiTransportAssembly(v,plan.ship).wait,false);
+});
+test('A full lead ship waits for a nearby partner to finish loading, then both can depart',()=>{
+ const {v,lead,rear}=recruiting();
+ for(let i=3;i<6;i++)v.ownUnits.push({...structuredClone(v.ownUnits.find(u=>u.aboard==='lead')),id:`extra-${i}`});
+ assert.equal(planAiTransportAssembly(v,lead).wait,true);
+ rear.aiObjective='target';for(let i=0;i<6;i++)v.ownUnits.push({...structuredClone(v.ownUnits.find(u=>u.aboard==='lead')),id:`rear-load-${i}`,aboard:rear.id,position:{...rear.position}});
+ assert.equal(planAiTransportAssembly(v,lead).wait,false);
+ assert.equal(planAiTransportAssembly(v,rear).wait,false);
+});
+test('Neutral, unsupplied and disconnected empty hulls do not delay departure',()=>{
+ const {v,lead}=recruiting();v.cells[30*v.width+50].city.owner=null;assert.equal(planAiTransportAssembly(v,lead).wait,false);
+ v.cells[30*v.width+50].city.owner='blue';v.ownCities[0].production='fighter';assert.equal(planAiTransportAssembly(v,lead).wait,false);
+ v.ownCities[0].production='army';v.ownCities[0].position={x:41,y:30};v.ownUnits.find(u=>u.id==='rear').position={x:41,y:30};
+ v.cells[30*v.width+43]={terrain:'sea',visible:true,city:null};v.cells[30*v.width+41]={terrain:'land',visible:true,city:{id:'supply',owner:'red'}};
+ for(let y=27;y<=33;y++)v.cells[y*v.width+42].terrain='land';assert.equal(planAiTransportAssembly(v,lead).wait,false);
+});
