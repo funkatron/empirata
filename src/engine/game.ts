@@ -582,9 +582,28 @@ export function planAiTransportAssembly(view:ReturnType<typeof getPlayerView>,sh
   const target={x:cell%view.width,y:Math.floor(cell/view.width)};
   const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
   const cargo=(id:string)=>view.ownUnits.filter(u=>u.kind==='army'&&u.aboard===id).length;
-  const partners=view.ownUnits.filter(u=>u.kind==='transport'&&u.id!==ship.id&&cargo(u.id)>0&&chooseAiTransportObjective(view,u)===objective);
+  const supplied=(u:Unit)=>view.ownCities.some(c=>c.production==='army'&&distance(c.position,u.position)<=1);
+  // An empty hull at a nearby supply port is a real recruitment partner, even
+  // before cargo gives it a city mission. Require a short charted sea connection.
+  const nearbySupplyPartner=(u:Unit)=>{
+    if(distance(u.position,ship.position)>3||!supplied(u))return false;
+    const queue=[ship.position],seen=new Set([ship.position.y*view.width+ship.position.x]);
+    for(let h=0;h<queue.length;h++){
+      const p=queue[h]!;if(equal(p,u.position))return true;
+      for(const d of directions){const q={x:p.x+d.x,y:p.y+d.y},k=q.y*view.width+q.x,cell=view.cells[k];
+        if(!playable(view,q)||distance(q,ship.position)>3||seen.has(k)||
+          cell?.city&&cell.city.owner!==ship.owner||cell?.terrain!=='sea'&&!cell?.city||aiTransportThreatened(view,q))continue;
+        seen.add(k);queue.push(q);
+      }
+    }
+    return false;
+  };
+  const partners=view.ownUnits.filter(u=>u.kind==='transport'&&u.id!==ship.id&&
+    (cargo(u.id)>0?chooseAiTransportObjective(view,u)===objective:
+      (!u.aiObjective||u.aiObjective===objective)&&nearbySupplyPartner(u)));
   if(ship.kind!=='transport'||!cargo(ship.id)||!partners.length||aiTransportThreatened(view,ship.position))return {ship:next,wait:false};
-  const recruiting=cargo(ship.id)<(capacity(ship)??0)&&view.ownCities.some(c=>c.production==='army'&&distance(c.position,ship.position)<=1);
+  const recruiting=cargo(ship.id)<(capacity(ship)??0)&&supplied(ship)||
+    partners.some(u=>cargo(u.id)<(capacity(u)??0)&&nearbySupplyPartner(u));
   if(next.aiAssembly?.gathered)return {ship:next,wait:false};
   const staging=planAiConvoyStaging(view,ship);
   const rendezvous=staging!==null;
