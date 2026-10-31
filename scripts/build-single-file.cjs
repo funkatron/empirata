@@ -13,7 +13,7 @@ const loader=`\n(()=>{\n'use strict';\nconst __modules=Object.create(null);\ncon
 let html=fs.readFileSync(path.join(root,'dist/index.html'),'utf8');
 const css=fs.readFileSync(path.join(root,'dist/styles.css'),'utf8');
 html=html.replace('<link rel="stylesheet" href="./styles.css"/>',`<style>\n${css}\n</style>`);
-html=html.replace('<script type="module" src="./ui/main.js"></script>',`<script>\n${loader.replaceAll('</script','<\\/script')}\n</script>`);
+html=html.replace('<script type="module" src="./ui/main.js"></script>',()=>`<script>\n${loader.replaceAll('</script','<\\/script')}\n</script>`);
 if (html.includes('src="./ui/main.js"') || html.includes('href="./styles.css"'))throw new Error('Some imports were not embedded');
 fs.writeFileSync(path.join(root,'index.html'),html);
 console.log('Wrote single-file HTML: ',Buffer.byteLength(html),'bytes');
