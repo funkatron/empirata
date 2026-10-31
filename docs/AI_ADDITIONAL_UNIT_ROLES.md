@@ -188,3 +188,18 @@ counts are unchanged. Different landing totals are not evidence of better
 invasions by themselves. These samples do not establish a general campaign
 strength improvement or quantify hunter/sentry effectiveness. The regression
 matches establish those specific behaviors. [Raw results](evaluation/2026-10-31-naval-perimeters.json).
+
+## Review corrections
+
+Restore opportunistic coastal bombardment by cruisers and battleships before
+reconnaissance, escort and sentry fallback. This preserves existing legal combat;
+it does not add coordinated bombardment planning. Interception and coastal-station
+routes permit ordinary friendly-city stacking, so a guarded canal port does not
+become an artificial navigation barrier. Occupied noncity squares and hostile
+cities remain blocked.
+
+Three regressions failed before these corrections and pass afterward: both heavy
+ship types bombard a coastal army through normal AI combat, and an interceptor
+routes through a guarded canal city with ordinary movement confirming the route.
+The six campaign results above describe the original PR head; these review fixes
+are verified by the focused regressions, full suite and bundle checks.

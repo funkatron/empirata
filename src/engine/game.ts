@@ -794,7 +794,8 @@ export function planAiNavalTransportIntercept(view:ReturnType<typeof getPlayerVi
   const key=(p:Coord)=>p.y*view.width+p.x;
   const targets=new Set(view.enemies.filter(e=>!e.stale&&e.kind==='transport').map(e=>key(e.position)));
   if(!targets.size)return null;
-  const blocked=new Set(view.ownUnits.filter(u=>!u.aboard&&u.id!==ship.id).map(u=>key(u.position)));
+  const blocked=new Set(view.ownUnits.filter(u=>!u.aboard&&u.id!==ship.id&&
+    view.cells[key(u.position)]?.city?.owner!==ship.owner).map(u=>key(u.position)));
   for(const enemy of view.enemies)if(!enemy.stale&&!targets.has(key(enemy.position)))blocked.add(key(enemy.position));
   const start=key(ship.position),queue=[start],seen=new Set([start]),parent=new Map<number,number>();
   let found:number|undefined;
@@ -821,7 +822,8 @@ export function planAiCoastalSentryStep(view:ReturnType<typeof getPlayerView>,sh
   const combatShip=(u:Unit)=>['destroyer','submarine','cruiser','battleship'].includes(u.kind)&&!u.aboard;
   if(!combatShip(ship)||ship.order.kind==='sentry')return null;
   const key=(p:Coord)=>p.y*view.width+p.x,distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
-  const blocked=new Set(view.ownUnits.filter(u=>!u.aboard&&u.id!==ship.id).map(u=>key(u.position)));
+  const blocked=new Set(view.ownUnits.filter(u=>!u.aboard&&u.id!==ship.id&&
+    view.cells[key(u.position)]?.city?.owner!==ship.owner).map(u=>key(u.position)));
   for(const e of view.enemies)if(!e.stale)blocked.add(key(e.position));
   const peers=view.ownUnits.filter(u=>u.id!==ship.id&&combatShip(u));
   // Secure the perimeter of a friendly landmass rather than occupying any
@@ -1310,7 +1312,7 @@ export function playRedOpponent(game:Game):Game {
       // Combat ships handle nearby threats, then reconnaissance (destroyers),
       // convoy protection and coastal stations. This is experimental strategy.
       if(['destroyer','submarine','cruiser','battleship'].includes(unit.kind)){
-        const adjacent=view.enemies.filter(e=>!e.stale&&e.kind!=='army'&&
+        const adjacent=view.enemies.filter(e=>!e.stale&&(e.kind!=='army'||unit.kind==='cruiser'||unit.kind==='battleship')&&
           distance(e.position,unit.position)===1)
           .sort((a,b)=>Number(b.kind==='transport')-Number(a.kind==='transport')||a.id.localeCompare(b.id));
         let engaged=false;

@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {makeRulesLab,endTurn,updateAllKnowledge,getPlayerView,planAiNavalTransportIntercept,playRedOpponent,exportSave,importSave} from '../dist/engine/index.js';
+import {makeRulesLab,endTurn,updateAllKnowledge,getPlayerView,planAiNavalTransportIntercept,playRedOpponent,moveUnit,exportSave,importSave} from '../dist/engine/index.js';
 function fixture(kind='destroyer'){
  const g=endTurn(makeRulesLab()),base=g.units.find(u=>u.owner==='red');g.tiles.fill('sea');
  for(const c of g.cities)g.tiles[c.position.y*g.width+c.position.x]='land';
@@ -46,4 +46,25 @@ test('A destroyer pursues a transport detected by another unit and attacks this 
  g.units.push({...structuredClone(base),id:'observer',kind:'army',position:{x:53,y:31}});g.tiles[31*g.width+53]='land';
  updateAllKnowledge(g);assert.ok(getPlayerView(g,'red').enemies.some(e=>e.id==='prey'&&!e.stale));
  const next=playRedOpponent(g);assert.ok(next.events.some(e=>e.kind==='combat'&&e.message.includes('prey')));
+});
+
+for(const kind of ['cruiser','battleship'])test(`${kind} preserves coastal bombardment while assigned naval duties`,()=>{
+ const g=fixture(kind),prey=g.units.find(u=>u.id==='prey');prey.kind='army';g.tiles[30*g.width+51]='land';updateAllKnowledge(g);
+ const manual=moveUnit(g,'hunter',prey.position);assert.ok(manual.events.some(e=>e.kind==='combat'));
+ const next=playRedOpponent(g);assert.ok(next.events.some(e=>e.kind==='combat'&&e.message.includes('prey')));
+ assert.deepEqual(next.units.find(u=>u.id==='hunter')?.position,{x:50,y:30});
+ assert.deepEqual(playRedOpponent(importSave(exportSave(g))),next);
+});
+test('Interceptors traverse a guarded friendly canal city using legal stacking',()=>{
+ const g=fixture(),hunter=g.units.find(u=>u.id==='hunter');g.tiles.fill('land');
+ for(const x of [50,52,53])g.tiles[30*g.width+x]='sea';
+ g.units.find(u=>u.id==='prey').position={x:53,y:30};
+ g.cities.push({id:'canal',owner:'red',position:{x:51,y:30},production:null,progress:0,firstCycle:true});
+ g.units.push({...structuredClone(hunter),id:'guard',kind:'army',position:{x:51,y:30}},
+ {...structuredClone(hunter),id:'observer',kind:'army',position:{x:52,y:31}});
+ g.knowledge.red.terrain=[...g.tiles];updateAllKnowledge(g);
+ const view=getPlayerView(g,'red');assert.deepEqual(planAiNavalTransportIntercept(view,hunter),{x:51,y:30});
+ const inPort=moveUnit(g,hunter.id,{x:51,y:30}),ship=inPort.units.find(u=>u.id===hunter.id);
+ assert.deepEqual(planAiNavalTransportIntercept(getPlayerView(inPort,'red'),ship),{x:52,y:30});
+ assert.deepEqual(moveUnit(inPort,ship.id,{x:52,y:30}).units.find(u=>u.id===ship.id).position,{x:52,y:30});
 });
