@@ -67,3 +67,11 @@ validate. These are 12-city stress maps. Landing activity remains limited, and
 there is no general campaign-strength improvement claim. These 100-round samples
 are not directly comparable to earlier 150-round city totals.
 [Raw campaign results](evaluation/2026-10-31-beach-rendezvous.json).
+
+## Completed-pickup review correction
+
+A pickup assignment can survive the loading pass in which its last army boards.
+Clear that completed assignment and send a loaded ship back through cargo-mission
+routing. Do not let it enter empty-hull port-return routing and unload its new
+cargo. The regression reproduces an adjacent-port unload before correction and
+verifies both troops remain aboard afterward, with deterministic save/reload.

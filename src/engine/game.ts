@@ -1377,6 +1377,8 @@ export function playRedOpponent(game:Game):Game {
           const excluded=new Set([...boardingProtected,...view.ownUnits.filter(a=>a.kind==='army'&&!own.has(a.id)).map(a=>a.id)]);
           const pickup=planAiBeachPickup(view,unit,excluded);
           if(pickup){if(!pickup.next)break;try{g=aiMove(g,id,pickup.next);continue;}catch{break;}}
+          beachAssignments.delete(id);g=clone(g);delete g.units.find(u=>u.id===id)!.aiPickup;
+          if(view.ownUnits.some(u=>u.aboard===id))continue; // Resume cargo mission, never empty-hull port routing.
         }
 
         // Empty transports return to known friendly ports for another load.

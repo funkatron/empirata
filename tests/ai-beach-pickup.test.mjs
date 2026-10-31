@@ -49,3 +49,17 @@ test('Congestion cannot divert an army away from a connected land capture object
  for(let x=51;x<=54;x++)v.ownUnits.push({...structuredClone(v.ownUnits[1]),id:`block-${x}`,position:{x,y:30},order:{kind:'sentry'}});
  assert.equal(planAiBeachPickup(v,v.ownUnits[0]),null);
 });
+test('Completing a beach pickup does not return the loaded ship to an adjacent port',()=>{
+ const g=beach();g.units=g.units.filter(u=>u.id==='ship'||['troop-0','troop-1'].includes(u.id));
+ g.units[0].position={x:49,y:29};g.units[0].aiPickup={armies:['troop-0','troop-1'],startedRound:g.round};
+ g.units.find(u=>u.id==='troop-1').position={x:50,y:29};g.tiles[29*g.width+50]='land';
+ g.cities=[{id:'port',owner:'red',position:{x:48,y:29},production:'army',progress:0,firstCycle:true},
+ {id:'target',owner:'blue',position:{x:60,y:35},production:null,progress:0,firstCycle:true}];
+ for(const c of g.cities)g.tiles[c.position.y*g.width+c.position.x]='land';
+ g.units.push({...structuredClone(g.units[1]),id:'guard',position:{x:48,y:29}});
+ g.knowledge.red.terrain=[...g.tiles];g.knowledge.red.cities.target={id:'target',owner:'blue',production:null,productionKnown:false};updateAllKnowledge(g);
+ const next=playRedOpponent(g);assert.equal(next.units.filter(u=>u.aboard==='ship').length,2);
+ assert.notDeepEqual(next.units.find(u=>u.id==='ship').position,{x:48,y:29});
+ assert.equal(next.units.find(u=>u.id==='ship').aiPickup,undefined);
+ assert.deepEqual(playRedOpponent(importSave(exportSave(g))),next);assert.deepEqual(importSave(exportSave(next)),next);
+});
