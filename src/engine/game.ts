@@ -136,7 +136,7 @@ export function setOrder(game:Game,unitId:string,order:UnitOrder):Game {
     if(!g.cities.some(city=>city.owner===unit.owner))throw new Error('No friendly home city.');
     unit.order={kind:'go-home'};
   }else unit.order={kind:order.kind};
-  if(order.kind==='skip') unit.spent=movementAllowance(unit);
+  if(order.kind==='skip'){settleFighterLoiter(g,unit);unit.spent=movementAllowance(unit);updateAllKnowledge(g);}
   return g;
 }
 /** Move one army aboard an adjacent friendly troop transport. */
@@ -421,8 +421,20 @@ function beginTurn(g:Game):void {
     fillShip(g,ship);
   updateAllKnowledge(g);
 }
+/** Settle unused airborne movement as loitering before the owner's turn ends.
+ * Exact DOS skipped-move scheduling still requires executable verification.
+ */
+function settleFighterLoiter(g:Game,unit:Unit):void {
+  if(unit.kind!=='fighter'||unit.aboard||cityAt(g,unit.position)?.owner===unit.owner)return;
+  const remaining=Math.max(0,movementAllowance(unit)-unit.spent);
+  unit.fuel=(unit.fuel??MAX_FIGHTER_FUEL)-remaining;
+  unit.spent=movementAllowance(unit);
+  if(unit.fuel<=0){g.units=g.units.filter(u=>u.id!==unit.id);log(g,unit.owner,'fuel',`${unit.id} ran out of fuel while airborne and crashed.`);}
+}
 export function endTurn(game:Game):Game {
   const g=clone(game),currentIndex=g.players.findIndex(p=>p.id===g.active);
+  for(const unit of g.units.filter(u=>u.owner===g.active))settleFighterLoiter(g,unit);
+  updateAllKnowledge(g);
   if(currentIndex<0)throw new Error('Invalid active player');
   const next=(currentIndex+1)%g.players.length;
   if(next===0)g.round++;
@@ -808,10 +820,10 @@ export function planAiLandingWave(view:ReturnType<typeof getPlayerView>):{armyId
  * A shortest-route search prefers reachable contacts over geometric proximity.
  * Stale reports are not live targets; delivery/basing hulls are not hunters.
  */
-export function planAiNavalTransportIntercept(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|null {
+export function planAiNavalTransportIntercept(view:ReturnType<typeof getPlayerView>,ship:Unit,investigateStale=false):Coord|null {
   if(!['destroyer','submarine','cruiser','battleship'].includes(ship.kind)||ship.aboard||ship.order.kind==='sentry')return null;
   const key=(p:Coord)=>p.y*view.width+p.x;
-  const targets=new Set(view.enemies.filter(e=>!e.stale&&e.kind==='transport').map(e=>key(e.position)));
+  const targets=new Set(view.enemies.filter(e=>(investigateStale?e.stale:!e.stale)&&e.kind==='transport').map(e=>key(e.position)));
   if(!targets.size)return null;
   const blocked=new Set(view.ownUnits.filter(u=>!u.aboard&&u.id!==ship.id&&
     view.cells[key(u.position)]?.city?.owner!==ship.owner).map(u=>key(u.position)));
@@ -820,7 +832,7 @@ export function planAiNavalTransportIntercept(view:ReturnType<typeof getPlayerVi
   let found:number|undefined;
   for(let h=0;h<queue.length;h++){
     const at=queue[h]!;
-    if(at!==start&&targets.has(at)){found=at;break;}
+    if(investigateStale?[...targets].some(k=>Math.max(Math.abs(k%view.width-at%view.width),Math.abs(Math.floor(k/view.width)-Math.floor(at/view.width)))<=1):at!==start&&targets.has(at)){found=at;break;}
     for(const d of directions){
       const p={x:at%view.width+d.x,y:Math.floor(at/view.width)+d.y},k=key(p),cell=view.cells[k];
       if(!playable(view,p)||seen.has(k)||blocked.has(k)||
@@ -828,7 +840,7 @@ export function planAiNavalTransportIntercept(view:ReturnType<typeof getPlayerVi
       seen.add(k);parent.set(k,at);queue.push(k);
     }
   }
-  if(found===undefined)return null;
+  if(found===undefined||found===start)return null;
   let next=found;while(parent.get(next)!==start){const previous=parent.get(next);if(previous===undefined)return null;next=previous;}
   return {x:next%view.width,y:Math.floor(next/view.width)};
 }
@@ -1170,8 +1182,10 @@ export function planAiFighterStep(view:ReturnType<typeof getPlayerView>,fighter:
     const here=paths[h]!,k=key(here),steps=depth.get(k)!;
     if(k!==start&&steps+(returns.get(k)??Infinity)<=fuel){
       const unknown=directions.filter(d=>{const p={x:here.x+d.x,y:here.y+d.y};return playable(view,p)&&view.cells[key(p)]?.terrain===null;}).length;
+      const stale=view.enemies.filter(e=>e.stale&&e.kind!=='submarine'&&Math.max(Math.abs(e.position.x-here.x),Math.abs(e.position.y-here.y))<=1).length;
+      const information=unknown+stale*4;
       const value=returning?(baseKeys.has(k)?1000-steps:-Infinity):
-        steps+(returns.get(k)??Infinity)+2<=fuel&&unknown>0?unknown/(steps+1):-Infinity;
+        steps+(returns.get(k)??Infinity)+2<=fuel&&information>0?information/(steps+1):-Infinity;
       if(value>score){score=value;best=k;}
     }
     if(steps>=fuel)continue;
@@ -1422,6 +1436,8 @@ export function playRedOpponent(game:Game):Game {
           try{g=aiMove(g,id,target.position);engaged=true;break;}catch{/* Try the next legal contact. */}
         }
         if(engaged)break; // Resolve immediate threats before scouting or holding.
+        const investigation=planAiNavalTransportIntercept(view,unit,true);
+        if(investigation){try{g=aiMove(g,id,investigation);continue;}catch{break;}}
         const next=planAiNavalScoutStep(view,unit);
         if(next){
           try {g=aiMove(g,id,next);continue;}
