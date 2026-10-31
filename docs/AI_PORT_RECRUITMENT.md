@@ -28,15 +28,9 @@ partial departures. A gathered expedition retains existing gathered-state behavi
 Transient ship occupancy is not treated as permanent geographic disconnection.
 No general campaign-strength improvement is claimed from planner regressions.
 
-## Beach pickup follow-up
+## Beach pickup implementation
 
-`embarkArmy` already permits loading from adjacent land without a city. The AI's
-routine loading loop and empty-hull return policy still favor friendly ports.
-Add beach pickup planning: compare sea detour plus army walking time against a
-port pickup, route to safe reachable coastal troop concentrations, reserve troops
-once and preserve guards and active beachhead assaults. Reassess fresh threats
-and boarding movement readiness. Ports remain useful for production and repair,
-while a pickup-only crossing does not require a port. Verify ordinary beach
-boarding, full loads, hostile contact, disconnected shores and absence of
-load/unload cycles before enabling the policy. This follow-up is not implemented
-by the recruitment correction.
+The [beach rendezvous increment](AI_BEACH_RENDEZVOUS.md) adds ship approaches,
+inland marching, troop reservations and multi-turn collection. It retains port
+pickup when the supply estimate is cheaper. Longer-range marching, production
+forecasting and operation-wide allocation remain follow-up work.

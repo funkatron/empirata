@@ -891,6 +891,72 @@ export function planAiCoastalSentryStep(view:ReturnType<typeof getPlayerView>,sh
   return {x:next%view.width,y:Math.floor(next/view.width)};
 }
 
+/** Empty transports rendezvous with mobile troops already on charted beaches.
+ * Compare sea travel per available load; never route through hidden terrain.
+ */
+export function planAiBeachPickup(view:ReturnType<typeof getPlayerView>,ship:Unit,excluded:ReadonlySet<string>=new Set()):{next:Coord|null;armies:string[];armySteps:Record<string,Coord>}|null {
+  const free=(capacity(ship)??0)-view.ownUnits.filter(u=>u.aboard===ship.id).length;
+  if(ship.kind!=='transport'||free<=0||view.ownUnits.some(u=>u.aboard===ship.id)&&!ship.aiPickup||ship.aiPickup&&view.round-ship.aiPickup.startedRound>=12||aiTransportThreatened(view,ship.position))return null;
+  const key=(p:Coord)=>p.y*view.width+p.x,beaches=new Map<number,{army:Unit;next:Coord|null;walk:number}[]>();
+  for(const army of view.ownUnits){
+    const cell=view.cells[key(army.position)];
+    if(army.kind!=='army'||army.aboard||ship.aiPickup&&!ship.aiPickup.armies.includes(army.id)||excluded.has(army.id)||army.order.kind==='sentry'||
+      cell?.terrain!=='land'||aiTransportThreatened(view,army.position)||planAiGroundStep(view,army))continue;
+    const region=aiGroundRegion(view,army.position);
+    const objectiveNearby=view.cells.some((c,i)=>c.city&&c.city.owner!==ship.owner&&directions.some(d=>region.has((Math.floor(i/view.width)+d.y)*view.width+i%view.width+d.x)));
+    if(objectiveNearby)continue;
+    const scout=view.ownUnits.find(u=>u.kind==='army'&&!u.aboard&&!excluded.has(u.id)&&u.order.kind!=='sentry'&&region.has(key(u.position)));
+    if(scout?.id===army.id&&planAiGroundScoutStep(view,army))continue;
+    const occupied=new Set(view.ownUnits.filter(u=>!u.aboard&&u.id!==army.id&&!view.cells[key(u.position)]?.city).map(u=>key(u.position)));
+    const start=key(army.position),queue=[start],depth=new Map([[start,0]]),parent=new Map<number,number>();
+    for(let h=0;h<queue.length;h++){
+      const at=queue[h]!,p={x:at%view.width,y:Math.floor(at/view.width)},cell=view.cells[at];
+      if(!cell?.city&&directions.some(d=>view.cells[key({x:p.x+d.x,y:p.y+d.y})]?.terrain==='sea')&&!aiTransportThreatened(view,p)){
+        let step=at;while(parent.has(step)&&parent.get(step)!==start)step=parent.get(step)!;
+        const entry={army,next:at===start?null:{x:step%view.width,y:Math.floor(step/view.width)},walk:depth.get(at)!};
+        beaches.set(at,[...(beaches.get(at)??[]),entry]);
+      }
+      if(depth.get(at)!>=8)continue;
+      for(const d of directions){const q={x:p.x+d.x,y:p.y+d.y},k=key(q),c=view.cells[k];
+        if(!playable(view,q)||depth.has(k)||occupied.has(k)||c?.terrain!=='land'||c.city&&c.city.owner!==ship.owner||aiTransportThreatened(view,q))continue;
+        depth.set(k,depth.get(at)!+1);parent.set(k,at);queue.push(k);
+      }
+    }
+  }
+  if(!beaches.size)return null;
+  const blocked=new Set(view.ownUnits.filter(u=>!u.aboard&&u.id!==ship.id&&view.cells[key(u.position)]?.city?.owner!==ship.owner).map(u=>key(u.position)));
+  for(const e of view.enemies)if(!e.stale)blocked.add(key(e.position));
+  const start=key(ship.position),queue=[start],depth=new Map([[start,0]]),parent=new Map<number,number>();
+  let best:number|undefined,armies:string[]=[],armySteps:Record<string,Coord>={},score=Infinity;
+  for(let h=0;h<queue.length;h++){
+    const at=queue[h]!,p={x:at%view.width,y:Math.floor(at/view.width)};
+    const options=directions.flatMap(d=>beaches.get(key({x:p.x+d.x,y:p.y+d.y}))??[]).sort((a,b)=>a.walk-b.walk||a.army.id.localeCompare(b.army.id));
+    const group=[...new Map(options.map(a=>[a.army.id,options.find(b=>b.army.id===a.army.id)!])).values()];
+    // A single mobile army may be the landmass's only scout or assault survivor.
+    if(group.length>=(ship.aiPickup?1:2)){const available=group.slice(0,free),cost=(Math.max(depth.get(at)!/Math.max(1,movementAllowance(ship)),...available.map(a=>a.walk))+1)/available.length;
+      if(cost<score){score=cost;best=at;armies=available.map(u=>u.army.id);armySteps=Object.fromEntries(available.filter(a=>a.next).map(a=>[a.army.id,a.next!]));}}
+    for(const d of directions){
+      const q={x:p.x+d.x,y:p.y+d.y},k=key(q);
+      const cell=view.cells[k];
+      if(!playable(view,q)||depth.has(k)||blocked.has(k)||aiTransportThreatened(view,q)||
+        cell?.city&&cell.city.owner!==ship.owner||cell?.terrain!=='sea'&&!cell?.city)continue;
+      depth.set(k,depth.get(at)!+1);parent.set(k,at);queue.push(k);
+    }
+  }
+  if(best===undefined)return null;
+  for(const port of ship.aiPickup?[]:view.ownCities){
+    if(!directions.some(d=>view.cells[(port.position.y+d.y)*view.width+port.position.x+d.x]?.terrain==='sea'))continue;
+    const region=aiGroundRegion(view,port.position);
+    const supply=view.ownUnits.filter(u=>u.kind==='army'&&!u.aboard&&!excluded.has(u.id)&&u.order.kind!=='sentry'&&
+      Math.max(Math.abs(u.position.x-port.position.x),Math.abs(u.position.y-port.position.y))<=3&&region.has(key(u.position))).length;
+    const cost=(Math.max(Math.abs(ship.position.x-port.position.x),Math.abs(ship.position.y-port.position.y))+1)/Math.min(capacity(ship)!,supply);
+    if(supply&&cost<score)return null;
+  }
+  if(best===start)return {next:null,armies,armySteps};
+  let at=best;while(parent.get(at)!==start){const previous=parent.get(at);if(previous===undefined)return null;at=previous;}
+  return {next:{x:at%view.width,y:Math.floor(at/view.width)},armies,armySteps};
+}
+
 /** Naval reconnaissance: choose a reachable sea frontier by information gained
  * per travel step. Route only through charted sea; unknown cells are endpoints,
  * never presumed safe transit. No world state outside PlayerView is consulted.
@@ -1184,6 +1250,12 @@ export function playRedOpponent(game:Game):Game {
     // Production time cannot be recovered: keep every factory active.
     if(city.production!==pick)g=selectProduction(g,city.id,pick);
   }
+  const beachAssignments=new Map<string,string[]>(),beachWaiting=new Set<string>(),beachArmySteps=new Map<string,Coord>();
+  for(const ship of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='transport')){
+    const plan=planAiBeachPickup(getPlayerView(g,'red'),ship,new Set([...boardingProtected,...beachWaiting]));
+    if(plan){g=clone(g);const actual=g.units.find(u=>u.id===ship.id)!;actual.aiPickup={armies:ship.aiPickup?.armies??plan.armies,startedRound:ship.aiPickup?.startedRound??g.round};for(const [id,step] of Object.entries(plan.armySteps))beachArmySteps.set(id,step);beachAssignments.set(ship.id,actual.aiPickup.armies);for(const id of actual.aiPickup.armies)beachWaiting.add(id);}
+    else if(ship.aiPickup){g=clone(g);delete g.units.find(u=>u.id===ship.id)!.aiPickup;}
+  }
   // Loading consumes eligible troops' movement. Choose from own units only.
   for(const ship of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='transport'&&!u.aboard)){
     const nearArmy=getPlayerView(g,'red').ownUnits.some(u=>u.kind==='army'&&!u.aboard&&
@@ -1192,8 +1264,9 @@ export function playRedOpponent(game:Game):Game {
       Math.max(Math.abs(c.position.x-ship.position.x),Math.abs(c.position.y-ship.position.y))<=1);
     // Never re-embark an invasion force at the enemy beachhead. Those armies
     // need their next turn to assault the city rather than cycling aboard.
-    if(nearArmy&&atLoadingPort&&g.units.filter(u=>u.aboard===ship.id).length<(capacity(ship)??0)){
-      for(const army of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='army'&&!u.aboard&&!boardingProtected.has(u.id))){
+    if(nearArmy&&(atLoadingPort||beachAssignments.has(ship.id))&&g.units.filter(u=>u.aboard===ship.id).length<(capacity(ship)??0)){
+      for(const army of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='army'&&!u.aboard&&!boardingProtected.has(u.id)&&
+        (atLoadingPort||beachAssignments.get(ship.id)?.includes(u.id)))){
         try{g=embarkArmy(g,army.id,ship.id);}catch{/* Only eligible nearby troops board. */}
       }
       // A partially filled AI transport may sail; do not keep it on a
@@ -1234,10 +1307,10 @@ export function playRedOpponent(game:Game):Game {
   for(const ship of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='transport')){
     const view=getPlayerView(g,'red');
     const cargo=view.ownUnits.find(u=>u.kind==='army'&&u.aboard===ship.id&&u.spent<movementAllowance(u));
-    const shore=assembling.has(ship.id)?null:planAiReconLandingSquare(view,ship);
+    const shore=assembling.has(ship.id)||beachAssignments.has(ship.id)?null:planAiReconLandingSquare(view,ship);
     if(cargo&&shore){try{g=disembarkArmy(g,cargo.id,shore);}catch{/* Actual movement remains authoritative. */}}
   }
-  for(const landing of planAiLandingWave({...getPlayerView(g,'red'),ownUnits:getPlayerView(g,'red').ownUnits.filter(u=>!assembling.has(u.id)&&!assembling.has(u.aboard??''))})){
+  for(const landing of planAiLandingWave({...getPlayerView(g,'red'),ownUnits:getPlayerView(g,'red').ownUnits.filter(u=>!assembling.has(u.id)&&!assembling.has(u.aboard??'')&&!beachAssignments.has(u.id)&&!beachAssignments.has(u.aboard??''))})){
     // Each landing refreshes intelligence. A newly exposed defender can make
     // later reserved cells unsafe even though disembarkArmy still permits them.
     const view=getPlayerView(g,'red');
@@ -1278,6 +1351,7 @@ export function playRedOpponent(game:Game):Game {
       const unit=view.ownUnits.find(u=>u.id===id);
       if(!unit||unit.spent>=movementAllowance(unit)||unit.order.kind==='sentry')break;
       if(protectedCargo.has(id))break;
+      if(beachWaiting.has(id)){const step=beachArmySteps.get(id);if(step){try{g=aiMove(g,id,step);}catch{/* Replan next turn if another troop blocks the path. */}}break;}
       if(assembling.has(id)){
         const recruiting=view.ownCities.some(c=>c.production==='army'&&distance(c.position,unit.position)<=1)&&
           view.ownUnits.filter(u=>u.aboard===id).length<(capacity(unit)??0);
@@ -1297,7 +1371,16 @@ export function playRedOpponent(game:Game):Game {
       // Initial carrier role: remain a safe refueling station. Moving naval air
       // groups require the subsequent carrier/patrol coordination milestone.
       if(unit.kind==='carrier')break;
-      if(unit.kind==='transport'&&!view.ownUnits.some(u=>u.aboard===id)){
+      if(unit.kind==='transport'&&(!view.ownUnits.some(u=>u.aboard===id)||beachAssignments.has(id))){
+        if(beachAssignments.has(id)){
+          const own=new Set(beachAssignments.get(id));
+          const excluded=new Set([...boardingProtected,...view.ownUnits.filter(a=>a.kind==='army'&&!own.has(a.id)).map(a=>a.id)]);
+          const pickup=planAiBeachPickup(view,unit,excluded);
+          if(pickup){if(!pickup.next)break;try{g=aiMove(g,id,pickup.next);continue;}catch{break;}}
+          beachAssignments.delete(id);g=clone(g);delete g.units.find(u=>u.id===id)!.aiPickup;
+          if(view.ownUnits.some(u=>u.aboard===id))continue; // Resume cargo mission, never empty-hull port routing.
+        }
+
         // Empty transports return to known friendly ports for another load.
         // A ship already in port waits for troops instead of wandering away.
         const queued=new Map(view.ownCities.map(c=>{

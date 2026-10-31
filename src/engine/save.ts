@@ -50,6 +50,7 @@ export function importSave(json:string):Game {
       !(u.fuel===null||(finiteInt(u.fuel)&&u.fuel>=0)))throw new Error('Invalid unit entry.');
     if(u.aiObjective!==undefined&&(u.kind!=='transport'||typeof u.aiObjective!=='string'||!cityIds.has(u.aiObjective)))
       throw new Error('Invalid AI transport objective.');
+    if(u.aiPickup!==undefined){const p=u.aiPickup;if(u.kind!=='transport'||!p||!Array.isArray(p.armies)||!p.armies.length||p.armies.some(id=>typeof id!=='string')||new Set(p.armies).size!==p.armies.length||!finiteInt(p.startedRound)||p.startedRound<1||p.startedRound>g.round!)throw new Error('Invalid AI pickup.');}
     if(u.aiBeachhead!==undefined&&(u.kind!=='army'||typeof u.aiBeachhead!=='string'||!cityIds.has(u.aiBeachhead)))
       throw new Error('Invalid AI beachhead objective.');
     if(u.aiAssembly!==undefined){
