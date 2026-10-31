@@ -518,6 +518,20 @@ export function chooseAiTransportObjective(view:ReturnType<typeof getPlayerView>
   if(ship.kind!=='transport'||!view.ownUnits.some(u=>u.aboard===ship.id))return undefined;
   const objectives=view.cells.flatMap((cell,i)=>cell.city&&cell.city.owner!==ship.owner&&!(ship.aiAvoidObjective?.id===cell.city.id&&ship.aiAvoidObjective.until>view.round)?
     [{id:cell.city.id,owner:cell.city.owner,x:i%view.width,y:Math.floor(i/view.width)}]:[]);
+  // Keep a neutral expansion expedition when a larger loaded fleet is already
+  // committed to war. Reassign only a distant ship; do not split a landing group.
+  const neutral=objectives.filter(c=>c.owner===null);
+  const loaded=view.ownUnits.filter(u=>u.kind==='transport'&&view.ownUnits.some(a=>a.kind==='army'&&a.aboard===u.id));
+  const neutralCovered=loaded.some(u=>neutral.some(c=>c.id===u.aiObjective));
+  const expansionShip=loaded.length>=3&&!neutralCovered&&neutral.length>0?loaded.filter(u=>{
+    const target=objectives.find(c=>c.id===u.aiObjective&&c.owner!==null);
+    return target&&loaded.filter(partner=>partner.aiObjective===target.id).length>=3&&Math.max(Math.abs(target.x-u.position.x),Math.abs(target.y-u.position.y))>3;
+  }).sort((a,b)=>b.id.localeCompare(a.id))[0]:undefined;
+  if(expansionShip?.id===ship.id){
+    neutral.sort((a,b)=>Math.max(Math.abs(a.x-ship.position.x),Math.abs(a.y-ship.position.y))-
+      Math.max(Math.abs(b.x-ship.position.x),Math.abs(b.y-ship.position.y))||a.id.localeCompare(b.id));
+    return neutral[0]?.id;
+  }
   if(objectives.some(c=>c.id===ship.aiObjective))return ship.aiObjective;
   const assigned=(id:string)=>view.ownUnits.filter(u=>u.kind==='transport'&&u.id!==ship.id&&u.aiObjective===id).length;
   const needed=(city:typeof objectives[number])=>city.owner===null?1:Math.max(2,Math.ceil((3+
@@ -961,7 +975,11 @@ export function playRedOpponent(game:Game):Game {
     const scoutNeeded=armyCount>=1&&!scoutingAssigned&&(!knownObjective||desiredScouts>1)&&
       isCoastal(g,city.position)&&(navalThreat||planAiNavalScoutStep(view,probe)!==null);
     // Finish committed ships rather than repeatedly discarding their progress.
-    const desiredTransports=Math.max(1,Math.ceil(ownUnits.filter(u=>u.kind==='army').length/6));
+    const totalArmies=ownUnits.filter(u=>u.kind==='army').length;
+    const hostileKnown=view.cells.some(c=>c.city&&c.city.owner!==null&&c.city.owner!=='red');
+    const neutralKnown=view.cells.some(c=>c.city&&c.city.owner===null);
+    const desiredTransports=Math.max(1,Math.ceil(totalArmies/6),
+      hostileKnown&&totalArmies>=6?2:0,hostileKnown&&neutralKnown&&totalArmies>=12?3:0);
     const assignedTransports=transportCount+view.ownCities.filter(c=>c.id!==city.id&&c.production==='transport').length;
     const fighterCount=ownUnits.filter(u=>u.kind==='fighter').length;
     const carrierCount=ownUnits.filter(u=>u.kind==='carrier').length;
@@ -975,8 +993,8 @@ export function playRedOpponent(game:Game):Game {
       (city.production==='destroyer'&&!scoutingAssigned||
        city.production==='transport'&&assignedTransports<desiredTransports||
        city.production==='fighter'&&fightersAssigned<fighterTarget||city.production==='carrier'&&fighterCount>=2&&carrierCount<Math.ceil(transportCount/2));
-    const pick=!defenders.has(city.id)?'army':committedShip?city.production!:scoutNeeded?'destroyer':
-      armyCount>=3&&assignedTransports<desiredTransports&&isCoastal(g,city.position)?'transport':
+    const pick=!defenders.has(city.id)?'army':committedShip?city.production!:
+      armyCount>=3&&assignedTransports<desiredTransports&&isCoastal(g,city.position)?'transport':scoutNeeded?'destroyer':
       carrierNeeded?'carrier':fighterNeeded?'fighter':'army';
     // Production time cannot be recovered: keep every factory active.
     if(city.production!==pick)g=selectProduction(g,city.id,pick);

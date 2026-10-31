@@ -155,6 +155,10 @@ Airborne fighters cannot receive sentry. Escort orders require ship-to-ship
 eligibility; historical following geometry remains separate from AI tactical
 screening positions. Test damaged ships, unequal speeds and disappearing targets.
 
+Consolidated strategic priorities: [capture and sustain cities](AI_CAPTURE_STRATEGY.md).
+Transport capacity and mobile army supply take priority over optional support
+production. Preserve a viable hostile invasion while continuing neutral expansion.
+
 ## 4. Campaign instrumentation and neutral expansion
 
 ### Replace fragile measurements

@@ -2,6 +2,8 @@
 
 This is the working roadmap for the browser-based Empire rules laboratory. Items are proposals until marked implemented and verified. Historical rule fidelity, reproducibility, and accessibility remain core constraints.
 
+Strategic priorities: [capture and sustain cities](AI_CAPTURE_STRATEGY.md).
+
 Detailed execution design: [Technical implementation plan](TECHNICAL_IMPLEMENTATION_PLAN.md).
 
 ## Manual research follow-up (2026-10-30)
