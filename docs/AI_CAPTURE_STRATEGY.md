@@ -78,3 +78,36 @@ The initial three clean 100-round seed-17 layout checks completed and passed sav
 validation. Final Blue/Red cities were continents 4/2, islands 1/2 and archipelago
 1/1, unchanged from the preceding air-production sample. This is not evidence of
 a general conquest improvement. [Raw observations](evaluation/2026-10-30-capture-priority.json).
+
+## Bounded invasion assembly
+
+Hostile expeditions with an actual loaded partner may wait for recruitment beside
+an army-producing friendly city, or hold within six squares of the objective
+while a partner is more than three squares farther away. The first wait round
+is saved per objective. After twelve rounds the wait expires permanently for
+that objective; mission changes clear it. Partners catching up, completed loading
+or loss of the partner releases the wait early. Fresh nearby army threats prevent
+holding at an unsafe station. Neutral and isolated expeditions do not use this
+assembly wait.
+
+Waiting ships do not move or perform opportunistic reconnaissance drops, and are
+excluded from the landing wave until released. Existing loading still runs so a
+waiting ship can collect available reinforcements. Other ships continue moving.
+Hostile landing readiness now prefers six troops per nearby transport, capped by
+actual available cargo/support and safe beach capacity. A broad beach can receive
+a full twelve-army wave from two transports; spent troops delay that wave. Narrow
+beaches retain the existing capacity bound rather than waiting for impossible
+space.
+
+This is an initial rendezvous/recruitment policy, not a complete expedition
+scheduler. Distance comparisons are geometric, not route-time estimates. It does
+not guarantee full recruitment within twelve rounds or persist a shared staging
+coordinate. Full convoy route synchronization and repeated reinforcement planning
+remain follow-up work. The limit is shorter than the existing no-progress mission
+timeout, so assembly alone does not consume the full retry window.
+
+Final assembly-policy smoke evaluation: three clean 100-round seed-17 generated
+layouts completed with normal save validation. Final Blue/Red city holdings were
+4/2, 1/2 and 1/1, unchanged from the previous sample. These sparse early campaigns
+are not sufficient to establish coordinated invasion effectiveness; the full-wave
+fixture verifies the interaction explicitly. [Raw results](evaluation/2026-10-30-invasion-assembly.json).

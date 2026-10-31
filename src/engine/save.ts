@@ -50,6 +50,11 @@ export function importSave(json:string):Game {
       !(u.fuel===null||(finiteInt(u.fuel)&&u.fuel>=0)))throw new Error('Invalid unit entry.');
     if(u.aiObjective!==undefined&&(u.kind!=='transport'||typeof u.aiObjective!=='string'||!cityIds.has(u.aiObjective)))
       throw new Error('Invalid AI transport objective.');
+    if(u.aiAssembly!==undefined){
+      const a=u.aiAssembly;
+      if(u.kind!=='transport'||!a||!cityIds.has(a.objective)||!finiteInt(a.startedRound)||a.startedRound<1||a.startedRound>g.round!)
+        throw new Error('Invalid AI assembly state.');
+    }
     if(u.aiMissionProgress!==undefined){
       const p=u.aiMissionProgress;
       if(!u.aiObjective||!p||!finiteInt(p.round)||p.round<1||p.round>g.round!||
