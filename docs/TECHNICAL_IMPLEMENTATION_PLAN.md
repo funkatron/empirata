@@ -232,6 +232,10 @@ Proposed phases: `recruiting`, `assembling`, `transit`, `landing`, `reinforcing`
 last meaningful progress round, assigned transports and planned strength. Compute
 routes from current knowledge rather than persisting obsolete full paths.
 
+Implemented follow-up: [route-aware mission progress](AI_INVASION_ROUTE_PROGRESS.md)
+uses the same beach/sea search as transport navigation, so necessary coastal
+detours do not expire solely because city distance stays constant or grows.
+
 Choose a staging position with known navigable access and enough free sea stations.
 Estimate arrival in turns using actual movement allowance, including damage.
 Leading transports can wait for identified reinforcements; impose a deterministic

@@ -597,7 +597,8 @@ export function planAiTransportAssembly(view:ReturnType<typeof getPlayerView>,sh
   return {ship:next,wait:view.round-next.aiAssembly.startedRound<12&&(!staging||staging.groupEta<=12-(view.round-next.aiAssembly.startedRound))};
 }
 
-/** Experimental timeout: 24 rounds without closer approach or unloading.
+/** Experimental timeout: 24 rounds without shortening the delivery route or
+ * unloading. Rebase when discovery/blockage changes which metric is available.
  * Retry a stalled objective after 12 rounds; never consult hidden ownership.
  */
 export function updateAiTransportMission(view:ReturnType<typeof getPlayerView>,ship:Unit):Unit {
@@ -605,21 +606,27 @@ export function updateAiTransportMission(view:ReturnType<typeof getPlayerView>,s
   if(next.aiAvoidObjective&&next.aiAvoidObjective.until<=view.round)delete next.aiAvoidObjective;
   let objective=chooseAiTransportObjective(view,next);
   const cargo=view.ownUnits.filter(u=>u.aboard===ship.id).length;
-  const position=(id:string)=>{const i=view.cells.findIndex(c=>c.city?.id===id);return {x:i%view.width,y:Math.floor(i/view.width)};};
-  const distance=(id:string)=>{const p=position(id);return Math.max(Math.abs(p.x-ship.position.x),Math.abs(p.y-ship.position.y));};
-  if(objective&&objective===ship.aiObjective&&next.aiMissionProgress){
-    const progress=next.aiMissionProgress,d=distance(objective);
-    if(d<progress.bestDistance||cargo<progress.cargo)
-      next.aiMissionProgress={round:view.round,bestDistance:d,cargo};
+  const measure=(id:string)=>{
+    const route=aiInvasionRoute(view,{...next,aiObjective:id});
+    const i=view.cells.findIndex(c=>c.city?.id===id);
+    return {metric:route?'sea' as const:'city' as const,distance:route?.distance??
+      Math.max(Math.abs(i%view.width-ship.position.x),Math.abs(Math.floor(i/view.width)-ship.position.y))};
+  };
+  let measured=objective?measure(objective):undefined;
+  if(objective&&objective===ship.aiObjective&&next.aiMissionProgress&&measured){
+    const progress=next.aiMissionProgress;
+    if(measured.metric!==progress.metric||measured.distance<progress.bestDistance||cargo<progress.cargo)
+      next.aiMissionProgress={round:view.round,bestDistance:measured.distance,metric:measured.metric,cargo};
     else if(view.round-progress.round>=24){
       next.aiAvoidObjective={id:objective,until:view.round+12};
       delete next.aiObjective;delete next.aiMissionProgress;
       objective=chooseAiTransportObjective(view,next);
+      measured=objective?measure(objective):undefined;
     }
   }
-  if(objective){
+  if(objective&&measured){
     if(objective!==next.aiObjective||!next.aiMissionProgress)
-      next.aiMissionProgress={round:view.round,bestDistance:distance(objective),cargo};
+      next.aiMissionProgress={round:view.round,bestDistance:measured.distance,metric:measured.metric,cargo};
     next.aiObjective=objective;
   }else {delete next.aiObjective;delete next.aiMissionProgress;}
   return next;
@@ -635,12 +642,11 @@ function aiBeachAvailable(view:ReturnType<typeof getPlayerView>,p:Coord):boolean
     !view.ownUnits.some(u=>!u.aboard&&equal(u.position,p));
 }
 
-export function planAiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|null {
-  const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
-  const objectives=view.cells.flatMap((cell,i)=>cell.city&&cell.city.owner!=='red'&&!(ship.aiAvoidObjective?.id===cell.city.id&&ship.aiAvoidObjective.until>view.round)&&(!ship.aiObjective||cell.city.id===ship.aiObjective)?
+function aiInvasionRoute(view:ReturnType<typeof getPlayerView>,ship:Unit):{next:Coord|null;distance:number}|null {
+  const objectives=view.cells.flatMap((cell,i)=>cell.city&&cell.city.owner!==ship.owner&&!(ship.aiAvoidObjective?.id===cell.city.id&&ship.aiAvoidObjective.until>view.round)&&(!ship.aiObjective||cell.city.id===ship.aiObjective)?
     [{id:cell.city.id,x:i%view.width,y:Math.floor(i/view.width)}]:[]);
   const cells=view.cells;
-  if(!objectives.length)return planAiTransportExploreStep(view,ship);
+  if(!objectives.length)return null;
   const destinations=new Set<number>();
   // Reverse known-land connectivity once, then find every usable coastline
   // leading to the objective, including shores far from an inland city.
@@ -656,9 +662,9 @@ export function planAiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Un
            !aiTransportThreatened(view,sea))destinations.add(i);
       }
     }
-  if(!destinations.size)return planAiTransportExploreStep(view,ship);
+  if(!destinations.size)return null;
   const start=ship.position.y*view.width+ship.position.x;
-  if(destinations.has(start)&&!aiTransportThreatened(view,ship.position))return null;
+  if(destinations.has(start)&&!aiTransportThreatened(view,ship.position))return {next:null,distance:0};
   const blocked=new Set(view.enemies.filter(e=>!e.stale).map(e=>e.position.y*view.width+e.position.x));
   for(const u of view.ownUnits)if(!u.aboard&&u.id!==ship.id)
     blocked.add(u.position.y*view.width+u.position.x);
@@ -677,14 +683,20 @@ export function planAiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Un
       seen.add(i);parent.set(i,current);queue.push(i);
     }
   }
-  if(found===undefined)return planAiTransportExploreStep(view,ship);
-  let at=found;
+  if(found===undefined)return null;
+  let at=found,distance=1;
   while(parent.get(at)!==start){
     const previous=parent.get(at);
-    if(previous===undefined)return planAiTransportExploreStep(view,ship);
-    at=previous;
+    if(previous===undefined)return null;
+    at=previous;distance++;
   }
-  return {x:at%view.width,y:Math.floor(at/view.width)};
+  return {next:{x:at%view.width,y:Math.floor(at/view.width)},distance};
+}
+
+/** Use the same safe beach/sea search for movement and mission progress. */
+export function planAiInvasionStep(view:ReturnType<typeof getPlayerView>,ship:Unit):Coord|null {
+  const route=aiInvasionRoute(view,ship);
+  return route?route.next:planAiTransportExploreStep(view,ship);
 }
 
 /** Explore the nearest unknown frontier reachable over charted land.
