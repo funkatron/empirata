@@ -1,3 +1,4 @@
+import { unitLabel } from './unit-names.js';
 import type { CityIntel, FactionId, Game, Knowledge, PlayerCell, PlayerView, Unit } from './types.js';
 import { directions, index, inMap, terrainAt, cityAt } from './world.js';
 
@@ -73,7 +74,7 @@ export function updateAllKnowledge(game:Game,activateSentries=true):void {
       Math.max(Math.abs(s.position.x-unit.position.x),Math.abs(s.position.y-unit.position.y))<=1))continue;
     unit.order={kind:'none'};
     game.events.push({id:game.nextEventId++,round:game.round,recipient:unit.owner,
-      kind:'system',message:`${unit.id}: sentry awakened by adjacent enemy contact.`});
+      kind:'system',message:`${unitLabel(unit)}: sentry awakened by adjacent enemy contact.`});
   }
 }
 /** The sole reader contract for player UI and future AI. */

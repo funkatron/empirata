@@ -1,3 +1,4 @@
+import { unitLabel } from './unit-names.js';
 import type { City, Coord, FactionId, Game, Terrain, Unit, UnitOrder, UnitType } from './types.js';
 import {MAX_FIGHTER_FUEL, movementAllowance, requiredProductionTurns, STATS, capacity } from './units.js';
 import {MAP_HEIGHT,MAP_WIDTH, makeTestTerrain, playable, index, terrainAt, cityAt, equal, isCoastal, directions } from './world.js';
@@ -68,7 +69,7 @@ function fillShip(g:Game,ship:Unit,portOnly=false,protectedCargo:ReadonlySet<str
     candidate.order={kind:'none'};
     if(candidate.kind==='fighter')candidate.fuel=MAX_FIGHTER_FUEL;
     occupied++;loaded++;
-    log(g,ship.owner,'movement',`${candidate.id} loaded aboard ${ship.id}.`);
+    log(g,ship.owner,'movement',`${unitLabel(candidate)} loaded aboard ${unitLabel(ship)}.`);
   }
   if(occupied>=capacityNow&&ship.order.kind==='load-ship')ship.order={kind:'none'};
   return loaded;
@@ -93,7 +94,7 @@ export function unloadShip(game:Game,shipId:string):Game {
   const cargo=g.units.filter(u=>u.aboard===ship.id);
   for(const unit of cargo)unit.order={kind:'none'};
   ship.order={kind:'none'};
-  log(g,ship.owner,'movement',`${ship.id}: ${cargo.length} embarked units ready for individual landing orders.`);
+  log(g,ship.owner,'movement',`${unitLabel(ship)}: ${cargo.length} embarked units ready for individual landing orders.`);
   updateAllKnowledge(g);
   return g;
 }
@@ -152,7 +153,7 @@ export function embarkArmy(game:Game,armyId:string,transportId:string):Game {
   if(aboard.length>=(capacity(ship)??0))throw new Error('Transport is full.');
   army.aboard=ship.id;army.position={...ship.position};army.spent++;army.order={kind:'none'};
   if(ship.order.kind==='load-ship'&&aboard.length+1>=capacity(ship)!)ship.order={kind:'none'};
-  log(g,army.owner,'movement',`${army.id} boarded ${ship.id} (${aboard.length+1}/${capacity(ship)}).`);
+  log(g,army.owner,'movement',`${unitLabel(army)} boarded ${unitLabel(ship)} (${aboard.length+1}/${capacity(ship)}).`);
   updateAllKnowledge(g);
   return g;
 }
@@ -172,7 +173,7 @@ export function disembarkArmy(game:Game,armyId:string,to:Coord):Game {
   if(g.units.some(u=>!u.aboard&&equal(u.position,to)&&(!city||u.owner!==army.owner)))
     throw new Error('Landing square occupied.');
   army.aboard=null;army.position={...to};army.spent++;army.order={kind:'none'};
-  log(g,army.owner,'movement',`${army.id} landed from ${ship.id}.`);
+  log(g,army.owner,'movement',`${unitLabel(army)} landed from ${unitLabel(ship)}.`);
   updateAllKnowledge(g);
   return g;
 }
@@ -191,7 +192,7 @@ export function boardFighter(game:Game,fighterId:string,carrierId:string):Game {
   fighter.position={...ship.position};fighter.aboard=ship.id;fighter.spent++;fighter.fuel=MAX_FIGHTER_FUEL;
   fighter.order={kind:'none'};
   if(ship.order.kind==='load-ship'&&g.units.filter(u=>u.aboard===ship.id).length>=capacity(ship)!)ship.order={kind:'none'};
-  log(g,fighter.owner,'movement',`${fighter.id} landed aboard ${ship.id} and refueled.`);
+  log(g,fighter.owner,'movement',`${unitLabel(fighter)} landed aboard ${unitLabel(ship)} and refueled.`);
   updateAllKnowledge(g);return g;
 }
 /** Launch a fighter from a carrier into an adjacent legal square. */
@@ -214,8 +215,8 @@ export function launchFighter(game:Game,fighterId:string,to:Coord):Game {
   if(arrival?.owner===fighter.owner)fighter.fuel=MAX_FIGHTER_FUEL;
   if(fighter.fuel<=0){
     g.units=g.units.filter(u=>u.id!==fighter.id);
-    log(g,fighter.owner,'fuel',`${fighter.id} ran out of fuel after launch.`);
-  }else log(g,fighter.owner,'movement',`${fighter.id} launched from ${carrier.id}.`);
+    log(g,fighter.owner,'fuel',`${unitLabel(fighter)} ran out of fuel after launch.`);
+  }else log(g,fighter.owner,'movement',`${unitLabel(fighter)} launched from ${unitLabel(carrier)}.`);
   updateAllKnowledge(g);return g;
 }
 export function moveUnit(game:Game,id:string,to:Coord,protectedCargo:ReadonlySet<string>=new Set()):Game {
@@ -268,7 +269,7 @@ export function moveUnit(game:Game,id:string,to:Coord,protectedCargo:ReadonlySet
     for(const cargo of g.units.filter(u=>u.aboard===unit.id)){
       cargo.aboard=null;cargo.position={...to};
       if(cargo.kind==='fighter')cargo.fuel=MAX_FIGHTER_FUEL;
-      log(g,cargo.owner,'movement',`${cargo.id} unloaded in friendly port ${city.id}.`);
+      log(g,cargo.owner,'movement',`${unitLabel(cargo)} unloaded in friendly port ${city.id}.`);
     }
   }
   if(unit.order.kind!=='none'&&unit.order.kind!=='skip')unit.order={kind:'none'};
@@ -277,7 +278,7 @@ export function moveUnit(game:Game,id:string,to:Coord,protectedCargo:ReadonlySet
     if(city?.owner===unit.owner) unit.fuel=MAX_FIGHTER_FUEL; // Timing to be verified.
     else if(unit.fuel<=0){
       g.units=g.units.filter(u=>u.id!==unit.id);
-      log(g,unit.owner,'fuel',`${unit.id} ran out of fuel and crashed.`);
+      log(g,unit.owner,'fuel',`${unitLabel(unit)} ran out of fuel and crashed.`);
     }
   }
   updateAllKnowledge(g);
@@ -401,7 +402,7 @@ function beginTurn(g:Game):void {
     const city=cityAt(g,unit.position);
     if(STATS[unit.kind].domain==='sea'&&unit.damage>0&&city?.owner===g.active&&isCoastal(g,city.position)){
       unit.damage--;
-      log(g,g.active,'repair',`${unit.id} repaired one damage point in port.`);
+      log(g,g.active,'repair',`${unitLabel(unit)} repaired one damage point in port.`);
     }
   }
   for(const city of g.cities.filter(c=>c.owner===g.active&&c.production!==null)){
@@ -412,7 +413,7 @@ function beginTurn(g:Game):void {
       city.progress=0; city.firstCycle=false;
       const unit=newUnit(g,g.active,kind,city.position);
       g.units.push(unit);
-      log(g,g.active,'production',`${city.id} completed ${STATS[kind].name} (${unit.id}).`);
+      log(g,g.active,'production',`${city.id} completed ${STATS[kind].name} (${unitLabel(unit)}).`);
     }
   }
   // A ship on Load Ship continues accepting friendly adjacent units at each turn
@@ -429,7 +430,7 @@ function settleFighterLoiter(g:Game,unit:Unit):void {
   const remaining=Math.max(0,movementAllowance(unit)-unit.spent);
   unit.fuel=(unit.fuel??MAX_FIGHTER_FUEL)-remaining;
   unit.spent=movementAllowance(unit);
-  if(unit.fuel<=0){g.units=g.units.filter(u=>u.id!==unit.id);log(g,unit.owner,'fuel',`${unit.id} ran out of fuel while airborne and crashed.`);}
+  if(unit.fuel<=0){g.units=g.units.filter(u=>u.id!==unit.id);log(g,unit.owner,'fuel',`${unitLabel(unit)} ran out of fuel while airborne and crashed.`);}
 }
 export function endTurn(game:Game):Game {
   const g=clone(game),currentIndex=g.players.findIndex(p=>p.id===g.active);
@@ -1299,10 +1300,10 @@ export function playRedOpponent(game:Game):Game {
       for(const key of ['aiObjective','aiMissionProgress','aiAvoidObjective'] as const)
         if(planned[key]===undefined)delete actual[key];
       if(planned.aiAvoidObjective?.id!==ship.aiAvoidObjective?.id&&planned.aiAvoidObjective)
-        log(g,'red','system',`Transport ${ship.id} paused stalled objective ${planned.aiAvoidObjective.id} for 12 rounds.`);
+        log(g,'red','system',`${unitLabel(ship)} paused stalled objective ${planned.aiAvoidObjective.id} for 12 rounds.`);
       if(planned.aiObjective!==ship.aiObjective)
-        log(g,'red','system',planned.aiObjective?`Transport ${ship.id} assigned city objective ${planned.aiObjective}.`:
-          `Transport ${ship.id} cleared its city objective.`);
+        log(g,'red','system',planned.aiObjective?`${unitLabel(ship)} assigned city objective ${planned.aiObjective}.`:
+          `${unitLabel(ship)} cleared its city objective.`);
     }
   }
 
@@ -1312,7 +1313,7 @@ export function playRedOpponent(game:Game):Game {
     if(JSON.stringify(plan.ship.aiAssembly)!==JSON.stringify(ship.aiAssembly)){
       g=clone(g);const actual=g.units.find(u=>u.id===ship.id)!;
       if(plan.ship.aiAssembly)actual.aiAssembly=plan.ship.aiAssembly;else delete actual.aiAssembly;
-      if(plan.ship.aiAssembly)log(g,'red','system',`Transport ${ship.id} assembling for ${plan.ship.aiAssembly.objective}; wait limited to 12 rounds.`);
+      if(plan.ship.aiAssembly)log(g,'red','system',`${unitLabel(ship)} assembling for ${plan.ship.aiAssembly.objective}; wait limited to 12 rounds.`);
     }
     if(plan.wait)assembling.add(ship.id);
   }
@@ -1347,7 +1348,7 @@ export function playRedOpponent(game:Game):Game {
       return playable(g,p)&&(terrainAt(g,p)==='sea'||cityAt(g,p)?.owner==='red')&&
         !g.units.some(other=>other.id!==ship.id&&!other.aboard&&equal(other.position,p));
     });
-    if(!passable)log(g,'red','system',`Transport ${ship.id} blocked at (${ship.position.x}, ${ship.position.y}): no accessible adjacent sea or friendly port.`);
+    if(!passable)log(g,'red','system',`${unitLabel(ship)} blocked at (${ship.position.x}, ${ship.position.y}): no accessible adjacent sea or friendly port.`);
   }
   // Launch ready embarked scouts through the ordinary carrier action. A return
   // flight can board/refuel normally; another sortie starts on a later AI turn.

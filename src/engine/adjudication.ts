@@ -1,3 +1,4 @@
+import { unitLabel } from './unit-names.js';
 /**
  * Historical outcome ADJUDICATION, not a combat RNG implementation.
  * The Interstel manual establishes what happens after each hit or city conquest,
@@ -92,7 +93,7 @@ export function adjudicateCombat(game:Game, record:CombatRecord):Game {
     const excess=g.units.filter(u=>u.aboard===winner.id).slice(capacity(winner)??0);
     for(const fighter of excess){
       removeUnitAndCargo(g,fighter.id);
-      log(g,fighter.owner,`${fighter.id} was lost when ${winner.id} exceeded carrier capacity.`);
+      log(g,fighter.owner,`${unitLabel(fighter)} was lost when ${unitLabel(winner)} exceeded carrier capacity.`);
     }
   }
   if(winner.id===attacker.id){
@@ -105,8 +106,8 @@ export function adjudicateCombat(game:Game, record:CombatRecord):Game {
       else if(attacker.fuel<=0)removeUnitAndCargo(g,attacker.id);
     }
   }
-  log(g,winningOwner,`${winner.kind} ${winner.id} defeated ${defeated.kind} ${defeated.id}${advances&&winner.id===attacker.id?' and advanced':''}.`);
-  log(g,lostOwner,`${defeated.kind} ${defeated.id} was destroyed in combat with ${winner.kind} ${winner.id}.`);
+  log(g,winningOwner,`${unitLabel(winner)} defeated ${unitLabel(defeated)}${advances&&winner.id===attacker.id?' and advanced':''}.`);
+  log(g,lostOwner,`${unitLabel(defeated)} was destroyed in combat with ${unitLabel(winner)}.`);
   updateAllKnowledge(g);
   return g;
 }
@@ -121,7 +122,7 @@ export function adjudicateCityCapture(game:Game, record:CaptureRecord):Game {
   if(!playable(g,city.position))throw new Error('The city is outside the playable map.');
   if(record.outcome==='repelled'){
     removeUnitAndCargo(g,army.id);
-    log(g,army.owner,`${army.id} was lost attacking ${city.id}.`);
+    log(g,army.owner,`${unitLabel(army)} was lost attacking ${city.id}.`);
     if(city.owner)log(g,city.owner,`${city.id} repelled an attacking army.`);
   } else {
     const previousOwner=city.owner;
@@ -134,7 +135,7 @@ export function adjudicateCityCapture(game:Game, record:CaptureRecord):Game {
     // Captured-city production transfer/initialization timing needs executable verification.
     // The lab leaves the city's factory unassigned instead of copying enemy production.
     city.production=null;city.progress=0;city.firstCycle=true;
-    log(g,army.owner,`${city.id} captured. ${army.id} joined its permanent garrison. Assign production.`);
+    log(g,army.owner,`${city.id} captured. ${unitLabel(army)} joined its permanent garrison. Assign production.`);
     if(previousOwner){
       // The loss notification is known even when the city's sight is removed.
       // Do not retain friendly ownership or reveal the conqueror's production.
