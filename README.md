@@ -129,3 +129,22 @@ targets or evidence of strategic superiority.
 CI run `40366834046` passed **146/146 tests** on 2026-10-26, including a
 20-round autonomous endurance test, hidden-objective checks, and exact
 save/reload replay. Standalone bundle build and smoke test also passed.
+
+## Unit names
+
+Every unit has a stable military-style display name in inspection, cargo selection, orders, and event reports. Names use conventional-era US-inspired patterns; Blue, Red, and Green remain fictional factions.
+
+| Unit | Naming pattern | Example |
+| --- | --- | --- |
+| Army | Numbered infantry division | Blue 1st Infantry Division |
+| Fighter | Numbered fighter squadron with nickname | Blue 1st Fighter Squadron “Eagles” |
+| Destroyer | Naval personnel; DD hull designation | BNS Fletcher (DD-1) |
+| Transport | Historic troop transport names; AP designation | BNS Harris (AP-1) |
+| Submarine | Fish and sea life; SS designation | BNS Gato (SS-1) |
+| Cruiser | Cities; CA designation | BNS Baltimore (CA-1) |
+| Carrier | Historic carrier names; CV designation | BNS Enterprise (CV-1) |
+| Battleship | States; BB designation | BNS Iowa (BB-1) |
+
+BNS, RNS, and GNS mean Blue, Red, and Green Navy Ship. The [Naval History and Heritage Command’s naming history](https://www.history.navy.mil/content/history/nhhc/browse-by-topic/heritage/customs-and-traditions0/ship-naming/the-evolution-of-ship-naming-in-the-u-s--navy.html) informs the naval patterns. These are presentation conventions, not claims of historical hull assignments, original DOS naming, or the number of soldiers/aircraft represented by a counter.
+
+Names derive from faction, type, and permanent unit ID without consuming random draws or changing the save format. Production serials are shared across types, so formation and hull numbers can have gaps. Long campaigns reuse the finite ship-name lists with distinct hull numbers. Scenario IDs receive deterministic fallback designations. Internal IDs remain in logs for diagnostics. Enemy names use only the same identity information already present in sightings, including remembered contacts.

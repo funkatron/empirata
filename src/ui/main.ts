@@ -1,6 +1,6 @@
 import {advanceLabRound,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,
   moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
-  STATS,UNIT_TYPES,isCoastal} from '../engine/index.js';
+  STATS,UNIT_TYPES,isCoastal,unitName} from '../engine/index.js';
 import type {City,Coord,Game,Unit,UnitType,PlayerView} from '../engine/index.js';
 
 const el=(id:string)=>document.getElementById(id)!;
@@ -192,7 +192,7 @@ function tapTile(pos:Coord):void {
       const target=view.ownUnits.find(u=>u.id!==id&&!u.aboard&&u.position.x===pos.x&&u.position.y===pos.y);
       if(!target){uiMessage('Tap a different friendly unit to escort.');return;}
       if(dispatch(()=>runMoveToOrders(setOrder(game,id,{kind:'escort',targetId:target.id}))))
-        uiMessage(`${id} is escorting ${target.id}.`);
+        uiMessage(`${knownUnitName(id)} is escorting ${unitName(target)}.`);
       return;
     }
     const order=choosingOrder==='go-direction'?
@@ -200,7 +200,7 @@ function tapTile(pos:Coord):void {
       choosingOrder==='patrol'?{kind:'patrol' as const,from:{...origin},to:pos,outbound:true}:
       {kind:'move-to' as const,destination:pos};
     if(dispatch(()=>runMoveToOrders(setOrder(game,id,order))))
-      uiMessage(`${choosingOrder} order assigned for ${id}.`);
+      uiMessage(`${choosingOrder} order assigned for ${knownUnitName(id)}.`);
     return;
   }
   if(pos.x<0||pos.y<0||pos.x>=game.width||pos.y>=game.height)return;
@@ -208,7 +208,7 @@ function tapTile(pos:Coord):void {
   if(embarked){
     const action=embarked.kind==='fighter'?launchFighter:disembarkArmy;
     if(dispatch(()=>action(game,embarked.id,pos))){
-      uiMessage(`${embarked.id} left its ship. Select the ship to manage remaining cargo.`);
+      uiMessage(`${unitName(embarked)} left its ship. Select the ship to manage remaining cargo.`);
     }
     return;
   }
@@ -240,17 +240,21 @@ function tapTile(pos:Coord):void {
   if(cell?.city){selectedCity=null;selectedUnit=null;uiMessage(`City ${cell.city.id} · ${cell.city.owner??'neutral'} (read-only)`);refresh();return;}
   selectedCity=null;selectedUnit=null;refresh();
 }
+function knownUnitName(id:string):string {
+  const unit=view.ownUnits.find(u=>u.id===id)??view.enemies.find(u=>u.id===id);
+  return unit?unitName(unit):id;
+}
 function text(value:unknown):string{return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]!));}
 function selectedUnitBlock(unit:Unit):string {
   const allowance=movementAllowance(unit),stats=STATS[unit.kind],possible=capacity(unit);
-  return `<div class="selection-title">${text(stats.name)} <span class="subtle">#${text(unit.id)}</span></div>
-  <div class="subtle">${unit.position.x}, ${unit.position.y} · ${unit.order.kind==='sentry'?'Sentry':unit.order.kind==='move-to'?`Moving to ${unit.order.destination.x}, ${unit.order.destination.y}`:unit.order.kind==='go-direction'?`Continuing ${unit.order.direction.x},${unit.order.direction.y}`:unit.order.kind==='patrol'?`Patrolling ${unit.order.from.x},${unit.order.from.y} ↔ ${unit.order.to.x},${unit.order.to.y}`:unit.order.kind==='load-ship'?'Waiting to load cargo':unit.order.kind==='go-home'?'Returning home':unit.order.kind==='escort'?`Escorting ${text(unit.order.targetId)}`:'Awaiting orders'}</div>
+  return `<div class="selection-title">${text(unitName(unit))}</div><div class="subtle">${text(stats.name)} · #${text(unit.id)}</div>
+  <div class="subtle">${unit.position.x}, ${unit.position.y} · ${unit.order.kind==='sentry'?'Sentry':unit.order.kind==='move-to'?`Moving to ${unit.order.destination.x}, ${unit.order.destination.y}`:unit.order.kind==='go-direction'?`Continuing ${unit.order.direction.x},${unit.order.direction.y}`:unit.order.kind==='patrol'?`Patrolling ${unit.order.from.x},${unit.order.from.y} ↔ ${unit.order.to.x},${unit.order.to.y}`:unit.order.kind==='load-ship'?'Waiting to load cargo':unit.order.kind==='go-home'?'Returning home':unit.order.kind==='escort'?`Escorting ${text(knownUnitName(unit.order.targetId))}`:'Awaiting orders'}</div>
   <div class="data"><div class="datum"><small>Movement</small><strong>${Math.max(0,allowance-unit.spent)} / ${allowance}</strong></div>
   <div class="datum"><small>Damage</small><strong>${unit.damage} / ${stats.hitPoints}</strong></div>
   ${unit.kind==='fighter'?`<div class="datum"><small>Fuel</small><strong>${unit.fuel} / 20</strong></div>`:''}
   ${possible!==null?`<div class="datum"><small>Cargo capacity</small><strong>${possible}</strong></div>`:''}</div>
   ${(unit.kind==='transport'||unit.kind==='carrier')? `<div class="stat-note">Aboard: ${view.ownUnits.filter(u=>u.aboard===unit.id).length} / ${capacity(unit)??0}</div>
-  <div class="actions"><button id="loadShipButton">Load Ship</button><button id="unloadShipButton">Unload Ship</button></div><div class="actions">${view.ownUnits.filter(u=>u.aboard===unit.id).map(u=>`<button class="cargoButton" data-cargo="${text(u.id)}">Select ${text(u.id)}</button>`).join('')}</div>`:''}
+  <div class="actions"><button id="loadShipButton">Load Ship</button><button id="unloadShipButton">Unload Ship</button></div><div class="actions">${view.ownUnits.filter(u=>u.aboard===unit.id).map(u=>`<button class="cargoButton" data-cargo="${text(u.id)}">Select ${text(unitName(u))}</button>`).join('')}</div>`:''}
   ${unit.aboard?'<p class="stat-note">Embarked: tap an adjacent legal square to launch or disembark (if movement remains).</p>':''}
   <div class="actions"><button id="moveToButton">Move To</button><button id="directionButton">Go Direction</button><button id="patrolButton">Patrol</button><button id="homeButton">Go Home</button><button id="escortButton">Escort</button><button id="sentryButton">Sentry</button><button id="clearButton">Clear</button><button id="skipButton">Skip move</button></div>
   <p class="stat-note" style="margin-top:12px">Tap an adjacent tile for manual movement, or choose Move To and tap a distant destination. Armies can assault neutral or enemy cities. Combat uses the original manual's normal-efficiency odds with a seeded random stream.</p>`;
@@ -269,7 +273,7 @@ function selectedCityBlock(city:City):string {
 function spectatorUnitBlock(unit:Unit):string {
   const stats=STATS[unit.kind];
   const cargo=view.ownUnits.filter(u=>u.aboard===unit.id);
-  return `<div class="selection-title">${text(stats.name)} <span class="subtle">#${text(unit.id)}</span></div>
+  return `<div class="selection-title">${text(unitName(unit))}</div><div class="subtle">${text(stats.name)} · #${text(unit.id)}</div>
     <div class="subtle">${text(unit.owner)} · ${unit.position.x}, ${unit.position.y}</div>
     <div class="data"><div class="datum"><small>Movement remaining</small><strong>${Math.max(0,movementAllowance(unit)-unit.spent)}</strong></div>
     <div class="datum"><small>Damage</small><strong>${unit.damage} / ${stats.hitPoints}</strong></div>
@@ -310,7 +314,7 @@ function refresh():void {
   else if(game.scenario==='ai-vs-ai'&&spectatorContact){
     const enemy=view.enemies.find(u=>u.id===spectatorContact&&!u.stale);
     inspector.innerHTML=enemy?
-      `<div class="selection-title">${text(STATS[enemy.kind].name)} #${text(enemy.id)}</div>
+      `<div class="selection-title">${text(unitName(enemy))}</div><div class="subtle">${text(STATS[enemy.kind].name)} · #${text(enemy.id)}</div>
       <div class="subtle">${text(enemy.owner)} · ${enemy.position.x}, ${enemy.position.y}</div>
       <p class="stat-note">Visible enemy contact. Additional details are not available to this faction.</p>`:
       '<p>Enemy contact no longer visible.</p>';
@@ -331,11 +335,11 @@ function refresh():void {
   if(unit&&(unit.kind==='transport'||unit.kind==='carrier')){
     document.getElementById('loadShipButton')?.addEventListener('click',()=>{
       if(dispatch(()=>loadShip(game,unit.id)))
-        uiMessage(`${unit.id}: loading eligible adjacent units until full. Use Clear to stop waiting.`);
+        uiMessage(`${unitName(unit)}: loading eligible adjacent units until full. Use Clear to stop waiting.`);
     });
     document.getElementById('unloadShipButton')?.addEventListener('click',()=>{
       if(dispatch(()=>unloadShip(game,unit.id)))
-        uiMessage(`${unit.id}: select a carried unit, then tap a legal landing square.`);
+        uiMessage(`${unitName(unit)}: select a carried unit, then tap a legal landing square.`);
     });
   }
   const moveButton=document.getElementById('moveToButton');
@@ -345,7 +349,7 @@ function refresh():void {
   }
   document.getElementById('homeButton')?.addEventListener('click',()=>{
     if(unit&&dispatch(()=>runMoveToOrders(setOrder(game,unit.id,{kind:'go-home'}))))
-      uiMessage(`${unit.id} returning to a friendly city.`);
+      uiMessage(`${unitName(unit)} returning to a friendly city.`);
   });
   document.getElementById('escortButton')?.addEventListener('click',()=>{
     choosingOrder='escort';choosingDestination=true;
