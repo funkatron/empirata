@@ -14,7 +14,7 @@ export type Unit = {
   aboard: string | null;
   aiMissionProgress?: {round:number; bestDistance:number; cargo:number};
   aiAvoidObjective?: {id:string; until:number};
-  aiAssembly?: {objective:string;startedRound:number};
+  aiAssembly?: {objective:string;startedRound:number;staging?:Coord;gathered?:boolean};
   aiObjective?: string; // Experimental AI city mission, independent of player orders.
 };
 export type Sight = { id: string; kind: UnitType; owner: FactionId; position: Coord; observedRound: number };

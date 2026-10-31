@@ -83,7 +83,7 @@ a general conquest improvement. [Raw observations](evaluation/2026-10-30-capture
 
 Hostile expeditions with an actual loaded partner may wait for recruitment beside
 an army-producing friendly city, or hold within six squares of the objective
-while a partner is more than three squares farther away. The first wait round
+while a loaded partner remains outside the nearby group. The first wait round
 is saved per objective. After twelve rounds the wait expires permanently for
 that objective; mission changes clear it. Partners catching up, completed loading
 or loss of the partner releases the wait early. Fresh nearby army threats prevent
@@ -99,11 +99,19 @@ a full twelve-army wave from two transports; spent troops delay that wave. Narro
 beaches retain the existing capacity bound rather than waiting for impossible
 space.
 
-This is an initial rendezvous/recruitment policy, not a complete expedition
-scheduler. Distance comparisons are geometric, not route-time estimates. It does
-not guarantee full recruitment within twelve rounds or persist a shared staging
-coordinate. Full convoy route synchronization and repeated reinforcement planning
-remain follow-up work. The limit is shorter than the existing no-progress mission
+Rendezvous now saves a shared staging coordinate near the leading ship once it
+reaches the six-square approach zone. Each loaded partner receives a distinct
+available station around that coordinate. Known-water breadth-first routes supply
+movement steps and arrival estimates, including damage-reduced speed and movement
+already spent. If no station/route exists, or the group cannot arrive before the
+remaining deadline, release the assembly attempt. A gathered marker prevents an
+assembled convoy from reversing to an old staging point.
+
+This coordinates the approach; it is not a global campaign scheduler. It does not
+guarantee full recruitment within twelve rounds, simultaneous arrival on a single
+turn, or recovery of a shared staging area occupied by newly discovered enemies.
+Estimates are recomputed from current knowledge. Repeated reinforcement planning
+remains follow-up work. The limit is shorter than the existing no-progress mission
 timeout, so assembly alone does not consume the full retry window.
 
 Final assembly-policy smoke evaluation: three clean 100-round seed-17 generated
@@ -111,3 +119,10 @@ layouts completed with normal save validation. Final Blue/Red city holdings were
 4/2, 1/2 and 1/1, unchanged from the previous sample. These sparse early campaigns
 are not sufficient to establish coordinated invasion effectiveness; the full-wave
 fixture verifies the interaction explicitly. [Raw results](evaluation/2026-10-30-invasion-assembly.json).
+
+The convoy-staging change also completed three clean 100-round seed-17 layout
+checks with normal save validation. Holdings remained 4/2, 1/2 and 1/1 Blue/Red.
+This smoke sample does not prove a campaign advantage or exercise every large
+convoy case; focused regressions cover damage-sensitive arrival estimates,
+unknown/disconnected routes, deadline feasibility and gathered-state behavior.
+[Raw staging observations](evaluation/2026-10-30-convoy-staging.json).

@@ -52,7 +52,7 @@ export function importSave(json:string):Game {
       throw new Error('Invalid AI transport objective.');
     if(u.aiAssembly!==undefined){
       const a=u.aiAssembly;
-      if(u.kind!=='transport'||!a||!cityIds.has(a.objective)||!finiteInt(a.startedRound)||a.startedRound<1||a.startedRound>g.round!)
+      if(u.kind!=='transport'||!a||(a.gathered!==undefined&&typeof a.gathered!=='boolean')||!cityIds.has(a.objective)||!finiteInt(a.startedRound)||a.startedRound<1||a.startedRound>g.round!||(a.staging!==undefined&&!validPosition(a.staging)))
         throw new Error('Invalid AI assembly state.');
     }
     if(u.aiMissionProgress!==undefined){

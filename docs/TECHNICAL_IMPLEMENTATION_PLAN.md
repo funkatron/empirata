@@ -211,7 +211,9 @@ switching factories so often that their progress is repeatedly discarded.
 Assembly follow-up: save a bounded per-objective recruitment/rendezvous wait on
 transports, release approaching partners to move, and prefer full available hostile
 landing waves. Validate expiry, replay, narrow shores and ongoing neutral expansion.
-Shared staging coordinates and route-time synchronization remain outstanding.
+Shared staging coordinates and known-route arrival estimates are addressed by
+the subsequent convoy-staging change; global launch scheduling and repeated
+reinforcement groups remain outstanding.
 
 ## 5. Coordinated invasions and logistics
 
