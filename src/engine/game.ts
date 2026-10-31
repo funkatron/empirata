@@ -896,7 +896,8 @@ export function planAiReconLandingSquare(view:ReturnType<typeof getPlayerView>,s
 export function planAiFighterStep(view:ReturnType<typeof getPlayerView>,fighter:Unit):Coord|null {
   if(fighter.kind!=='fighter')return null;
   const key=(p:Coord)=>p.y*view.width+p.x;
-  const bases=[...view.ownCities.map(c=>c.position),...view.ownUnits.filter(u=>u.kind==='carrier').map(u=>u.position)];
+  const bases=[...view.ownCities.map(c=>c.position),...view.ownUnits.filter(u=>u.kind==='carrier'&&(fighter.aboard===u.id||
+    view.ownUnits.filter(c=>c.aboard===u.id).length<(capacity(u)??0))).map(u=>u.position)];
   if(!bases.length)return null;
   const baseKeys=new Set(bases.map(key));
   const blocked=new Set(view.ownUnits.filter(u=>!u.aboard&&u.id!==fighter.id&&!baseKeys.has(key(u.position))).map(u=>key(u.position)));
@@ -1044,6 +1045,14 @@ export function playRedOpponent(game:Game):Game {
         !g.units.some(other=>other.id!==ship.id&&!other.aboard&&equal(other.position,p));
     });
     if(!passable)log(g,'red','system',`Transport ${ship.id} blocked at (${ship.position.x}, ${ship.position.y}): no accessible adjacent sea or friendly port.`);
+  }
+  // Launch ready embarked scouts through the ordinary carrier action. A return
+  // flight can board/refuel normally; another sortie starts on a later AI turn.
+  for(const id of getPlayerView(g,'red').ownUnits.filter(u=>u.kind==='fighter'&&u.aboard).map(u=>u.id)){
+    const view=getPlayerView(g,'red'),fighter=view.ownUnits.find(u=>u.id===id);
+    if(!fighter||fighter.spent>=movementAllowance(fighter))continue;
+    const next=planAiFighterStep(view,fighter);if(!next)continue;
+    try{g=launchFighter(g,id,next);}catch{/* Hidden or changed contacts interrupt launch. */}
   }
   const redUnitIds=g.units.filter(u=>u.owner==='red'&&!u.aboard).map(u=>u.id);
   const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));

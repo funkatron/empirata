@@ -37,16 +37,29 @@ Fighters do not use the generic wandering fallback.
 
 ## Carrier scope
 
-Initial carriers hold as refueling stations; fighters can use them as return bases.
-Automatic launch of embarked aircraft and mobile carrier group coordination are
-not implemented here. Carrier presence should not be read as evidence of a fully
-functional carrier air campaign. Those execution tasks remain on the technical
-implementation plan alongside carrier-relative patrols.
+Carriers hold as refueling stations. Ready embarked fighters automatically launch
+when the faction-view reconnaissance planner finds a useful fuel-feasible route.
+They use ordinary movement to return, board and refuel; a later AI turn can launch
+another sortie. The launch consumes normal fighter movement and fuel. Each launch
+is checked against current authoritative state, so a newly encountered obstacle
+can interrupt it without granting movement or bypassing combat rules.
+
+Full carriers are excluded as return bases for airborne fighters. A fighter already
+aboard may launch from a full carrier because its own departure frees a slot.
+No useful frontier or no remaining movement means the fighter stays aboard.
+
+Mobile carrier groups, carrier-relative player patrol routes and active air
+interception remain on the technical implementation plan. Base movement/loss and
+capacity changes after a planning snapshot can still invalidate a return route;
+this is not a guarantee of survival under future enemy actions.
 
 ## Verification
 
 Tests cover both production choices through normal completion, completion while
 supply armies board transports, replay, fuel-driven return and defender priority.
+A separate 20-turn regression checks launch, carrier recovery/refueling and a
+subsequent sortie with save/reload every turn. Full/lost bases and holding are
+covered separately.
 Generated-map campaigns supplement constructed fixtures; they are observations,
 not a general claim of stronger play. Monitor computation cost and aircraft loss
 rates in longer campaigns before tuning demand upward.
