@@ -1,3 +1,4 @@
+import { gameOutcome } from './presentation.js';
 import { unitLabel } from './unit-names.js';
 import type { City, Coord, FactionId, Game, Terrain, Unit, UnitOrder, UnitType } from './types.js';
 import {MAX_FIGHTER_FUEL, movementAllowance, requiredProductionTurns, STATS, capacity } from './units.js';
@@ -1577,6 +1578,7 @@ export function playBlueOpponent(game:Game):Game {
 
 /** Advance one blue-player round, allowing a rules-bound Red opponent to act. */
 export function advanceLabRound(game:Game):Game {
+  if(gameOutcome(game).state==='finished')return game;
   if(game.mode!=='rules-lab'||game.active!=='blue')throw new Error('Lab round advance requires blue player.');
   let g=game.scenario==='ai-vs-ai'?playBlueOpponent(game):game;
   g=endTurn(g);

@@ -148,3 +148,11 @@ Every unit has a stable military-style display name in inspection, cargo selecti
 BNS, RNS, and GNS mean Blue, Red, and Green Navy Ship. The [Naval History and Heritage Command’s naming history](https://www.history.navy.mil/content/history/nhhc/browse-by-topic/heritage/customs-and-traditions0/ship-naming/the-evolution-of-ship-naming-in-the-u-s--navy.html) informs the naval patterns. These are presentation conventions, not claims of historical hull assignments, original DOS naming, or the number of soldiers/aircraft represented by a counter.
 
 Names derive from faction, type, and permanent unit ID without consuming random draws or changing the save format. Production serials are shared across types, so formation and hull numbers can have gaps. Long campaigns reuse the finite ship-name lists with distinct hull numbers. Scenario IDs receive deterministic fallback designations. Internal IDs remain in logs for diagnostics. Enemy names use only the same identity information already present in sightings, including remembered contacts.
+
+## City names and end of game
+
+Cities have stable fictional place names independent of ownership. Inspection and observer reports show names rather than diagnostic IDs. Save files and order targets retain their internal identities.
+
+The laboratory uses explicit elimination: a faction survives while it has any city or unit, including embarked troops or airborne fighters. A sole surviving faction wins; no surviving factions is a draw. This is a lab rule, not a verified reproduction of DOS surrender thresholds (which remain unresolved in the rules specification). Losing all cities alone does not eliminate a faction that still has units.
+
+The derived result survives export/import without extra save fields. Finished games stop round advancement and orders in the UI. Observer batches stop early at the result. The final map and cargo inspection remain available; export the final game or choose New game (with the existing replacement confirmation). Automatic surrender and continuing a finished match are not implemented.

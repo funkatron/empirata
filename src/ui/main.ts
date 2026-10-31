@@ -1,6 +1,6 @@
 import {advanceLabRound,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,
   moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
-  STATS,UNIT_TYPES,isCoastal,unitName} from '../engine/index.js';
+  STATS,UNIT_TYPES,isCoastal,unitName,cityName,gameOutcome,readableReport} from '../engine/index.js';
 import type {City,Coord,Game,Unit,UnitType,PlayerView} from '../engine/index.js';
 
 const el=(id:string)=>document.getElementById(id)!;
@@ -36,8 +36,8 @@ function pausePlayback():void {
   playbackGeneration++;
   if(playback!==null){clearTimeout(playback);playback=null;}
   const button=document.getElementById('autoPlay');if(button)button.textContent='▶ Play';
-  (el('advanceRounds') as HTMLButtonElement).disabled=false;
-  (el('nextRound') as HTMLButtonElement).disabled=false;
+  (el('advanceRounds') as HTMLButtonElement).disabled=gameOutcome(game).state==='finished';
+  (el('nextRound') as HTMLButtonElement).disabled=gameOutcome(game).state==='finished';
   el('roundProgress').hidden=true;
   flushObserverBatch();
 }
@@ -45,7 +45,7 @@ function pausePlayback():void {
  * can interrupt even a 100-round advance. Never run overlapping timers.
  */
 function startRoundPlayback(repeat:boolean):void {
-  pausePlayback();if(game.scenario!=='ai-vs-ai')return;
+  pausePlayback();if(game.scenario!=='ai-vs-ai'||gameOutcome(game).state==='finished')return;
   const generation=playbackGeneration;
   let target=roundsPerAdvance,completed=0;
   el('autoPlay').textContent='Ⅱ Pause';
@@ -61,6 +61,7 @@ function startRoundPlayback(repeat:boolean):void {
     if(completed===0){target=roundsPerAdvance;progress();}
     if(game.scenario!=='ai-vs-ai'||!dispatch(()=>advanceLabRound(game),true)){pausePlayback();return;}
     completed++;progress();
+    if(gameOutcome(game).state==='finished'){pausePlayback();return;}
     if(completed===target){
       flushObserverBatch();
       if(!repeat){pausePlayback();uiMessage(`Advanced ${completed} ${completed===1?'round':'rounds'} to round ${game.round}.`);return;}
@@ -72,6 +73,7 @@ function startRoundPlayback(repeat:boolean):void {
   playback=setTimeout(tick,repeat?750:0);
 }
 function dispatch(operation:()=>Game,deferObserverRefresh=false):boolean {
+  if(gameOutcome(game).state==='finished'){uiMessage('Game over. Inspect the map, export the save, or start a new game.');return false;}
   try {
     const before=game.nextEventId;
     const previousRound=game.round;
@@ -86,7 +88,7 @@ function dispatch(operation:()=>Game,deferObserverRefresh=false):boolean {
     if(selectedUnit&&!view.ownUnits.some(u=>u.id===selectedUnit))selectedUnit=null;
     refresh();
     const result=view.events.filter(e=>e.id>=before&&e.kind==='combat').at(-1);
-    if(result)uiMessage(result.message);
+    if(result)uiMessage(readableReport(result.message,[...view.ownUnits,...view.enemies],game.cities));
     void saveLocally(game).catch(()=>uiMessage('Local save unavailable; use Export JSON.'));
     return true;
   } catch(error) {uiMessage(error instanceof Error?error.message:String(error));return false;}
@@ -237,7 +239,7 @@ function tapTile(pos:Coord):void {
   }
   const city=view.ownCities.find(c=>c.position.x===pos.x&&c.position.y===pos.y);
   if(city){selectedCity=city.id;selectedUnit=null;refresh();return;}
-  if(cell?.city){selectedCity=null;selectedUnit=null;uiMessage(`City ${cell.city.id} · ${cell.city.owner??'neutral'} (read-only)`);refresh();return;}
+  if(cell?.city){selectedCity=null;selectedUnit=null;uiMessage(`${cityName(cell.city.id)} · ${cell.city.owner??'neutral'} (read-only)`);refresh();return;}
   selectedCity=null;selectedUnit=null;refresh();
 }
 function knownUnitName(id:string):string {
@@ -247,7 +249,7 @@ function knownUnitName(id:string):string {
 function text(value:unknown):string{return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]!));}
 function selectedUnitBlock(unit:Unit):string {
   const allowance=movementAllowance(unit),stats=STATS[unit.kind],possible=capacity(unit);
-  return `<div class="selection-title">${text(unitName(unit))}</div><div class="subtle">${text(stats.name)} · #${text(unit.id)}</div>
+  return `<div class="selection-title">${text(unitName(unit))}</div><div class="subtle">${text(stats.name)}</div>
   <div class="subtle">${unit.position.x}, ${unit.position.y} · ${unit.order.kind==='sentry'?'Sentry':unit.order.kind==='move-to'?`Moving to ${unit.order.destination.x}, ${unit.order.destination.y}`:unit.order.kind==='go-direction'?`Continuing ${unit.order.direction.x},${unit.order.direction.y}`:unit.order.kind==='patrol'?`Patrolling ${unit.order.from.x},${unit.order.from.y} ↔ ${unit.order.to.x},${unit.order.to.y}`:unit.order.kind==='load-ship'?'Waiting to load cargo':unit.order.kind==='go-home'?'Returning home':unit.order.kind==='escort'?`Escorting ${text(knownUnitName(unit.order.targetId))}`:'Awaiting orders'}</div>
   <div class="data"><div class="datum"><small>Movement</small><strong>${Math.max(0,allowance-unit.spent)} / ${allowance}</strong></div>
   <div class="datum"><small>Damage</small><strong>${unit.damage} / ${stats.hitPoints}</strong></div>
@@ -263,7 +265,7 @@ function selectedCityBlock(city:City):string {
   const coastal=isCoastal(game,city.position);
   const choices=UNIT_TYPES.filter(kind=>coastal||STATS[kind].domain!=='sea');
   const turns=city.production?requiredProductionTurns(city.production,city.firstCycle):null;
-  return `<div class="selection-title">City ${text(city.id)}</div><div class="subtle">${coastal?'Coastal port':'Inland'} · ${city.position.x}, ${city.position.y}</div>
+  return `<div class="selection-title">${text(cityName(city.id))}</div><div class="subtle">${coastal?'Coastal port':'Inland'} · ${city.position.x}, ${city.position.y}</div>
   <label class="subtle" for="productionSelect">Production</label>
   <select id="productionSelect"><option value="">Choose a unit…</option>${choices.map(kind=>`<option value="${kind}" ${city.production===kind?'selected':''}>${STATS[kind].name} · ${city.firstCycle?STATS[kind].first:STATS[kind].repeat} turns</option>`).join('')}</select>
   <div class="data"><div class="datum"><small>Factory progress</small><strong>${city.progress} / ${turns??'—'}</strong></div>
@@ -273,7 +275,7 @@ function selectedCityBlock(city:City):string {
 function spectatorUnitBlock(unit:Unit):string {
   const stats=STATS[unit.kind];
   const cargo=view.ownUnits.filter(u=>u.aboard===unit.id);
-  return `<div class="selection-title">${text(unitName(unit))}</div><div class="subtle">${text(stats.name)} · #${text(unit.id)}</div>
+  return `<div class="selection-title">${text(unitName(unit))}</div><div class="subtle">${text(stats.name)}</div>
     <div class="subtle">${text(unit.owner)} · ${unit.position.x}, ${unit.position.y}</div>
     <div class="data"><div class="datum"><small>Movement remaining</small><strong>${Math.max(0,movementAllowance(unit)-unit.spent)}</strong></div>
     <div class="datum"><small>Damage</small><strong>${unit.damage} / ${stats.hitPoints}</strong></div>
@@ -283,7 +285,7 @@ function spectatorUnitBlock(unit:Unit):string {
 }
 function spectatorCityBlock(city:City):string {
   const turns=city.production?requiredProductionTurns(city.production,city.firstCycle):null;
-  return `<div class="selection-title">City ${text(city.id)}</div>
+  return `<div class="selection-title">${text(cityName(city.id))}</div>
     <div class="subtle">${text(city.owner??'Neutral')} · ${city.position.x}, ${city.position.y}</div>
     <div class="data"><div class="datum"><small>Production</small><strong>${text(city.production??'None')}</strong></div>
     <div class="datum"><small>Progress</small><strong>${city.progress} / ${turns??'—'}</strong></div></div>
@@ -314,7 +316,7 @@ function refresh():void {
   else if(game.scenario==='ai-vs-ai'&&spectatorContact){
     const enemy=view.enemies.find(u=>u.id===spectatorContact&&!u.stale);
     inspector.innerHTML=enemy?
-      `<div class="selection-title">${text(unitName(enemy))}</div><div class="subtle">${text(STATS[enemy.kind].name)} · #${text(enemy.id)}</div>
+      `<div class="selection-title">${text(unitName(enemy))}</div><div class="subtle">${text(STATS[enemy.kind].name)}</div>
       <div class="subtle">${text(enemy.owner)} · ${enemy.position.x}, ${enemy.position.y}</div>
       <p class="stat-note">Visible enemy contact. Additional details are not available to this faction.</p>`:
       '<p>Enemy contact no longer visible.</p>';
@@ -322,7 +324,7 @@ function refresh():void {
   else if(game.scenario==='ai-vs-ai'&&spectatorCity){
     const intel=view.cells.find(c=>c.city?.id===spectatorCity)?.city;
     inspector.innerHTML=intel?
-      `<div class="selection-title">City ${text(intel.id)}</div>
+      `<div class="selection-title">${text(cityName(intel.id))}</div>
       <div class="subtle">Known owner: ${text(intel.owner??'Neutral')}</div>
       <p class="stat-note">Remembered city intelligence. Production is not visible.</p>`:
       '<p>City intelligence unavailable.</p>';
@@ -363,7 +365,15 @@ function refresh():void {
     const target=document.getElementById(button);
     if(target&&unit)target.addEventListener('click',()=>dispatch(()=>setOrder(game,unit.id,{kind})));
   }
-  el('events').innerHTML=[...view.events].reverse().slice(0,8).map(e=>`<div class="report"><span>ROUND ${e.round} / ${e.kind.toUpperCase()}</span>${text(e.message)}</div>`).join('')||'<p>No reports.</p>';
+  el('events').innerHTML=[...view.events].reverse().slice(0,8).map(e=>`<div class="report"><span>ROUND ${e.round} / ${e.kind.toUpperCase()}</span>${text(readableReport(e.message,[...view.ownUnits,...view.enemies],Object.values(view.cells.flatMap(c=>c.city?[c.city]:[]))))}</div>`).join('')||'<p>No reports.</p>';
+  const outcome=gameOutcome(game),finished=outcome.state==='finished';
+  el('gameResult').hidden=!finished;
+  if(finished){
+    el('gameResultTitle').textContent=outcome.winner===null?'Draw':game.scenario==='ai-vs-ai'?`${outcome.winner.toUpperCase()} wins`:outcome.winner==='blue'?'You won':'You lost';
+    el('gameResultDetail').textContent='The other factions have no cities or surviving units. Inspect the final map, export this game, or start a new one.';
+  }
+  for(const id of ['autoPlay','advanceRounds','nextRound']) (el(id) as HTMLButtonElement).disabled=finished;
+  if(finished)inspector.querySelectorAll<HTMLButtonElement|HTMLSelectElement>('button,select').forEach(control=>{if(!control.classList.contains('cargoButton'))control.disabled=true;});
   paint();
 }
 function pinchPoints():{x:number;y:number;distance:number}|null {
@@ -489,6 +499,8 @@ el('autoPlay').addEventListener('click',()=>{
   startRoundPlayback(true);
 });
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pausePlayback();});
+el('resultNewGame').addEventListener('click',()=>startScenario(game.scenario==='ai-vs-ai'?'ai-vs-ai':'close-quarters'));
+el('resultExport').addEventListener('click',()=>el('exportSave').click());
 new ResizeObserver(resize).observe(canvas);
 async function boot():Promise<void>{
   try{const saved=await loadLocal();if(saved?.active==='blue')game=saved;}catch{uiMessage('Could not load local autosave; use Import JSON if needed.');}

@@ -18,7 +18,7 @@ test('Inspection and cargo controls render stable names while retaining type and
       const rendered=vm.runInContext(`${block}(unit)`,context);
       assert.ok(rendered.includes(engine.unitName(unit)));
       assert.ok(rendered.includes(engine.STATS[unit.kind].name));
-      assert.ok(rendered.includes(`#${unit.id}`));
+      assert.ok(!rendered.includes(`#${unit.id}`));
     }
   }
   const ship=view.ownUnits.find(u=>u.kind==='transport'),cargo=view.ownUnits.find(u=>u.kind==='army');
