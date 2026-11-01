@@ -414,7 +414,7 @@ function beginTurn(g:Game):void {
       city.progress=0; city.firstCycle=false;
       const unit=newUnit(g,g.active,kind,city.position);
       g.units.push(unit);
-      log(g,g.active,'production',`${city.id} completed ${STATS[kind].name} (${unitLabel(unit)}).`);
+      log(g,g.active,'production',`${city.id} completed ${STATS[kind].name}: ${unitLabel(unit)}.`);
     }
   }
   // A ship on Load Ship continues accepting friendly adjacent units at each turn

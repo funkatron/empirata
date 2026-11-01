@@ -24,12 +24,14 @@ export function gameOutcome(game:Game):GameOutcome {
 /** Sanitize reports using only the supplied player view's known identities. */
 export function readableReport(message:string,units:ReadonlyArray<{id:string}>,cities:ReadonlyArray<{id:string}>):string {
   const ids=new Set(units.map(u=>u.id));
-  let result=message.replace(/(^|[^\w-])([\w-]+) \(/g,(all,prefix,id)=>ids.has(id)?prefix+'(':all);
+  // Unwrap legacy production first so its type does not consume the unit label.
+  let result=message.replace(/(completed (?:Army|Fighter|Destroyer|Transport|Submarine|Cruiser|Carrier|Battleship)) \((.+)\)\.$/,'$1: $2.');
+  // Strip the diagnostic wrapper, retaining parentheses inside a naval name.
+  result=result.replace(/(^|[^\w-])([\w-]+) \(((?:[^()]|\([^()]*\))*)\)/g,
+    (all,prefix,id,name)=>ids.has(id)||/^u\d+$/.test(id)?prefix+name:all);
   for(const city of [...cities].sort((a,b)=>b.id.length-a.id.length)){
     const escaped=city.id.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
     result=result.replace(new RegExp(`(?<![\\w-])${escaped}(?![\\w-])`,'g'),()=>cityName(city.id));
   }
-  // Historical reports may mention units that have since been destroyed.
-  result=result.replace(/\bu\d+ \(/g,'(');
   return result;
 }
