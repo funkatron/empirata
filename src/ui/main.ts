@@ -1,3 +1,4 @@
+import {endgameModal} from './endgame.js';
 import {advanceLabRound,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,
   moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
   STATS,UNIT_TYPES,isCoastal,unitName,cityName,gameOutcome,readableReport} from '../engine/index.js';
@@ -8,6 +9,7 @@ const canvas=el('map') as HTMLCanvasElement;
 const context=canvas.getContext('2d');
 if(!context)throw new Error('Canvas 2D is unavailable.');
 const ctx=context;
+const resultModal=endgameModal(el('endgameDialog') as HTMLDialogElement,el('endgameTitle'),el('endgameDetail'),el('endgameInspect') as HTMLButtonElement,canvas);
 let game:Game=makeCloseQuartersLab();
 let observer:'blue'|'red'='blue';
 let spectatorMode:'alternate'|'blue'|'red'='alternate';
@@ -370,8 +372,9 @@ function refresh():void {
   el('gameResult').hidden=!finished;
   if(finished){
     el('gameResultTitle').textContent=outcome.winner===null?'Draw':game.scenario==='ai-vs-ai'?`${outcome.winner.toUpperCase()} wins`:outcome.winner==='blue'?'You won':'You lost';
-    el('gameResultDetail').textContent='The other factions have no cities or surviving units. Inspect the final map, export this game, or start a new one.';
+    el('gameResultDetail').textContent=outcome.winner===null?'No faction has any cities or surviving units.':'Only the winning faction has cities or surviving units.';
   }
+  resultModal.update(finished,el('gameResultTitle').textContent??'Game over',`${el('gameResultDetail').textContent} Finished in round ${game.round}. Inspect the final map, export this game, or start a new one.`);
   for(const id of ['autoPlay','advanceRounds','nextRound']) (el(id) as HTMLButtonElement).disabled=finished;
   if(finished)inspector.querySelectorAll<HTMLButtonElement|HTMLSelectElement>('button,select').forEach(control=>{if(!control.classList.contains('cargoButton'))control.disabled=true;});
   paint();
@@ -434,7 +437,7 @@ canvas.addEventListener('pointercancel',ev=>finishPointer(ev,true));
 el('fitWorld').addEventListener('click',fitWorld);
 canvas.addEventListener('wheel',ev=>{ev.preventDefault();zoom(ev.deltaY<0?2:-2);},{passive:false});
 document.addEventListener('keydown',ev=>{
-  if(ev.ctrlKey||ev.metaKey||ev.altKey)return;
+  if((el('endgameDialog') as HTMLDialogElement).open||ev.ctrlKey||ev.metaKey||ev.altKey)return;
   const target=ev.target as HTMLElement;
   if(target.matches('input,textarea,select,button,[contenteditable="true"]'))return;
   const moves:Record<string,Coord>={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},
@@ -458,12 +461,12 @@ el('saveFile').addEventListener('change',async()=>{
   const input=el('saveFile') as HTMLInputElement,file=input.files?.[0];if(!file)return;
   pausePlayback();
   try{const loaded=importSave(await file.text());if(loaded.active!=='blue')throw new Error('This lab UI only supports saves during the blue faction turn.');
-    choosingDestination=false;game=loaded;selectedUnit=null;selectedCity=null;refresh();void saveLocally(game);uiMessage('Saved game imported.');}
+    resultModal.reset();choosingDestination=false;game=loaded;selectedUnit=null;selectedCity=null;refresh();void saveLocally(game);uiMessage('Saved game imported.');}
   catch(error){uiMessage(error instanceof Error?error.message:'Save could not be loaded.');}finally{input.value='';}
 });
 function startScenario(kind:'close-quarters'|'classic-lab'|'ai-invasion'|'ai-vs-ai'|'ai-skirmish'):void{
   if(!window.confirm('Start a new test scenario? This will replace the current local autosave. Export JSON first if you want to keep it.'))return;
-  pausePlayback();observer='blue';spectatorMode='alternate';choosingDestination=false;game=kind==='ai-skirmish'?makeAiVsAiSkirmishLab():kind==='ai-vs-ai'?makeAiVsAiLab():kind==='ai-invasion'?makeAiInvasionLab():kind==='close-quarters'?makeCloseQuartersLab():makeRulesLab();
+  pausePlayback();resultModal.reset();observer='blue';spectatorMode='alternate';choosingDestination=false;game=kind==='ai-skirmish'?makeAiVsAiSkirmishLab():kind==='ai-vs-ai'?makeAiVsAiLab():kind==='ai-invasion'?makeAiInvasionLab():kind==='close-quarters'?makeCloseQuartersLab():makeRulesLab();
   selectedUnit=kind==='ai-invasion'||kind==='ai-vs-ai'||kind==='ai-skirmish'?null:'u1';selectedCity=null;refresh();focus(kind==='ai-invasion'?{x:76,y:29}:{x:9,y:25});
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; export JSON.'));
   uiMessage(game.scenario==='ai-vs-ai'?'Computer vs computer ready. Choose rounds per advance, then use Play or Advance.':kind==='ai-invasion'?'AI Invasion ready: press Next round to watch the Red landing operation.':kind==='close-quarters'?'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.':'Classic rules lab reset.');
@@ -500,6 +503,9 @@ el('autoPlay').addEventListener('click',()=>{
 });
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pausePlayback();});
 el('resultNewGame').addEventListener('click',()=>startScenario(game.scenario==='ai-vs-ai'?'ai-vs-ai':'close-quarters'));
+el('resultReview').addEventListener('click',()=>resultModal.show());
+el('endgameExport').addEventListener('click',()=>el('exportSave').click());
+el('endgameNewGame').addEventListener('click',()=>el('resultNewGame').click());
 el('resultExport').addEventListener('click',()=>el('exportSave').click());
 new ResizeObserver(resize).observe(canvas);
 async function boot():Promise<void>{
