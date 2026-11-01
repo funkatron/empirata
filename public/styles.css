@@ -26,3 +26,11 @@
 
 /* Game menu: accessible from the top bar on desktop and iPad. */
 .game-menu{position:relative;z-index:20;flex:none}.game-menu>summary{list-style:none;cursor:pointer;border:1px solid #526a77;border-radius:6px;padding:9px 13px;color:#f0dd9b;background:#233643;font-size:13px;font-weight:700}.game-menu>summary::-webkit-details-marker{display:none}.game-menu[open]>summary{background:#34536a}.game-menu-panel{position:absolute;top:calc(100% + 7px);left:0;width:min(300px,calc(100vw - 24px));max-height:min(70dvh,540px);overflow:auto;padding:14px;border:1px solid #557082;border-radius:8px;background:#152733;box-shadow:0 12px 30px #0009;display:grid;gap:7px}.game-menu-panel h2{margin:4px 0;color:#d7bf85;font-size:12px}.game-menu-panel p{font-size:11px;color:#aec0ca;line-height:1.5;margin:0 0 5px}.game-menu-panel button{text-align:left;font-size:12px;padding:10px}.game-menu-panel hr{width:100%;border:0;border-top:1px solid #3a5260;margin:6px 0}.spectator[hidden],.ai-spectator[hidden]{display:none}.spectator .ai-spectator{margin:0;border:0;padding:0;background:transparent}.spectator .actions button{flex:1}.sidebar .side-content{display:flex;flex-direction:column}.sidebar .events{min-height:100px}@media(max-width:880px){.sidebar{max-height:42dvh}.sidebar .side-content{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.sidebar .spectator{grid-column:1/-1}.sidebar .events{grid-column:1/-1}.game-menu>summary{padding:8px 10px}}@media(max-width:560px){.sidebar .side-content{display:flex}.topbar{gap:8px}.brand{gap:6px}.brand strong{font-size:15px;letter-spacing:.12em}.brand small{display:none}.brand-mark{display:none}.game-menu-panel{left:0}.toolbar .live-label{font-size:10px}}
+
+.endgame-dialog{width:min(480px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:28px;border:1px solid #a8915c;border-radius:12px;background:#172833;color:#e1e9ec;box-shadow:0 24px 80px #0009}
+.endgame-dialog::backdrop{background:#061019cc}
+.endgame-eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#d7bf85;margin:0 0 14px}
+.endgame-dialog h1{font:700 32px Georgia,serif;color:#f2e5ba;margin:0 0 16px}
+.endgame-dialog #endgameDetail{font-size:13px;line-height:1.7;color:#aec0ca}
+.endgame-actions{display:grid;gap:10px;margin-top:24px}
+.endgame-actions button{min-height:44px;white-space:normal}

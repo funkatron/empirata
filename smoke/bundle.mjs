@@ -69,3 +69,41 @@ test('Touch map supports pinch gestures without dispatching accidental taps',()=
   assert.match(html,/if\s*\(pinch\s*\|\|\s*suppressTap\)/);
   assert.match(html,/id="fitWorld"/);
 });
+
+test('Endgame modal opens once, stays dismissed during inspection, and resets on load',async()=>{
+  const {endgameModal}=await import('../dist/ui/endgame.js');
+  class Control extends EventTarget{
+    textContent='';focusCount=0;
+    focus(){this.focusCount++;}
+    click(){this.dispatchEvent(new Event('click'));}
+  }
+  class Dialog extends Control{
+    open=false;opens=0;
+    showModal(){this.open=true;this.opens++;}
+    close(){this.open=false;this.dispatchEvent(new Event('close'));}
+  }
+  const dialog=new Dialog(),title=new Control(),detail=new Control(),inspect=new Control(),map=new Control();
+  const modal=endgameModal(dialog,title,detail,inspect,map);
+  modal.update(false,'','');assert.equal(dialog.open,false);
+  for(const heading of ['You won','You lost','RED wins','Draw']){
+    modal.reset();modal.update(true,heading,'Finished in round 12.');
+    assert.equal(dialog.open,true);assert.equal(title.textContent,heading);assert.equal(detail.textContent,'Finished in round 12.');
+    assert.ok(inspect.focusCount>0);
+    inspect.click();assert.equal(dialog.open,false);assert.ok(map.focusCount>0);
+    const opens=dialog.opens;modal.update(true,heading,'Finished in round 12.');
+    assert.equal(dialog.opens,opens,'Inspection refresh must not reopen the modal');
+    modal.show();assert.equal(dialog.open,true,'Result can be reopened');
+    dialog.close(); // Native Escape dismissal also uses the close event.
+    modal.update(true,heading,'Finished in round 12.');assert.equal(dialog.open,false);
+  }
+  modal.reset();modal.update(true,'BLUE wins','Imported finished game');assert.equal(dialog.open,true);
+  modal.update(false,'','');assert.equal(dialog.open,false);
+});
+
+test('Endgame dialog has accessible labels and reuses save and restart actions',()=>{
+  assert.match(html,/<dialog id="endgameDialog"[^>]*aria-labelledby="endgameTitle"[^>]*aria-describedby="endgameDetail"/);
+  for(const id of ['endgameInspect','endgameExport','endgameNewGame','resultReview'])assert.ok(html.includes(`id="${id}"`));
+  const source=readFileSync(new URL('../dist/ui/main.js',import.meta.url),'utf8');
+  assert.match(source,/el\('endgameExport'\).*el\('exportSave'\)\.click\(\)/);
+  assert.match(source,/el\('endgameNewGame'\).*el\('resultNewGame'\)\.click\(\)/);
+});

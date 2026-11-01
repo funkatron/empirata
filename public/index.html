@@ -18,10 +18,21 @@
     </section>
     <aside class="sidebar" aria-label="Unit and city controls"><div class="side-content">
       <section class="spectator card" id="spectatorCard" hidden><h2>Computer vs computer</h2><div class="ai-spectator" id="aiSpectator" hidden><label for="spectatorSide">Observe</label><select id="spectatorSide" aria-label="Spectator viewpoint"><option value="alternate">Alternate each round</option><option value="blue">Blue intelligence</option><option value="red">Red intelligence</option></select><p id="spectatorNow" aria-live="off">Currently viewing Blue</p><div class="spectator-scores" aria-label="Both player totals"><div><strong>Blue</strong><span id="spectatorBlue">—</span></div><div><strong>Red</strong><span id="spectatorRed">—</span></div></div><label for="roundSpeed">Rounds per advance</label><select id="roundSpeed"><option value="1">1 round</option><option value="10">10 rounds</option><option value="50">50 rounds</option><option value="100">100 rounds</option></select><div class="actions"><button id="autoPlay" type="button">▶ Play</button><button id="advanceRounds" type="button">Advance 1 round</button></div><div id="roundProgress" class="round-progress" role="status" hidden><span class="round-spinner" aria-hidden="true"></span><span>Advancing rounds… <span id="roundProgressText" aria-live="off"></span></span></div><p>Play and Advance use this setting. Next round advances one round.</p><p>Each viewpoint retains its own fog of war. Both players' totals remain visible.</p></div></section>
-      <section class="card" id="gameResult" role="status" hidden><h2 id="gameResultTitle">Game over</h2><p id="gameResultDetail"></p><div class="actions"><button id="resultExport" type="button">Export final game</button><button id="resultNewGame" type="button">New game</button></div></section><section class="status card"><h2>Overview</h2><div class="statrow"><span>Controlled cities</span><strong id="cityCount">1</strong></div><div class="statrow"><span>Active units</span><strong id="unitCount">2</strong></div><div class="statrow"><span>Visible enemies</span><strong id="threatCount">0</strong></div><div class="statrow"><span>Current view</span><strong id="viewFaction">Blue</strong></div></section>
+      <section class="card" id="gameResult" role="status" hidden><h2 id="gameResultTitle">Game over</h2><p id="gameResultDetail"></p><div class="actions"><button id="resultReview" type="button">View result</button><button id="resultExport" type="button">Export final game</button><button id="resultNewGame" type="button">New game</button></div></section><section class="status card"><h2>Overview</h2><div class="statrow"><span>Controlled cities</span><strong id="cityCount">1</strong></div><div class="statrow"><span>Active units</span><strong id="unitCount">2</strong></div><div class="statrow"><span>Visible enemies</span><strong id="threatCount">0</strong></div><div class="statrow"><span>Current view</span><strong id="viewFaction">Blue</strong></div></section>
       <section class="inspector card"><h2>Selection &amp; orders</h2><div id="inspector" aria-live="polite"></div></section>
       <section class="events card"><h2>Reports</h2><div id="events"></div></section>
     </div></aside>
   </main>
   <footer><span id="toast" role="status" aria-live="polite">Movement, combat, and capture are available. Red has a basic opponent AI; troop loading remains under development.</span><span>INTERSTEL 2.05 RULES TARGET</span></footer>
-</div><script type="module" src="./ui/main.js"></script></body></html>
+</div>
+<dialog id="endgameDialog" class="endgame-dialog" aria-labelledby="endgameTitle" aria-describedby="endgameDetail">
+  <p class="endgame-eyebrow">Campaign complete</p>
+  <h1 id="endgameTitle">Game over</h1>
+  <p id="endgameDetail"></p>
+  <div class="endgame-actions">
+    <button id="endgameInspect" class="primary" type="button" autofocus>Inspect final map</button>
+    <button id="endgameExport" type="button">Export final game</button>
+    <button id="endgameNewGame" type="button">New game</button>
+  </div>
+</dialog>
+<script type="module" src="./ui/main.js"></script></body></html>
