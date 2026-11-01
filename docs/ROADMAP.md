@@ -4,6 +4,13 @@ This is the working roadmap for the browser-based Empire rules laboratory. Items
 
 Strategic priorities: [capture and sustain cities](AI_CAPTURE_STRATEGY.md).
 
+## Strategy/tactics baseline and plan (2026-10-31)
+
+The [42-campaign study](evaluation/strategy-baseline/FINDINGS.md) records 8,150 rounds across matched sparse/dense worlds, swapped factions and a nearby-rival cohort. All saves and unit-accounting checks validate; time-limited games remain censored. The [overall strategy and tactics plan](STRATEGY_AND_TACTICS_PLAN.md) uses that evidence to prioritize faction-neutral control, failure diagnosis, access-aware allocation, concentrated hostile operations and sustained capture.
+
+PR #43's default harbor setup and PR #44's shared controller are separate foundations. The generated baseline is unaffected by #43; #44 has limited early decision-preservation checks, not a demonstrated campaign-strength improvement. No strategic tuning is implemented by the study. Preserve the raw baseline and evaluate later policies on fixed horizons and holdout maps.
+
+
 Detailed execution design: [Technical implementation plan](TECHNICAL_IMPLEMENTATION_PLAN.md).
 
 ## Manual research follow-up (2026-10-30)
