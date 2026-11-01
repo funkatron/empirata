@@ -746,7 +746,7 @@ export function planAiLandingSquares(view:ReturnType<typeof getPlayerView>,ship:
   const objectives:Coord[]=[];
   for(let i=0;i<view.cells.length;i++){
     const city=view.cells[i]?.city;
-    if(city&&city.owner!=='red'&&!(ship.aiAvoidObjective?.id===city.id&&ship.aiAvoidObjective.until>view.round)&&(!ship.aiObjective||city.id===ship.aiObjective))
+    if(city&&city.owner!==view.active&&!(ship.aiAvoidObjective?.id===city.id&&ship.aiAvoidObjective.until>view.round)&&(!ship.aiObjective||city.id===ship.aiObjective))
       objectives.push({x:i%view.width,y:Math.floor(i/view.width)});
   }
   if(!objectives.length)return [];
@@ -1201,7 +1201,7 @@ export function planAiFighterStep(view:ReturnType<typeof getPlayerView>,fighter:
   return {x:next%view.width,y:Math.floor(next/view.width)};
 }
 
-export function playAiOpponent(game:Game,faction:'blue'|faction):Game {
+export function playAiOpponent(game:Game,faction:FactionId):Game {
   if(game.active!==faction)throw new Error('AI must act during its faction turn.');
   let g=game;
   const defenders=new Map<string,string>();
@@ -1359,9 +1359,9 @@ export function playAiOpponent(game:Game,faction:'blue'|faction):Game {
     const next=planAiFighterStep(view,fighter);if(!next)continue;
     try{g=launchFighter(g,id,next);}catch{/* Hidden or changed contacts interrupt launch. */}
   }
-  const redUnitIds=g.units.filter(u=>u.owner===faction&&!u.aboard).map(u=>u.id);
+  const activeUnitIds=g.units.filter(u=>u.owner===faction&&!u.aboard).map(u=>u.id);
   const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
-  for(const id of redUnitIds){
+  for(const id of activeUnitIds){
     for(let step=0;step<5;step++){
       const view=getPlayerView(g,faction);
       const unit=view.ownUnits.find(u=>u.id===id);
