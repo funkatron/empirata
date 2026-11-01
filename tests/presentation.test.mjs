@@ -38,3 +38,11 @@ test('Name wrappers disappear while hull designations, capacities and coordinate
  assert.equal(readableReport('c-blue completed Army: u1 (Blue 1st Infantry Division).',known,cities),'Port Victoria completed Army: Blue 1st Infantry Division.');
  assert.equal(readableReport('Neutral city (read-only).',[],[]),'Neutral city (read-only).');
 });
+
+test('Legacy infantry and fighter production reports unwrap before unit identification',()=>{
+ for(const [kind,name] of [['Army','Blue 1st Infantry Division'],['Fighter','Blue 1st Fighter Squadron “Eagles”']]){
+  for(const units of [[],[{id:'u1'}]]){
+   assert.equal(readableReport(`c-blue completed ${kind} (u1 (${name})).`,units,[{id:'c-blue'}]),`Port Victoria completed ${kind}: ${name}.`);
+  }
+ }
+});
