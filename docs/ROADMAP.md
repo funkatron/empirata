@@ -178,6 +178,48 @@ mode. This is a performance hypothesis, not a measured diagnosis.
 - [ ] Confirm responsive progress and pause on iPad.
 - [ ] Document measured benefit and remaining computation costs.
 
+## Strategic/tactical AI program: faction neutrality and campaign evaluation (2026-10-31)
+
+**Architectural rule:** one strategy implementation for every computer-controlled
+faction. Ownership, private intelligence, current turn and legal actions must be
+supplied by the active faction, not encoded as Red/Blue special cases. Keep
+human-vs-computer and computer-vs-computer on the same AI path; allow faction
+differences only from actual game state, map position and seeded randomness.
+
+**Integrated work sequence**
+
+1. Replace the Red-only core strategy and Blue faction-swapping adapter with
+   a single faction-parameterized planner. Audit production, reconnaissance,
+   land/sea/air movement, logistics, combat, capture and victory handling for
+   remaining faction assumptions, including helpers outside the turn driver.
+2. Test **equivariance under faction relabeling**: swap players, unit/city
+   ownership and private knowledge in the fixture; the planned actions and
+   resulting state must swap correspondingly. Preserve strict fog-of-war
+   isolation, legal moves, replay determinism and save/resume.
+3. Evaluate the clean opening on matched seeds, alternative layouts, mirrored
+   starting positions and swapped starting sides. Measure win/loss/draw or
+   unfinished results, first reconnaissance, unit production, transport loads,
+   landings, captures, losses, stalls and turn/compute budgets. Repeated runs
+   of a fixed seed are reproducibility tests, **not independent trials**.
+4. Use observed bottlenecks to prioritize coordinated landings, defense,
+   target selection, navy/air roles and attrition recovery. Measure the effects
+   across diverse maps rather than optimizing one laboratory encounter.
+
+**Completion checks**
+
+- [ ] One shared AI strategy path, with no Red/Blue hardcoded assumptions in
+  decision helpers; side-specific public wrappers may remain for compatibility.
+- [ ] Side-swap property tests and knowledge-isolation regressions pass.
+- [ ] Multi-seed, side-swapped campaign reports distinguish player-order, map,
+  RNG and strategy advantages.
+- [ ] Gameplay changes pass rules, tactical fixture and broader campaign tests,
+  with an independent testing/wargaming review.
+
+Tracked separately but under this program: PR #43 equalizes clean-campaign
+harbors; PR #44 removes the faction-swapping strategy adapter. Validate both
+in CI before merging and assess their outcomes separately before comparing the
+combined behavior.
+
 ## Priority 2 — Computer-versus-computer observability
 
 - Automatic alternating faction viewpoints (implemented in source; preserve fog-of-war separation).
