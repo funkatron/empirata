@@ -25,5 +25,16 @@ test('Reports hide diagnostic identifiers and replace city names without partial
  const g=makeRulesLab(),u=g.units[0];
  const result=readableReport(`${unitLabel(u)} landed at c-blue, c1 and c10.`,[u],[{id:'c-blue'},{id:'c1'},{id:'c10'}]);
  assert.ok(!result.includes('u1'));assert.ok(!result.includes('c-blue'));assert.ok(result.includes(cityName('c10')));
- assert.equal(readableReport('u99 (Blue 99th Infantry Division) lost.',[],[]),'(Blue 99th Infantry Division) lost.');
+ assert.equal(readableReport('u99 (Blue 99th Infantry Division) lost.',[],[]),'Blue 99th Infantry Division lost.');
+});
+
+test('Name wrappers disappear while hull designations, capacities and coordinates remain',()=>{
+ const cities=[{id:'c-blue'}];
+ const known=[{id:'u1'},{id:'ship'}];
+ assert.equal(readableReport('u1 (Blue 1st Infantry Division) landed at c-blue.',known,cities),'Blue 1st Infantry Division landed at Port Victoria.');
+ assert.equal(readableReport('ship (BNS Fletcher (DD-1)) boarded (1/6).',known,[]),'BNS Fletcher (DD-1) boarded (1/6).');
+ assert.equal(readableReport('u99 (RNS Iowa (BB-99)) lost at (10, 25).',[],[]),'RNS Iowa (BB-99) lost at (10, 25).');
+ assert.equal(readableReport('c-blue completed Destroyer (u1 (BNS Fletcher (DD-1))).',known,cities),'Port Victoria completed Destroyer: BNS Fletcher (DD-1).');
+ assert.equal(readableReport('c-blue completed Army: u1 (Blue 1st Infantry Division).',known,cities),'Port Victoria completed Army: Blue 1st Infantry Division.');
+ assert.equal(readableReport('Neutral city (read-only).',[],[]),'Neutral city (read-only).');
 });
