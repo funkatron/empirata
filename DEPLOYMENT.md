@@ -15,3 +15,9 @@ No local server is needed. The workflow builds and publishes changes whenever `m
 The accompanying `empirata-v0.2-single-file.html` is self-contained. In an empty repo, upload it as `index.html` through **Add file → Upload files**, commit, then enable Pages at **Settings → Pages → Deploy from a branch → main → /(root)**. This path requires no GitHub Actions or Node.js setup. Don't use both publishing methods for the same repository.
 
 **Note:** The static app's test scenarios are incomplete and must be clearly labeled as such.
+
+## Verification scope
+
+CI selects verification from the complete base-to-tested-commit diff for PRs and main pushes. Known display-only changes (UI, public assets, unit naming, selected naming/smoke tests, and documentation) run TypeScript, focused naming/result tests, standalone build, and all bundle/observer smoke checks. The same `verify` job gates deployment in both modes.
+
+Engine files, including `presentation.ts` because it contains victory logic, dependency files, workflows, build scripts, unknown paths, and mixed changes require the full engine suite and coverage gates. Manual runs, empty diffs, missing history, and initial pushes also default to full. Renames include both source and destination paths. The job summary records which mode ran. Docs-only main pushes retain the existing workflow exclusion.

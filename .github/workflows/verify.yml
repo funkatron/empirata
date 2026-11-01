@@ -22,6 +22,8 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
@@ -29,8 +31,19 @@ jobs:
         run: node -e "if (process.versions.node.split('.')[0] !== '24') process.exit(1)"
       - name: Install test dependencies
         run: npm install --no-audit --no-fund
+      - name: Check verification policy
+        run: node --test tests/ci-scope.test.mjs
+      - name: Select verification scope
+        id: scope
+        run: node scripts/ci-scope.mjs
       - name: Test engine and coverage
+        if: steps.scope.outputs.scope != 'focused'
         run: npm test
+      - name: Build and test display changes
+        if: steps.scope.outputs.scope == 'focused'
+        run: |
+          npm run build
+          node --test tests/unit-names.test.mjs tests/presentation.test.mjs
       - name: Build standalone browser application
         run: node scripts/build-single-file.cjs
       - name: Smoke test the generated browser bundle
