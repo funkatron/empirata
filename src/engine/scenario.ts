@@ -83,6 +83,13 @@ export function makeAiVsAiSkirmishLab():Game {
 export function makeAiVsAiLab():Game {
   const g=makeRulesLab();
   g.scenario='ai-vs-ai';g.units=[];g.nextId=1;g.events=[];g.nextEventId=1;
+  // Mirror the home ports relative to their island centers (Blue: 24 - 8,
+  // Red: 92 - 76). Give Red a short eastern harbor rather than the long
+  // artificial channel in the general rules-lab fixture.
+  const redHome=g.cities.find(city=>city.id==='c-red')!;
+  redHome.position={x:92,y:36};
+  for(let x=81;x<=92;x++)g.tiles[36*g.width+x]='land';
+  for(let x=93;x<=94;x++)g.tiles[36*g.width+x]='sea';
   for(const faction of ['blue','red','green'] as const)g.knowledge[faction]=emptyKnowledge(g);
   updateAllKnowledge(g);
   g.events.push({id:g.nextEventId++,round:1,recipient:null,kind:'system',
