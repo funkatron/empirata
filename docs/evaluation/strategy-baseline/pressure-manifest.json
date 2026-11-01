@@ -1,0 +1,70 @@
+{
+  "sourceSha": "579784a19403f673298199b326163931d7cc4688",
+  "jobs": [
+    {
+      "id": "continents-83-normal-64-near",
+      "layout": "continents",
+      "seed": 83,
+      "swap": false,
+      "cities": 64,
+      "profile": "near",
+      "rounds": 150,
+      "budgetMs": 180000
+    },
+    {
+      "id": "continents-83-swap-64-near",
+      "layout": "continents",
+      "seed": 83,
+      "swap": true,
+      "cities": 64,
+      "profile": "near",
+      "rounds": 150,
+      "budgetMs": 180000
+    },
+    {
+      "id": "islands-83-normal-64-near",
+      "layout": "islands",
+      "seed": 83,
+      "swap": false,
+      "cities": 64,
+      "profile": "near",
+      "rounds": 150,
+      "budgetMs": 180000
+    },
+    {
+      "id": "islands-83-swap-64-near",
+      "layout": "islands",
+      "seed": 83,
+      "swap": true,
+      "cities": 64,
+      "profile": "near",
+      "rounds": 150,
+      "budgetMs": 180000
+    },
+    {
+      "id": "archipelago-83-normal-64-near",
+      "layout": "archipelago",
+      "seed": 83,
+      "swap": false,
+      "cities": 64,
+      "profile": "near",
+      "rounds": 150,
+      "budgetMs": 180000
+    },
+    {
+      "id": "archipelago-83-swap-64-near",
+      "layout": "archipelago",
+      "seed": 83,
+      "swap": true,
+      "cities": 64,
+      "profile": "near",
+      "rounds": 150,
+      "budgetMs": 180000
+    }
+  ],
+  "concurrency": 4,
+  "limits": [
+    "12–25-square start distance, favors coastal cities on different land components when available",
+    "Supplementary cohort; do not pool its start profile with distant starts"
+  ]
+}

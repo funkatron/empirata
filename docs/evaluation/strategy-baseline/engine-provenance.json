@@ -1,0 +1,124 @@
+{
+  "sourceSha": "579784a19403f673298199b326163931d7cc4688",
+  "sourceFilesVerifiedAgainstGitHubTree": [
+    {
+      "path": "src/engine/adjudication.ts",
+      "gitBlobSha": "7d48e07862a4b532fc598d591da4ab8a6c1c9915"
+    },
+    {
+      "path": "src/engine/combat.ts",
+      "gitBlobSha": "e8001b8c8662698c1ee8013ccb81dd01ecdf00fb"
+    },
+    {
+      "path": "src/engine/game.ts",
+      "gitBlobSha": "089334ca234498a8b72bb021c2bfd73a935f1dca"
+    },
+    {
+      "path": "src/engine/index.ts",
+      "gitBlobSha": "f86988dcb4ae0cfbc1e2e51c61c2e5844b7b2b00"
+    },
+    {
+      "path": "src/engine/knowledge.ts",
+      "gitBlobSha": "8c01b205e7b8720234ed12efe7c9fd145c9e7990"
+    },
+    {
+      "path": "src/engine/presentation.ts",
+      "gitBlobSha": "ad5c705ece187a526ceaa1799b75b19c86802ede"
+    },
+    {
+      "path": "src/engine/rng.ts",
+      "gitBlobSha": "1da1cf0114af7e24dc28d1ecfc0dd2d7f40571f1"
+    },
+    {
+      "path": "src/engine/save.ts",
+      "gitBlobSha": "7c41893defe963354604e3edc600de63c12a6a11"
+    },
+    {
+      "path": "src/engine/scenario.ts",
+      "gitBlobSha": "80eaa20a25bedf650f0271f053c2681d58d7024e"
+    },
+    {
+      "path": "src/engine/types.ts",
+      "gitBlobSha": "405668f539379436c4cf8c78fc0dd8ff189415ae"
+    },
+    {
+      "path": "src/engine/unit-names.ts",
+      "gitBlobSha": "fca141f0e90a3980cb2b66f053ce3253c9c05ce2"
+    },
+    {
+      "path": "src/engine/units.ts",
+      "gitBlobSha": "bdad0dbda02e7ba89df4b7a3d2a1e8261cde8f29"
+    },
+    {
+      "path": "src/engine/world.ts",
+      "gitBlobSha": "d29d1cf330363f015bcd2990824c990374917266"
+    }
+  ],
+  "compiledFiles": [
+    {
+      "path": "dist/engine/adjudication.js",
+      "sha256": "893e681085591e762821944bde91b31141a1ff5bbfbb7cbd4638bca840bd3106",
+      "observedSha256": "0cdf5f30f3355275394d5e78c66afe0a87660bd2bc1d3529764bdee335df94bf"
+    },
+    {
+      "path": "dist/engine/combat.js",
+      "sha256": "48a977ac7e8df556ffc2bf8c61a4bc6285a4875983a2a4eb2683a9bbdfac7bf7",
+      "observedSha256": "48a977ac7e8df556ffc2bf8c61a4bc6285a4875983a2a4eb2683a9bbdfac7bf7"
+    },
+    {
+      "path": "dist/engine/game.js",
+      "sha256": "23ad174f71689200b8662bc9a13e20f64891c0dbc1b5416279d52b8bfdc9d26f",
+      "observedSha256": "dd0a22401aad3be0f80313811b2897c343da42cbae500a59b06ff7727b494ca7"
+    },
+    {
+      "path": "dist/engine/index.js",
+      "sha256": "14b05011e9d153e609b397210e42aef3a39793a92810b14cea95d3c56db6572e",
+      "observedSha256": "14b05011e9d153e609b397210e42aef3a39793a92810b14cea95d3c56db6572e"
+    },
+    {
+      "path": "dist/engine/knowledge.js",
+      "sha256": "50db0fa1528256a8bf5e6d1cf41a6e4e11dd48c62471d2382da0969113c27bfb",
+      "observedSha256": "50db0fa1528256a8bf5e6d1cf41a6e4e11dd48c62471d2382da0969113c27bfb"
+    },
+    {
+      "path": "dist/engine/presentation.js",
+      "sha256": "f2b2ab42758a30dc99cac69f7903f5c871872cab829daf961ae8d260ecf98fcb",
+      "observedSha256": "f2b2ab42758a30dc99cac69f7903f5c871872cab829daf961ae8d260ecf98fcb"
+    },
+    {
+      "path": "dist/engine/rng.js",
+      "sha256": "168717cb82eaaf5f3e9ad6c648aaaaa7be1808e4af7ff5145c38984589a78315",
+      "observedSha256": "168717cb82eaaf5f3e9ad6c648aaaaa7be1808e4af7ff5145c38984589a78315"
+    },
+    {
+      "path": "dist/engine/save.js",
+      "sha256": "b4ed24a42730f75a166f402fc0d5cd5198ddfa06720542fadc16732a2996e873",
+      "observedSha256": "b4ed24a42730f75a166f402fc0d5cd5198ddfa06720542fadc16732a2996e873"
+    },
+    {
+      "path": "dist/engine/scenario.js",
+      "sha256": "151b205104ad6ad1462e8fb902fd9a53e5d8a1f77a086a20b39f10e4be65d25a",
+      "observedSha256": "151b205104ad6ad1462e8fb902fd9a53e5d8a1f77a086a20b39f10e4be65d25a"
+    },
+    {
+      "path": "dist/engine/types.js",
+      "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+      "observedSha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+    },
+    {
+      "path": "dist/engine/unit-names.js",
+      "sha256": "b8da016fea3f89e3eaf6bb5f3a92de75d1ec3b8693b629ed43f25802ae5abbcf",
+      "observedSha256": "b8da016fea3f89e3eaf6bb5f3a92de75d1ec3b8693b629ed43f25802ae5abbcf"
+    },
+    {
+      "path": "dist/engine/units.js",
+      "sha256": "019f6c5ff0d4a433887902e843a8d324b783228922bc143c37a366f26c81f3e8",
+      "observedSha256": "019f6c5ff0d4a433887902e843a8d324b783228922bc143c37a366f26c81f3e8"
+    },
+    {
+      "path": "dist/engine/world.js",
+      "sha256": "6034954ea3166d0cbb43681110dfcf94c307c8e9be071010d6e41b2968537bf3",
+      "observedSha256": "6034954ea3166d0cbb43681110dfcf94c307c8e9be071010d6e41b2968537bf3"
+    }
+  ]
+}

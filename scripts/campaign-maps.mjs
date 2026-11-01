@@ -1,7 +1,8 @@
 // Evaluation-only terrain. No units, scouting memory, production head start,
 // guaranteed route or adjusted combat result is supplied to either opponent.
 export const layouts=['continents','islands','archipelago'];
-export function makeCampaign(engine,layout,seed,{swap=false}={}){
+export function makeCampaign(engine,layout,seed,{swap=false,cityCount=12,minSpacing=7}={}){
+  if(!Number.isInteger(cityCount)||cityCount<4||cityCount>100||!Number.isInteger(minSpacing)||minSpacing<2)throw new Error('Invalid map parameters');
   if(!layouts.includes(layout))throw new Error('Unknown campaign layout');
   let state=seed>>>0||1;
   const random=()=>{state^=state<<13;state^=state>>>17;state^=state<<5;return (state>>>0)/4294967296;};
@@ -25,8 +26,8 @@ export function makeCampaign(engine,layout,seed,{swap=false}={}){
   const positions=[];
   for(const p of candidates){
     if(layout!=='continents'&&!engine.isCoastal(g,p))continue;
-    if(positions.every(q=>distance(p,q)>=7))positions.push(p);
-    if(positions.length===12)break;
+    if(positions.every(q=>distance(p,q)>=minSpacing))positions.push(p);
+    if(positions.length===cityCount)break;
   }
   if(positions.length<4)throw new Error(`Insufficient cities: ${layout}/${seed}`);
   // Distant starting cities, selected before any simulation, avoid immediate

@@ -1,0 +1,300 @@
+{
+  "runs": 42,
+  "sourceSha": "579784a19403f673298199b326163931d7cc4688",
+  "checks": [
+    {
+      "id": "continents-17-normal-12",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "continents-17-normal-64",
+      "status": "time-limit",
+      "rounds": 179,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "continents-17-swap-12",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "continents-17-swap-64",
+      "status": "time-limit",
+      "rounds": 180,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "continents-83-normal-12",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "continents-83-normal-64",
+      "status": "time-limit",
+      "rounds": 191,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "continents-83-swap-12",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "continents-83-swap-64",
+      "status": "time-limit",
+      "rounds": 190,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "continents-211-normal-12",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "continents-211-normal-64",
+      "status": "time-limit",
+      "rounds": 151,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "continents-211-swap-12",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "continents-211-swap-64",
+      "status": "time-limit",
+      "rounds": 152,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "islands-17-normal-12",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "islands-17-normal-64",
+      "status": "time-limit",
+      "rounds": 251,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "islands-17-swap-12",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "islands-17-swap-64",
+      "status": "time-limit",
+      "rounds": 251,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "islands-83-normal-12",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "islands-83-normal-64",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "islands-83-swap-12",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "islands-83-swap-64",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "islands-211-normal-12",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "islands-211-normal-64",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "islands-211-swap-12",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "islands-211-swap-64",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "archipelago-17-normal-12",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "archipelago-17-normal-64",
+      "status": "time-limit",
+      "rounds": 254,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "archipelago-17-swap-12",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "archipelago-17-swap-64",
+      "status": "time-limit",
+      "rounds": 251,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "archipelago-83-normal-12",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "archipelago-83-normal-64",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "archipelago-83-swap-12",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "archipelago-83-swap-64",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "archipelago-211-normal-12",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "archipelago-211-normal-64",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "archipelago-211-swap-12",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "archipelago-211-swap-64",
+      "status": "round-limit",
+      "rounds": 200,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "continents-83-normal-64-near",
+      "status": "round-limit",
+      "rounds": 150,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "continents-83-swap-64-near",
+      "status": "round-limit",
+      "rounds": 150,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "islands-83-normal-64-near",
+      "status": "round-limit",
+      "rounds": 150,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "islands-83-swap-64-near",
+      "status": "round-limit",
+      "rounds": 150,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "archipelago-83-normal-64-near",
+      "status": "round-limit",
+      "rounds": 150,
+      "saveValid": true,
+      "unitAccounting": true
+    },
+    {
+      "id": "archipelago-83-swap-64-near",
+      "status": "round-limit",
+      "rounds": 150,
+      "saveValid": true,
+      "unitAccounting": true
+    }
+  ]
+}
