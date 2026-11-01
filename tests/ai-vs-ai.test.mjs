@@ -1,9 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  makeAiVsAiSkirmishLab as makeAiVsAiLab,makeCloseQuartersLab,playBlueOpponent,advanceLabRound,
+  makeAiVsAiSkirmishLab as makeAiVsAiLab,makeCloseQuartersLab,playAiOpponent,playRedOpponent,playBlueOpponent,advanceLabRound,
   getPlayerView,exportSave,importSave,updateAllKnowledge
 } from '../dist/engine/index.js';
+
+test('Both factions use the same faction-parameterized AI entry point',()=>{
+ const blue=makeAiVsAiLab();
+ assert.deepEqual(playAiOpponent(blue,'blue'),playBlueOpponent(blue));
+ const red={...makeAiVsAiLab(),active:'red'};
+ assert.deepEqual(playAiOpponent(red,'red'),playRedOpponent(red));
+ assert.throws(()=>playAiOpponent(blue,'red'),/AI must act during its faction turn/);
+});
 
 test('AI versus AI is a separate deterministic lab scenario',()=>{
   const g=makeAiVsAiLab();
