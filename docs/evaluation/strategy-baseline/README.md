@@ -56,3 +56,7 @@ The recorded integration check also compares #43 and corrected #44. To reproduce
 Run `node scripts/diagnose-study-maps.mjs`, `node scripts/validate-study.mjs`, `python scripts/summarize-campaign-study.py` and `python scripts/render-study-report.py` to inspect/rebuild analysis. Readers accept either freshly generated JSON or committed gzip JSON. `dataset-files.json` records compressed and uncompressed hashes; compression uses a fixed timestamp. `engine-provenance.json` verifies every baseline engine source blob against the GitHub tree and records compiled hashes.
 
 The shipped analysis labels hostile-target port departures from pre-round actual ownership, excluding same-round captures as ambiguous. This is evaluation context, not a claim about enemy knowledge available to the AI. Retained hostile captures count distinct faction/city pairs, including recaptures, whose final owner matches that faction; capture events use a different denominator.
+
+## Generated observations and historical interpretation
+
+`FINDINGS.md` is regenerated from the selected `summary.json`: campaign counts, endpoints, checkpoint denominators, event totals and departure-load distributions all follow the supplied observations. It does not assert validation success or reuse baseline-specific conclusions. `BASELINE_INTERPRETATION.md` preserves the historical analysis of the committed 42-run baseline and is never regenerated for another policy. Run `node --test tests/study-report.test.mjs` to verify changed, partial and empty datasets.

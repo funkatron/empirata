@@ -1,11 +1,77 @@
-import json,statistics,pathlib,os
-p=pathlib.Path(os.environ.get('STUDY_OUT','docs/evaluation/strategy-baseline'));s=json.loads((p/'summary.json').read_text());r=s['rows'];base=[x for x in r if x['profile']=='distant'];near=[x for x in r if x['profile']=='near']
-lines=['# Campaign baseline: findings before strategy changes','',f"**42 campaigns · {s['rounds']:,} completed rounds · 84 faction observations.** Source: `579784a19403f673298199b326163931d7cc4688`.",'','The collection is complete, not the games: 32 runs reached their requested horizon and 10 hit the wall-clock limit. None reached elimination. All final saves validate and all unit-production/removal accounting checks pass.','', '## Comparable results at round 100','', 'Every campaign reached round 100. The table uses only the 36 distant-start campaigns. Each row contains 12 faction observations from three seeds and swapped starts; these are paired observations, not 12 independent maps. Medians can therefore be fractional.','', '| Terrain | Cities in world | Median owned cities | Median armies ashore | Median transports | Total landing events |','| --- | ---: | ---: | ---: | ---: | ---: |']
-for layout in ['continents','islands','archipelago']:
- for density in [12,64]:
-  a=[x for x in s['common100'] if x['profile']=='distant' and x['layout']==layout and x['density']==density]
-  lines.append(f"| {layout} | {density} | {statistics.median(x['cities'] for x in a):g} | {statistics.median(x['ashore'] for x in a):g} | {statistics.median(x['transports'] for x in a):g} | {sum(x['landings'] for x in a)} |")
-lines+=['','Dense cities enable much more expansion, particularly on continents. That expansion is primarily ground/neutral growth; city totals alone do not demonstrate a successful invasion policy. Sparse and dense maps share terrain and starting cities, but they are laboratory maps without full DOS validation.','', '## Observed events across each cohort’s full recorded horizon','', 'These totals are descriptive, not equal-horizon rates. The distant cohort covers 7,250 rounds with varying endpoints; the nearby-rival cohort covers 900 rounds (six games × 150).','', '| Measurement | Distant starts: 36 games | Nearby rivals: 6 games |','| --- | ---: | ---: |']
-for label,key in [('Neutral-city capture events','neutralCaptures'),('Hostile-city capture events','hostileCaptures'),('Distinct faction/city pairs ever captured from a rival','hostileUniqueCities'),('Those pairs still held at the endpoint','hostileCitiesRetained'),('Landing events','landed'),('Unique landed armies, counted within each campaign','uniqueLanded'),('Additional landings by already-landed armies','repeatLandingEvents'),('Ordinary loaded transport move steps','loadedSteps'),('Ordinary empty transport move steps','emptySteps'),('Observed loaded departures from ports','loadedPortDepartures'),('Full-load port departures','fullPortDepartures'),('Port departures toward a still-hostile city','hostilePortDepartures'),('Full-load departures in that hostile subset','hostileFullPortDepartures'),('Transport hulls lost','transportsLost'),('Loaded transports lost','loadedTransportsLost'),('Cargo units lost with those transports','cargoLost')]:lines.append(f"| {label} | {sum(x[key] for x in base):,} | {sum(x[key] for x in near):,} |")
-lines+=['','The hostile-departure subset uses the city’s actual pre-round ownership as an evaluation label, not knowledge supplied to the AI. Departures on the same round as an ownership change are excluded as ambiguous. Beach departures are not counted in port-departure statistics. Most departures are for neutral expansion, so “fill every transport” would be an unsupported policy.','', '## Findings that change the plan','', '### 1. Hostile force preparation deserves a targeted test','', 'In the distant cohort, 14 of 15 observed hostile-target port departures carried only one or two armies; one carried six. The nearby-rival cases added two such departures carrying one and three armies. These small samples motivate operation-specific recruitment and departure decisions. They do not establish that every hostile city needs 12–18 armies, or that waiting for full ships improves outcomes.','', '### 2. Repeated delivery needs diagnosis before production is increased','', 'The distant cohort contains 104 additional landing events beyond the first landing of each army; nearby rivals add one. In `continents-17-swap-64`, Red recorded 33 landings by 14 armies, including one army landing five times. None of those 14 armies became a captured city’s garrison during the observed interval. Red nevertheless held 42 cities through other armies, so this is a localized logistics symptom, not a failure of the whole faction. Trace why those troops reboarded and what objective each landing served before declaring all repetitions erroneous.','', '### 3. Port access and throughput are different problems','', 'Six of the 72 distant-start faction observations have no coastal city anywhere on their initial landmass. Four of those share a landmass with their opponent and can fight on land; the other two are the same isolated, portless position under faction swap. No production heuristic can build a ship there without changing the map or rules. Conversely, other endpoints have ports but no surviving transports, which requires separating late port capture, losses, production decisions, and supply routing. Armies ashore include guards, scouts and active ground forces; do not label them all idle.','', '### 4. Capture and retention must be measured separately','', 'The distant cohort’s 51 hostile capture events affected 23 distinct faction/city pairs; 14 of those pairs remained held at their endpoints. Repeated trading and recapture explain why these are different denominators. A landing count or a single city capture cannot stand in for sustained conquest. Nearby starts still produced only two hostile capture events by round 150; proximity alone does not create a useful attack policy.','', '### 5. Computation limits the evidence as well as the experience','', 'All ten wall-clock-limited cases are dense maps. The median of per-campaign mean round times was about 182 ms for sparse maps and 717 ms for dense maps on this shared host. These measurements include observation and concurrent workload overhead; they are not browser responsiveness or device benchmarks, nor a controlled timing comparison between policies. Profile the controller in an isolated process before choosing an optimization.','', '## Incorporating PRs #43 and #44','', '- **#43:** changes the default clean-campaign harbor, not the generated study worlds. Initial generated states are identical with and without the harbor change. Its geometry regression passes. Equal port offsets do not establish equal whole-map opportunity or win rates. A separate controlled default-map comparison remains necessary.','- **#44:** replaces clone-and-swap control with a shared faction-parameterized strategy. Review exposed a real landing regression and an invalid type annotation. The follow-up uses ship ownership in pure landing queries, retains public wrapper validation, and adds hostile-landing and faction-relabeling tests. It is a prerequisite for future strategy work, not a demonstrated strength improvement.','- Six 60-round generated comparisons at seed 83 match full decision state after excluding event-message wording; the direct Blue path corrects faction names embedded in messages. This is limited early preservation evidence. Full long-run strength and timing comparisons remain open.','', 'See [PR integration observations](pr-integration.json), [map diagnostics](map-diagnostics.json), [summary](summary.json), [accounting validation](validation.json), and the [collection protocol](README.md). The strategic proposals are in [the overall plan](../../STRATEGY_AND_TACTICS_PLAN.md).']
-(p/'FINDINGS.md').write_text('\n'.join(lines)+'\n')
+"""Render observations only; historical interpretation lives in a separate file."""
+import collections
+import json
+import os
+import pathlib
+import statistics
+
+
+def render(summary):
+    rows = summary['rows']
+    campaigns = {row['id']: row for row in rows}
+    statuses = collections.Counter(row['status'] for row in campaigns.values())
+    rounds = sum(row['rounds'] for row in campaigns.values())
+    lines = [
+        '# Campaign observations', '',
+        f"**{len(campaigns):,} campaigns · {rounds:,} completed rounds · {len(rows):,} faction observations.**", '',
+        'This report is computed from the selected summary.json. Endpoint totals can change with wall-clock cutoffs. '
+        'Campaigns can share geography and are not independent maps. '
+        'Historical conclusions about the committed baseline are kept separately in BASELINE_INTERPRETATION.md; '
+        'they do not describe a newly collected policy.', '',
+        '## Recorded campaign endpoints', '', '| Status | Campaigns |', '| --- | ---: |',
+    ]
+    lines += [f'| {status} | {count:,} |' for status, count in sorted(statuses.items())]
+    lines += ['', '## Comparable observations at round 100', '',
+              'Only recorded distant-start checkpoints are shown. The observation count states the denominator; '
+              'missing checkpoints are not imputed. Medians can be fractional.', '',
+              '| Terrain | Cities in world | Faction observations | Median owned cities | Median armies ashore | Median transports | Total landing events |',
+              '| --- | ---: | ---: | ---: | ---: | ---: | ---: |']
+    checkpoints = [row for row in summary.get('common100', []) if row['profile'] == 'distant']
+    for layout, density in sorted({(row['layout'], row['density']) for row in checkpoints}):
+        group = [row for row in checkpoints if row['layout'] == layout and row['density'] == density]
+        medians = [statistics.median(row[key] for row in group) for key in ['cities', 'ashore', 'transports']]
+        lines.append(f'| {layout} | {density} | {len(group)} | ' +
+                     ' | '.join(f'{value:g}' for value in medians) +
+                     f" | {sum(row['landings'] for row in group):,} |")
+    metrics = [
+        ('Neutral-city capture events', 'neutralCaptures'),
+        ('Hostile-city capture events', 'hostileCaptures'),
+        ('Distinct faction/city pairs captured from a rival', 'hostileUniqueCities'),
+        ('Those pairs still held at the endpoint', 'hostileCitiesRetained'),
+        ('Landing events', 'landed'), ('Unique landed armies within each campaign', 'uniqueLanded'),
+        ('Additional landings by already-landed armies', 'repeatLandingEvents'),
+        ('Ordinary loaded transport move steps', 'loadedSteps'),
+        ('Ordinary empty transport move steps', 'emptySteps'),
+        ('Observed loaded departures from ports', 'loadedPortDepartures'),
+        ('Full-load port departures', 'fullPortDepartures'),
+        ('Port departures toward a still-hostile city', 'hostilePortDepartures'),
+        ('Full-load departures in that hostile subset', 'hostileFullPortDepartures'),
+        ('Transport hulls lost', 'transportsLost'),
+        ('Loaded transports lost', 'loadedTransportsLost'), ('Cargo lost with transports', 'cargoLost'),
+    ]
+    for profile in sorted({row['profile'] for row in rows}):
+        group = [row for row in rows if row['profile'] == profile]
+        runs = {row['id']: row for row in group}
+        lines += ['', f'## Full recorded horizons: {profile}', '',
+                  f"{len(runs):,} campaigns · {sum(row['rounds'] for row in runs.values()):,} rounds · {len(group):,} faction observations. "
+                  'These totals are descriptive, not equal-horizon rates.', '',
+                  '| Measurement | Total |', '| --- | ---: |']
+        lines += [f"| {label} | {sum(row[key] for row in group):,} |" for label, key in metrics]
+        loads = [load for row in group for load in row['hostilePortDepartureLoads']]
+        distribution = ', '.join(f'{load} armies: {count}' for load, count in sorted(collections.Counter(loads).items())) or 'none recorded'
+        lines += ['', f'Hostile-target port-departure cargo distribution: {distribution}.']
+    lines += ['', '## Interpretation limits', '',
+              'Hostile-departure labels use pre-round actual ownership as evaluation context, not AI knowledge. '
+              'Same-round ownership changes are excluded as ambiguous. Beach departures are not included.', '',
+              'Repeated landing events are not automatically errors. Move steps are not voyages. '
+              'Capture events, distinct faction/city pairs, and retained pairs use different denominators. '
+              'Armies ashore include guards, scouts and active ground forces.', '',
+              'This generated report makes no claim that validation passed or that a policy improved play. '
+              'Inspect validation.json and the collection protocol for the selected dataset. '
+              'Compare equal-round checkpoints before drawing conclusions from unequal endpoint horizons.']
+    return '\n'.join(lines) + '\n'
+
+
+if __name__ == '__main__':
+    root = pathlib.Path(os.environ.get('STUDY_OUT', 'docs/evaluation/strategy-baseline'))
+    (root / 'FINDINGS.md').write_text(render(json.loads((root / 'summary.json').read_text())))

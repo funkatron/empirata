@@ -1,6 +1,6 @@
 # Strategy and tactics: acquire, deliver, retain
 
-Status: proposed program, grounded in the [42-campaign baseline](evaluation/strategy-baseline/FINDINGS.md). No new strategic weights or combat rules are introduced by this study.
+Status: proposed program, grounded in the [42-campaign baseline](evaluation/strategy-baseline/BASELINE_INTERPRETATION.md). No new strategic weights or combat rules are introduced by this study.
 
 ## Aim and constraints
 
