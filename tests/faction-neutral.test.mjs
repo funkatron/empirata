@@ -22,6 +22,7 @@ test('Blue and Red hostile invasions unload the same three armies on legal beach
  for(const g of [landing(),flip(landing())]){
   const view=getPlayerView(g,g.active),ship=view.ownUnits.find(u=>u.id==='ship');
   assert.ok(planAiLandingSquares(view,ship).length>0);
+  assert.deepEqual(planAiLandingSquares({...view,active:g.active==='blue'?'red':'blue'},ship),planAiLandingSquares(view,ship),'Planning belongs to the viewed ship, even outside its turn');
   const next=playAiOpponent(g,g.active);
   assert.equal(next.units.filter(u=>u.id.startsWith('cargo-')&&!u.aboard).length,3);
   assert.deepEqual(importSave(exportSave(next)),next);

@@ -746,7 +746,7 @@ export function planAiLandingSquares(view:ReturnType<typeof getPlayerView>,ship:
   const objectives:Coord[]=[];
   for(let i=0;i<view.cells.length;i++){
     const city=view.cells[i]?.city;
-    if(city&&city.owner!==view.active&&!(ship.aiAvoidObjective?.id===city.id&&ship.aiAvoidObjective.until>view.round)&&(!ship.aiObjective||city.id===ship.aiObjective))
+    if(city&&city.owner!==ship.owner&&!(ship.aiAvoidObjective?.id===city.id&&ship.aiAvoidObjective.until>view.round)&&(!ship.aiObjective||city.id===ship.aiObjective))
       objectives.push({x:i%view.width,y:Math.floor(i/view.width)});
   }
   if(!objectives.length)return [];
@@ -1552,8 +1552,14 @@ export function playAiOpponent(game:Game,faction:FactionId):Game {
   return g;
 }
 
-export function playRedOpponent(game:Game):Game {return playAiOpponent(game,'red');}
-export function playBlueOpponent(game:Game):Game {return playAiOpponent(game,'blue');}
+export function playRedOpponent(game:Game):Game {
+  if(game.active!=='red')throw new Error('Red AI must act during the red faction turn.');
+  return playAiOpponent(game,'red');
+}
+export function playBlueOpponent(game:Game):Game {
+  if(game.active!=='blue')throw new Error('Blue AI requires Blue turn.');
+  return playAiOpponent(game,'blue');
+}
 
 /** Advance one blue-player round, allowing a rules-bound Red opponent to act. */
 export function advanceLabRound(game:Game):Game {
