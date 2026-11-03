@@ -1,8 +1,8 @@
 import {endgameModal} from './endgame.js';
-import {advanceLabRound,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,
+import {advanceLabRound,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,makeCampaignMap,
   moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
   STATS,UNIT_TYPES,isCoastal,unitName,cityName,gameOutcome,readableReport} from '../engine/index.js';
-import type {City,Coord,Game,Unit,UnitType,PlayerView} from '../engine/index.js';
+import type {CampaignLayout,CampaignMode,City,Coord,Game,Unit,UnitType,PlayerView} from '../engine/index.js';
 
 const el=(id:string)=>document.getElementById(id)!;
 const canvas=el('map') as HTMLCanvasElement;
@@ -308,7 +308,7 @@ function refresh():void {
   el('round').textContent=`ROUND ${game.round}`;
   el('cityCount').textContent=String(view.ownCities.length);
   el('unitCount').textContent=String(view.ownUnits.length);
-  el('scenarioName').textContent=game.scenario==='ai-vs-ai'?'COMPUTER vs COMPUTER · EXPERIMENTAL':game.scenario==='ai-invasion'?'AI INVASION · DEMONSTRATION':game.scenario==='close-quarters'?'CLOSE QUARTERS · PLAYABLE':'CLASSIC RULES LAB';
+  el('scenarioName').textContent=game.campaignMap?`${game.scenario==='ai-vs-ai'?'COMPUTER vs COMPUTER':'USER vs COMPUTER'} · ${game.campaignMap.layout.toUpperCase()} · SEED ${game.campaignMap.seed}`:game.scenario==='ai-vs-ai'?'COMPUTER vs COMPUTER · EXPERIMENTAL':game.scenario==='ai-invasion'?'AI INVASION · DEMONSTRATION':game.scenario==='close-quarters'?'CLOSE QUARTERS · PLAYABLE':'CLASSIC RULES LAB';
   el('threatCount').textContent=String(view.enemies.filter(u=>!u.stale).length);
   const unit=view.ownUnits.find(u=>u.id===selectedUnit);
   const city=view.ownCities.find(c=>c.id===selectedCity);
@@ -471,9 +471,23 @@ function startScenario(kind:'close-quarters'|'classic-lab'|'ai-invasion'|'ai-vs-
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; export JSON.'));
   uiMessage(game.scenario==='ai-vs-ai'?'Computer vs computer ready. Choose rounds per advance, then use Play or Advance.':kind==='ai-invasion'?'AI Invasion ready: press Next round to watch the Red landing operation.':kind==='close-quarters'?'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.':'Classic rules lab reset.');
 }
+function startCampaign(layout?:CampaignLayout,seed?:number,mode?:CampaignMode):void{
+  if(!window.confirm('Start a new game on the selected test map? This replaces the current local autosave. Export JSON first if you want to keep it.'))return;
+  const value=(el('campaignMap') as HTMLSelectElement).value.split(':');
+  const chosenLayout=layout??value[0] as CampaignLayout,chosenSeed=seed??Number(value[1]);
+  const chosenMode=mode??(el('campaignMode') as HTMLSelectElement).value as CampaignMode;
+  (el('campaignMap') as HTMLSelectElement).value=`${chosenLayout}:${chosenSeed}`;
+  (el('campaignMode') as HTMLSelectElement).value=chosenMode;
+  pausePlayback();resultModal.reset();observer='blue';spectatorMode='alternate';choosingDestination=false;
+  game=makeCampaignMap(chosenLayout,chosenSeed,chosenMode);selectedUnit=null;selectedCity=null;refresh();
+  const home=game.cities.find(city=>city.owner==='blue');if(home)focus(home.position);
+  void saveLocally(game).catch(()=>uiMessage('Local save unavailable; use Export JSON.'));
+  uiMessage(chosenMode==='ai-vs-ai'?`Computer versus computer started on ${chosenLayout}, seed ${chosenSeed}. Use Play or Advance to watch.`:`User versus computer started on ${chosenLayout}, seed ${chosenSeed}. Select your city to set production, then advance rounds.`);
+}
+el('startCampaign').addEventListener('click',()=>startCampaign());
 el('newGame').addEventListener('click',()=>startScenario('close-quarters'));
 // Close the native Game menu after a scenario or save command.
-for(const id of ['newGame','classicGame','invasionGame','aiVsAiGame','aiSkirmishGame','exportSave','importSave']){
+for(const id of ['newGame','classicGame','invasionGame','aiVsAiGame','aiSkirmishGame','startCampaign','exportSave','importSave']){
   el(id).addEventListener('click',()=>{(el('gameMenu') as HTMLDetailsElement).open=false;});
 }
 document.addEventListener('pointerdown',event=>{
@@ -502,7 +516,7 @@ el('autoPlay').addEventListener('click',()=>{
   startRoundPlayback(true);
 });
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pausePlayback();});
-el('resultNewGame').addEventListener('click',()=>startScenario(game.scenario==='ai-vs-ai'?'ai-vs-ai':'close-quarters'));
+el('resultNewGame').addEventListener('click',()=>game.campaignMap?startCampaign(game.campaignMap.layout,game.campaignMap.seed,game.scenario==='ai-vs-ai'?'ai-vs-ai':'user-vs-computer'):startScenario(game.scenario==='ai-vs-ai'?'ai-vs-ai':'close-quarters'));
 el('resultReview').addEventListener('click',()=>resultModal.show());
 el('endgameExport').addEventListener('click',()=>el('exportSave').click());
 el('endgameNewGame').addEventListener('click',()=>el('resultNewGame').click());
@@ -510,8 +524,9 @@ el('resultExport').addEventListener('click',()=>el('exportSave').click());
 new ResizeObserver(resize).observe(canvas);
 async function boot():Promise<void>{
   try{const saved=await loadLocal();if(saved?.active==='blue')game=saved;}catch{uiMessage('Could not load local autosave; use Import JSON if needed.');}
-  if(hydrated)return;hydrated=true;selectedUnit=game.units.some(u=>u.id==='u1'&&u.owner==='blue')?'u1':null;refresh();focus(game.scenario==='ai-invasion'?{x:76,y:29}:{x:9,y:25});
+  if(hydrated)return;hydrated=true;selectedUnit=game.units.some(u=>u.id==='u1'&&u.owner==='blue')?'u1':null;refresh();focus(game.campaignMap?game.cities.find(c=>c.owner==='blue')?.position??{x:50,y:30}:game.scenario==='ai-invasion'?{x:76,y:29}:{x:9,y:25});
   if(game.scenario==='ai-vs-ai')uiMessage('Computer versus computer restored, paused. Press Play to resume.');
+  else if(game.scenario==='user-vs-computer')uiMessage(`User versus computer restored on ${game.campaignMap?.layout??'test map'}. Select your city to set production, then advance rounds.`);
   else if(game.scenario==='ai-invasion')uiMessage('AI Invasion restored. Press Next round to watch the invasion.');
   else if(game.scenario==='close-quarters')uiMessage('Select a blue unit, then tap an adjacent red unit or gold city to fight.');
   else uiMessage('Existing saved game restored. Choose Start Close Quarters to try the immediate combat scenario.');

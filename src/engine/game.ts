@@ -1567,7 +1567,7 @@ export function advanceLabRound(game:Game):Game {
   if(game.mode!=='rules-lab'||game.active!=='blue')throw new Error('Lab round advance requires blue player.');
   let g=game.scenario==='ai-vs-ai'?playBlueOpponent(game):game;
   g=endTurn(g);
-  if((g.scenario==='close-quarters'||g.scenario==='ai-invasion'||g.scenario==='ai-vs-ai')&&g.active==='red')g=playRedOpponent(g);
+  if((g.scenario==='close-quarters'||g.scenario==='ai-invasion'||g.scenario==='ai-vs-ai'||g.scenario==='user-vs-computer')&&g.active==='red')g=playRedOpponent(g);
   while(g.active!=='blue')g=endTurn(g);
   return g;
 }
