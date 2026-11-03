@@ -8,6 +8,52 @@
 import type { Game, Unit } from './types.js';
 import {makeRulesLab} from './game.js';
 import {emptyKnowledge,updateAllKnowledge} from './knowledge.js';
+import {isCoastal} from './world.js';
+
+export type CampaignLayout='continents'|'islands'|'archipelago';
+export type CampaignMode='user-vs-computer'|'ai-vs-ai';
+
+/** Reproducible clean-start maps shared with the campaign evaluation layouts. */
+export function makeCampaignMap(layout:CampaignLayout,seed:number,mode:CampaignMode='user-vs-computer',swap=false):Game {
+  if(!Number.isInteger(seed)||seed<1)throw new Error('Campaign seed must be a positive integer.');
+  let state=seed>>>0||1;
+  const random=()=>{state^=state<<13;state^=state>>>17;state^=state<<5;return (state>>>0)/4294967296;};
+  const g=makeAiVsAiLab(),{width,height}=g;
+  g.tiles.fill('sea');
+  const config:Record<CampaignLayout,[number,number,number]>={continents:[7,18,13],islands:[16,10,8],archipelago:[32,5,4]};
+  const [count,rx,ry]=config[layout];
+  for(let i=0;i<count;i++){
+    const cx=5+random()*(width-10),cy=5+random()*(height-10);
+    const a=rx*(0.6+random()*0.8),b=ry*(0.6+random()*0.8);
+    for(let y=1;y<height-1;y++)for(let x=1;x<width-1;x++)
+      if(((x-cx)/a)**2+((y-cy)/b)**2<1)g.tiles[y*width+x]='land';
+  }
+  const candidates=[];
+  for(let y=2;y<height-2;y++)for(let x=2;x<width-2;x++)
+    if(g.tiles[y*width+x]==='land')candidates.push({x,y});
+  for(let i=candidates.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[candidates[i],candidates[j]]=[candidates[j]!,candidates[i]!];}
+  const distance=(a:{x:number;y:number},b:{x:number;y:number})=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
+  const positions:{x:number;y:number}[]=[];
+  for(const p of candidates){
+    if(layout!=='continents'&&!isCoastal(g,p))continue;
+    if(positions.every(q=>distance(p,q)>=7))positions.push(p);
+    if(positions.length===12)break;
+  }
+  if(positions.length<4)throw new Error(`Insufficient cities: ${layout}/${seed}`);
+  let pair:[number,number]=[0,1];
+  for(let a=0;a<positions.length;a++)for(let b=a+1;b<positions.length;b++)
+    if(distance(positions[a]!,positions[b]!)>distance(positions[pair[0]]!,positions[pair[1]]!))pair=[a,b];
+  g.cities=positions.map((position,i)=>({id:`generated-${i}`,position,
+    owner:i===pair[0]?(swap?'red':'blue'):i===pair[1]?(swap?'blue':'red'):null,
+    production:null,progress:0,firstCycle:true}));
+  g.scenario=mode;
+  g.campaignMap={layout,seed};
+  g.rng={seed:(seed^0x9e3779b9)>>>0,draws:0};
+  g.events=[];g.nextEventId=1;
+  for(const faction of ['blue','red','green'] as const)g.knowledge[faction]=emptyKnowledge(g);
+  updateAllKnowledge(g);
+  return g;
+}
 
 export function makeCloseQuartersLab():Game {
   const g=makeRulesLab();
