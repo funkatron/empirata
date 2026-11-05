@@ -18,7 +18,7 @@ function terrainStamp(terrain:Terrain,variant:number):HTMLCanvasElement {
   const tile=document.createElement('canvas');
   tile.width=tile.height=32;
   const ctx=tile.getContext('2d')!;
-  ctx.fillStyle=(terrain==='land'?['#53694a','#576d4d','#52674a','#5a7050']:['#26495e','#274c61','#284b60','#294e62'])[variant]!;
+  ctx.fillStyle=(terrain==='land'?['#607d47','#65824a','#5d7945','#68854c']:['#21486f','#234c75','#224a72','#254f79'])[variant]!;
   ctx.fillRect(0,0,32,32);
   for(let i=0;i<5;i++){
     const x=(variant*11+i*13)%25+2,y=(variant*7+i*9)%26+2;
@@ -41,7 +41,7 @@ export function drawTerrain(ctx:CanvasRenderingContext2D,terrain:Terrain|null,x:
   if(terrain){
     ctx.drawImage(terrainArt[terrain][(Math.imul(column,31)^Math.imul(row,17)^(column>>2)^(row>>1))&3]!,x,y,size+.25,size+.25);
   }else{
-    ctx.fillStyle='#0b1821';
+    ctx.fillStyle='#080e15';
     ctx.fillRect(x,y,size+.25,size+.25);
   }
 }
@@ -59,8 +59,32 @@ function drawSymbol(ctx:CanvasRenderingContext2D,path:Path2D,x:number,y:number,s
   ctx.restore();
 }
 
-export function drawUnit(ctx:CanvasRenderingContext2D,kind:UnitType,x:number,y:number,size:number,ink:string):void {
-  drawSymbol(ctx,paths.get(kind)!,x,y,size,ink);
+const unitStamps=new Map<string,HTMLCanvasElement>();
+
+export function drawUnit(ctx:CanvasRenderingContext2D,kind:UnitType,x:number,y:number,size:number,ink:string,loaded=false):void {
+  const key=`${kind}:${ink}:${loaded}`;
+  let stamp=unitStamps.get(key);
+  if(!stamp){
+    stamp=document.createElement('canvas');
+    stamp.width=stamp.height=24;
+    const pixels=stamp.getContext('2d')!;
+    drawSymbol(pixels,paths.get(kind)!,0,0,24,ink);
+    const bitmap=pixels.getImageData(0,0,24,24);
+    for(let i=3;i<bitmap.data.length;i+=4) bitmap.data[i]=bitmap.data[i]!>=128?255:0;
+    pixels.putImageData(bitmap,0,0);
+    if(loaded){
+      pixels.fillStyle='#0b1b25';
+      pixels.fillRect(1,1,7,6);
+      pixels.fillStyle='#ffe49a';
+      pixels.fillRect(2,2,2,4);
+      pixels.fillRect(5,2,2,4);
+    }
+    unitStamps.set(key,stamp);
+  }
+  ctx.save();
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(stamp,x,y,size,size);
+  ctx.restore();
 }
 
 export function drawCity(ctx:CanvasRenderingContext2D,coastal:boolean,x:number,y:number,size:number,ink:string):void {

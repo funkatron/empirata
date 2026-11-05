@@ -131,6 +131,7 @@ function paint():void {
   ctx.fillStyle='#08131b';ctx.fillRect(0,0,w,h);
   const sx=Math.max(0,Math.floor(cameraX/tileSize)), ex=Math.min(game.width,Math.ceil((cameraX+w)/tileSize));
   const sy=Math.max(0,Math.floor(cameraY/tileSize)), ey=Math.min(game.height,Math.ceil((cameraY+h)/tileSize));
+  const loadedShips=new Set(view.ownUnits.flatMap(u=>u.aboard?[u.aboard]:[]));
   const displayUnits=[...view.enemies.map(e=>({id:e.id,kind:e.kind,position:e.position,owner:e.owner,stale:e.stale})),
     ...view.ownUnits.filter(u=>!u.aboard).map(u=>({id:u.id,kind:u.kind,position:u.position,owner:u.owner,stale:false}))];
   const unitsByCell=new Map<number,Array<(typeof displayUnits)[number]>>();
@@ -163,7 +164,7 @@ function paint():void {
     const u=stack.find(unit=>unit.id===selectedUnit||unit.id===spectatorContact)??stack.filter(unit=>!unit.stale).at(-1)??stack[stack.length-1]!;
     ctx.globalAlpha=u.stale?.48:1;
     const offset=tileSize*(c.city?.28:.09);
-    drawUnit(ctx,u.kind,px+offset,py+offset,tileSize*(c.city?.66:.82),colors[u.owner]);
+    drawUnit(ctx,u.kind,px+offset,py+offset,tileSize*(c.city?.66:.82),colors[u.owner],!u.stale&&u.owner===observer&&loadedShips.has(u.id));
     ctx.globalAlpha=1;
     const count=stack.filter(unit=>!unit.stale).length;
     if(count>1&&tileSize>=20){
