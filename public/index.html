@@ -25,6 +25,12 @@
   </main>
   <footer><span id="toast" role="status" aria-live="polite">Movement, combat, and capture are available. Red has a basic opponent AI; troop loading remains under development.</span><span>INTERSTEL 2.05 RULES TARGET</span></footer>
 </div>
+<dialog id="stackDialog" class="endgame-dialog stack-dialog" aria-labelledby="stackTitle">
+  <h2 id="stackTitle"></h2>
+  <p>Choose a unit or the city to inspect.</p>
+  <div id="stackChoices"></div>
+  <form method="dialog"><button>Cancel</button></form>
+</dialog>
 <dialog id="endgameDialog" class="endgame-dialog" aria-labelledby="endgameTitle" aria-describedby="endgameDetail">
   <p class="endgame-eyebrow">Campaign complete</p>
   <h1 id="endgameTitle">Game over</h1>
