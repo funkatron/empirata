@@ -34,3 +34,7 @@
 .endgame-dialog #endgameDetail{font-size:13px;line-height:1.7;color:#aec0ca}
 .endgame-actions{display:grid;gap:10px;margin-top:24px}
 .endgame-actions button{min-height:44px;white-space:normal}
+
+.stack-dialog{max-height:80vh;overflow:auto}
+#stackChoices{display:grid;gap:.4rem;margin:.8rem 0}
+#stackChoices button{min-height:44px;text-align:left;white-space:normal}
