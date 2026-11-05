@@ -46,7 +46,7 @@ export function drawTerrain(ctx:CanvasRenderingContext2D,terrain:Terrain|null,x:
   }
 }
 
-function drawSymbol(ctx:CanvasRenderingContext2D,path:Path2D,x:number,y:number,size:number,ink:string):void {
+function drawSymbol(ctx:CanvasRenderingContext2D,path:Path2D,x:number,y:number,size:number,ink:string,loaded=false):void {
   ctx.save();
   ctx.translate(x,y);
   ctx.scale(size/24,size/24);
@@ -56,34 +56,44 @@ function drawSymbol(ctx:CanvasRenderingContext2D,path:Path2D,x:number,y:number,s
   ctx.stroke(path);
   ctx.fillStyle=ink;
   ctx.fill(path);
+  if(loaded){
+    ctx.fillStyle='#0b1b25';
+    ctx.fillRect(1,1,7,6);
+    ctx.fillStyle='#ffe49a';
+    ctx.fillRect(2,2,2,4);
+    ctx.fillRect(5,2,2,4);
+  }
   ctx.restore();
 }
 
-const unitStamps=new Map<string,HTMLCanvasElement>();
+let staleLayer:CanvasRenderingContext2D|undefined;
 
 export function drawUnit(ctx:CanvasRenderingContext2D,kind:UnitType,x:number,y:number,size:number,ink:string,loaded=false):void {
-  const key=`${kind}:${ink}:${loaded}`;
-  let stamp=unitStamps.get(key);
-  if(!stamp){
-    stamp=document.createElement('canvas');
-    stamp.width=stamp.height=24;
-    const pixels=stamp.getContext('2d')!;
-    drawSymbol(pixels,paths.get(kind)!,0,0,24,ink);
-    const bitmap=pixels.getImageData(0,0,24,24);
-    for(let i=3;i<bitmap.data.length;i+=4) bitmap.data[i]=bitmap.data[i]!>=128?255:0;
-    pixels.putImageData(bitmap,0,0);
-    if(loaded){
-      pixels.fillStyle='#0b1b25';
-      pixels.fillRect(1,1,7,6);
-      pixels.fillStyle='#ffe49a';
-      pixels.fillRect(2,2,2,4);
-      pixels.fillRect(5,2,2,4);
-    }
-    unitStamps.set(key,stamp);
+  const path=paths.get(kind)!;
+  if(ctx.globalAlpha===1){
+    drawSymbol(ctx,path,x,y,size,ink,loaded);
+    return;
   }
+
+  // Composite faded contacts once so the overlapping outline and fill have
+  // the same opacity. Rasterize the layer on the map's device pixel grid.
+  const {a:scaleX,d:scaleY,e:offsetX,f:offsetY}=ctx.getTransform();
+  const padding=size/24;
+  const left=Math.floor((x-padding)*scaleX+offsetX),top=Math.floor((y-padding)*scaleY+offsetY);
+  const width=Math.ceil((x+size+padding)*scaleX+offsetX)-left;
+  const height=Math.ceil((y+size+padding)*scaleY+offsetY)-top;
+  staleLayer??=document.createElement('canvas').getContext('2d')!;
+  const layer=staleLayer;
+  layer.resetTransform();
+  if(layer.canvas.width!==width)layer.canvas.width=width;
+  if(layer.canvas.height!==height)layer.canvas.height=height;
+  layer.clearRect(0,0,width,height);
+  layer.setTransform(scaleX,0,0,scaleY,offsetX-left,offsetY-top);
+  drawSymbol(layer,path,x,y,size,ink,loaded);
+
   ctx.save();
-  ctx.imageSmoothingEnabled=false;
-  ctx.drawImage(stamp,x,y,size,size);
+  ctx.resetTransform();
+  ctx.drawImage(layer.canvas,left,top);
   ctx.restore();
 }
 
