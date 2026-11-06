@@ -1,0 +1,2020 @@
+[
+  {
+    "id": "continents-17-normal-12",
+    "profile": "distant",
+    "landComponents": 2,
+    "terrainHash": "384a360e0629f1e6a4e0c1e3fa283abaa8ff59dd29495d024855e05f7ecad057",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-10",
+        "component": 0,
+        "startingPort": false,
+        "citiesOnStartLandmass": 10,
+        "portCitiesOnStartLandmass": 1,
+        "portIds": [
+          "generated-0"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-60",
+        "component": 1,
+        "startingPort": true,
+        "citiesOnStartLandmass": 2,
+        "portCitiesOnStartLandmass": 1,
+        "portIds": [
+          "generated-60"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "continents-17-normal-64",
+    "profile": "distant",
+    "landComponents": 2,
+    "terrainHash": "384a360e0629f1e6a4e0c1e3fa283abaa8ff59dd29495d024855e05f7ecad057",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-10",
+        "component": 0,
+        "startingPort": false,
+        "citiesOnStartLandmass": 48,
+        "portCitiesOnStartLandmass": 7,
+        "portIds": [
+          "generated-0",
+          "generated-21",
+          "generated-22",
+          "generated-28",
+          "generated-35",
+          "generated-41",
+          "generated-43"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-60",
+        "component": 1,
+        "startingPort": true,
+        "citiesOnStartLandmass": 16,
+        "portCitiesOnStartLandmass": 4,
+        "portIds": [
+          "generated-36",
+          "generated-42",
+          "generated-45",
+          "generated-60"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "continents-17-swap-12",
+    "profile": "distant",
+    "landComponents": 2,
+    "terrainHash": "384a360e0629f1e6a4e0c1e3fa283abaa8ff59dd29495d024855e05f7ecad057",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-60",
+        "component": 1,
+        "startingPort": true,
+        "citiesOnStartLandmass": 2,
+        "portCitiesOnStartLandmass": 1,
+        "portIds": [
+          "generated-60"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-10",
+        "component": 0,
+        "startingPort": false,
+        "citiesOnStartLandmass": 10,
+        "portCitiesOnStartLandmass": 1,
+        "portIds": [
+          "generated-0"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "continents-17-swap-64",
+    "profile": "distant",
+    "landComponents": 2,
+    "terrainHash": "384a360e0629f1e6a4e0c1e3fa283abaa8ff59dd29495d024855e05f7ecad057",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-60",
+        "component": 1,
+        "startingPort": true,
+        "citiesOnStartLandmass": 16,
+        "portCitiesOnStartLandmass": 4,
+        "portIds": [
+          "generated-36",
+          "generated-42",
+          "generated-45",
+          "generated-60"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-10",
+        "component": 0,
+        "startingPort": false,
+        "citiesOnStartLandmass": 48,
+        "portCitiesOnStartLandmass": 7,
+        "portIds": [
+          "generated-0",
+          "generated-21",
+          "generated-22",
+          "generated-28",
+          "generated-35",
+          "generated-41",
+          "generated-43"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "continents-83-normal-12",
+    "profile": "distant",
+    "landComponents": 2,
+    "terrainHash": "5349a86501f3ec488364d0f91289114e0c36f8e19237b23f952de04382355bf7",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-44",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 9,
+        "portCitiesOnStartLandmass": 2,
+        "portIds": [
+          "generated-44",
+          "generated-7"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-48",
+        "component": 1,
+        "startingPort": false,
+        "citiesOnStartLandmass": 3,
+        "portCitiesOnStartLandmass": 0,
+        "portIds": [],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": false
+      }
+    }
+  },
+  {
+    "id": "continents-83-normal-64",
+    "profile": "distant",
+    "landComponents": 2,
+    "terrainHash": "5349a86501f3ec488364d0f91289114e0c36f8e19237b23f952de04382355bf7",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-44",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 52,
+        "portCitiesOnStartLandmass": 7,
+        "portIds": [
+          "generated-7",
+          "generated-11",
+          "generated-15",
+          "generated-30",
+          "generated-44",
+          "generated-47",
+          "generated-50"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-48",
+        "component": 1,
+        "startingPort": false,
+        "citiesOnStartLandmass": 12,
+        "portCitiesOnStartLandmass": 1,
+        "portIds": [
+          "generated-19"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "continents-83-swap-12",
+    "profile": "distant",
+    "landComponents": 2,
+    "terrainHash": "5349a86501f3ec488364d0f91289114e0c36f8e19237b23f952de04382355bf7",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-48",
+        "component": 1,
+        "startingPort": false,
+        "citiesOnStartLandmass": 3,
+        "portCitiesOnStartLandmass": 0,
+        "portIds": [],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": false
+      },
+      "red": {
+        "startingCity": "generated-44",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 9,
+        "portCitiesOnStartLandmass": 2,
+        "portIds": [
+          "generated-44",
+          "generated-7"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "continents-83-swap-64",
+    "profile": "distant",
+    "landComponents": 2,
+    "terrainHash": "5349a86501f3ec488364d0f91289114e0c36f8e19237b23f952de04382355bf7",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-48",
+        "component": 1,
+        "startingPort": false,
+        "citiesOnStartLandmass": 12,
+        "portCitiesOnStartLandmass": 1,
+        "portIds": [
+          "generated-19"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-44",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 52,
+        "portCitiesOnStartLandmass": 7,
+        "portIds": [
+          "generated-7",
+          "generated-11",
+          "generated-15",
+          "generated-30",
+          "generated-44",
+          "generated-47",
+          "generated-50"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "continents-211-normal-12",
+    "profile": "distant",
+    "landComponents": 1,
+    "terrainHash": "01815a49e9dfefb9ca826fe9369cdb2b4604a989c1b4aafdaec17474081527df",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-16",
+        "component": 0,
+        "startingPort": false,
+        "citiesOnStartLandmass": 12,
+        "portCitiesOnStartLandmass": 0,
+        "portIds": [],
+        "enemyStartsOnLandmass": true,
+        "portAccessPhysicallyPossible": false
+      },
+      "red": {
+        "startingCity": "generated-62",
+        "component": 0,
+        "startingPort": false,
+        "citiesOnStartLandmass": 12,
+        "portCitiesOnStartLandmass": 0,
+        "portIds": [],
+        "enemyStartsOnLandmass": true,
+        "portAccessPhysicallyPossible": false
+      }
+    }
+  },
+  {
+    "id": "continents-211-normal-64",
+    "profile": "distant",
+    "landComponents": 1,
+    "terrainHash": "01815a49e9dfefb9ca826fe9369cdb2b4604a989c1b4aafdaec17474081527df",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-16",
+        "component": 0,
+        "startingPort": false,
+        "citiesOnStartLandmass": 64,
+        "portCitiesOnStartLandmass": 3,
+        "portIds": [
+          "generated-31",
+          "generated-52",
+          "generated-55"
+        ],
+        "enemyStartsOnLandmass": true,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-62",
+        "component": 0,
+        "startingPort": false,
+        "citiesOnStartLandmass": 64,
+        "portCitiesOnStartLandmass": 3,
+        "portIds": [
+          "generated-31",
+          "generated-52",
+          "generated-55"
+        ],
+        "enemyStartsOnLandmass": true,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "continents-211-swap-12",
+    "profile": "distant",
+    "landComponents": 1,
+    "terrainHash": "01815a49e9dfefb9ca826fe9369cdb2b4604a989c1b4aafdaec17474081527df",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-62",
+        "component": 0,
+        "startingPort": false,
+        "citiesOnStartLandmass": 12,
+        "portCitiesOnStartLandmass": 0,
+        "portIds": [],
+        "enemyStartsOnLandmass": true,
+        "portAccessPhysicallyPossible": false
+      },
+      "red": {
+        "startingCity": "generated-16",
+        "component": 0,
+        "startingPort": false,
+        "citiesOnStartLandmass": 12,
+        "portCitiesOnStartLandmass": 0,
+        "portIds": [],
+        "enemyStartsOnLandmass": true,
+        "portAccessPhysicallyPossible": false
+      }
+    }
+  },
+  {
+    "id": "continents-211-swap-64",
+    "profile": "distant",
+    "landComponents": 1,
+    "terrainHash": "01815a49e9dfefb9ca826fe9369cdb2b4604a989c1b4aafdaec17474081527df",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-62",
+        "component": 0,
+        "startingPort": false,
+        "citiesOnStartLandmass": 64,
+        "portCitiesOnStartLandmass": 3,
+        "portIds": [
+          "generated-31",
+          "generated-52",
+          "generated-55"
+        ],
+        "enemyStartsOnLandmass": true,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-16",
+        "component": 0,
+        "startingPort": false,
+        "citiesOnStartLandmass": 64,
+        "portCitiesOnStartLandmass": 3,
+        "portIds": [
+          "generated-31",
+          "generated-52",
+          "generated-55"
+        ],
+        "enemyStartsOnLandmass": true,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "islands-17-normal-12",
+    "profile": "distant",
+    "landComponents": 3,
+    "terrainHash": "58cb7be76f650f7557714f9e16c2e520f25cfa1c46b734bcc1036b1afdded69f",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-8",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 4,
+        "portCitiesOnStartLandmass": 4,
+        "portIds": [
+          "generated-8",
+          "generated-24",
+          "generated-6",
+          "generated-9"
+        ],
+        "enemyStartsOnLandmass": true,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-24",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 4,
+        "portCitiesOnStartLandmass": 4,
+        "portIds": [
+          "generated-8",
+          "generated-24",
+          "generated-6",
+          "generated-9"
+        ],
+        "enemyStartsOnLandmass": true,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "islands-17-normal-64",
+    "profile": "distant",
+    "landComponents": 3,
+    "terrainHash": "58cb7be76f650f7557714f9e16c2e520f25cfa1c46b734bcc1036b1afdded69f",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-8",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 38,
+        "portCitiesOnStartLandmass": 38,
+        "portIds": [
+          "generated-6",
+          "generated-8",
+          "generated-9",
+          "generated-11",
+          "generated-12",
+          "generated-13",
+          "generated-14",
+          "generated-17",
+          "generated-19",
+          "generated-21",
+          "generated-22",
+          "generated-23",
+          "generated-24",
+          "generated-26",
+          "generated-27",
+          "generated-28",
+          "generated-29",
+          "generated-30",
+          "generated-31",
+          "generated-33",
+          "generated-35",
+          "generated-36",
+          "generated-37",
+          "generated-38",
+          "generated-40",
+          "generated-41",
+          "generated-42",
+          "generated-43",
+          "generated-46",
+          "generated-47",
+          "generated-48",
+          "generated-49",
+          "generated-51",
+          "generated-52",
+          "generated-53",
+          "generated-60",
+          "generated-61",
+          "generated-62"
+        ],
+        "enemyStartsOnLandmass": true,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-24",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 38,
+        "portCitiesOnStartLandmass": 38,
+        "portIds": [
+          "generated-6",
+          "generated-8",
+          "generated-9",
+          "generated-11",
+          "generated-12",
+          "generated-13",
+          "generated-14",
+          "generated-17",
+          "generated-19",
+          "generated-21",
+          "generated-22",
+          "generated-23",
+          "generated-24",
+          "generated-26",
+          "generated-27",
+          "generated-28",
+          "generated-29",
+          "generated-30",
+          "generated-31",
+          "generated-33",
+          "generated-35",
+          "generated-36",
+          "generated-37",
+          "generated-38",
+          "generated-40",
+          "generated-41",
+          "generated-42",
+          "generated-43",
+          "generated-46",
+          "generated-47",
+          "generated-48",
+          "generated-49",
+          "generated-51",
+          "generated-52",
+          "generated-53",
+          "generated-60",
+          "generated-61",
+          "generated-62"
+        ],
+        "enemyStartsOnLandmass": true,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "islands-17-swap-12",
+    "profile": "distant",
+    "landComponents": 3,
+    "terrainHash": "58cb7be76f650f7557714f9e16c2e520f25cfa1c46b734bcc1036b1afdded69f",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-24",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 4,
+        "portCitiesOnStartLandmass": 4,
+        "portIds": [
+          "generated-8",
+          "generated-24",
+          "generated-6",
+          "generated-9"
+        ],
+        "enemyStartsOnLandmass": true,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-8",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 4,
+        "portCitiesOnStartLandmass": 4,
+        "portIds": [
+          "generated-8",
+          "generated-24",
+          "generated-6",
+          "generated-9"
+        ],
+        "enemyStartsOnLandmass": true,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "islands-17-swap-64",
+    "profile": "distant",
+    "landComponents": 3,
+    "terrainHash": "58cb7be76f650f7557714f9e16c2e520f25cfa1c46b734bcc1036b1afdded69f",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-24",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 38,
+        "portCitiesOnStartLandmass": 38,
+        "portIds": [
+          "generated-6",
+          "generated-8",
+          "generated-9",
+          "generated-11",
+          "generated-12",
+          "generated-13",
+          "generated-14",
+          "generated-17",
+          "generated-19",
+          "generated-21",
+          "generated-22",
+          "generated-23",
+          "generated-24",
+          "generated-26",
+          "generated-27",
+          "generated-28",
+          "generated-29",
+          "generated-30",
+          "generated-31",
+          "generated-33",
+          "generated-35",
+          "generated-36",
+          "generated-37",
+          "generated-38",
+          "generated-40",
+          "generated-41",
+          "generated-42",
+          "generated-43",
+          "generated-46",
+          "generated-47",
+          "generated-48",
+          "generated-49",
+          "generated-51",
+          "generated-52",
+          "generated-53",
+          "generated-60",
+          "generated-61",
+          "generated-62"
+        ],
+        "enemyStartsOnLandmass": true,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-8",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 38,
+        "portCitiesOnStartLandmass": 38,
+        "portIds": [
+          "generated-6",
+          "generated-8",
+          "generated-9",
+          "generated-11",
+          "generated-12",
+          "generated-13",
+          "generated-14",
+          "generated-17",
+          "generated-19",
+          "generated-21",
+          "generated-22",
+          "generated-23",
+          "generated-24",
+          "generated-26",
+          "generated-27",
+          "generated-28",
+          "generated-29",
+          "generated-30",
+          "generated-31",
+          "generated-33",
+          "generated-35",
+          "generated-36",
+          "generated-37",
+          "generated-38",
+          "generated-40",
+          "generated-41",
+          "generated-42",
+          "generated-43",
+          "generated-46",
+          "generated-47",
+          "generated-48",
+          "generated-49",
+          "generated-51",
+          "generated-52",
+          "generated-53",
+          "generated-60",
+          "generated-61",
+          "generated-62"
+        ],
+        "enemyStartsOnLandmass": true,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "islands-83-normal-12",
+    "profile": "distant",
+    "landComponents": 2,
+    "terrainHash": "d5cd94962553572199a58195ea869e1c6e8f7ed16f07474b6f32980f91ef0488",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-29",
+        "component": 1,
+        "startingPort": true,
+        "citiesOnStartLandmass": 1,
+        "portCitiesOnStartLandmass": 1,
+        "portIds": [
+          "generated-29"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-55",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 11,
+        "portCitiesOnStartLandmass": 11,
+        "portIds": [
+          "generated-55",
+          "generated-0",
+          "generated-1",
+          "generated-2",
+          "generated-3",
+          "generated-4",
+          "generated-5",
+          "generated-6",
+          "generated-7",
+          "generated-8",
+          "generated-9"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "islands-83-normal-64",
+    "profile": "distant",
+    "landComponents": 2,
+    "terrainHash": "d5cd94962553572199a58195ea869e1c6e8f7ed16f07474b6f32980f91ef0488",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-29",
+        "component": 1,
+        "startingPort": true,
+        "citiesOnStartLandmass": 5,
+        "portCitiesOnStartLandmass": 5,
+        "portIds": [
+          "generated-19",
+          "generated-24",
+          "generated-29",
+          "generated-40",
+          "generated-41"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-55",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 59,
+        "portCitiesOnStartLandmass": 59,
+        "portIds": [
+          "generated-0",
+          "generated-1",
+          "generated-2",
+          "generated-3",
+          "generated-4",
+          "generated-5",
+          "generated-6",
+          "generated-7",
+          "generated-8",
+          "generated-9",
+          "generated-10",
+          "generated-11",
+          "generated-12",
+          "generated-13",
+          "generated-14",
+          "generated-15",
+          "generated-16",
+          "generated-17",
+          "generated-18",
+          "generated-20",
+          "generated-21",
+          "generated-22",
+          "generated-23",
+          "generated-25",
+          "generated-26",
+          "generated-27",
+          "generated-28",
+          "generated-30",
+          "generated-31",
+          "generated-32",
+          "generated-33",
+          "generated-34",
+          "generated-35",
+          "generated-36",
+          "generated-37",
+          "generated-38",
+          "generated-39",
+          "generated-42",
+          "generated-43",
+          "generated-44",
+          "generated-45",
+          "generated-46",
+          "generated-47",
+          "generated-48",
+          "generated-49",
+          "generated-50",
+          "generated-51",
+          "generated-52",
+          "generated-53",
+          "generated-54",
+          "generated-55",
+          "generated-56",
+          "generated-57",
+          "generated-58",
+          "generated-59",
+          "generated-60",
+          "generated-61",
+          "generated-62",
+          "generated-63"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "islands-83-swap-12",
+    "profile": "distant",
+    "landComponents": 2,
+    "terrainHash": "d5cd94962553572199a58195ea869e1c6e8f7ed16f07474b6f32980f91ef0488",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-55",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 11,
+        "portCitiesOnStartLandmass": 11,
+        "portIds": [
+          "generated-55",
+          "generated-0",
+          "generated-1",
+          "generated-2",
+          "generated-3",
+          "generated-4",
+          "generated-5",
+          "generated-6",
+          "generated-7",
+          "generated-8",
+          "generated-9"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-29",
+        "component": 1,
+        "startingPort": true,
+        "citiesOnStartLandmass": 1,
+        "portCitiesOnStartLandmass": 1,
+        "portIds": [
+          "generated-29"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "islands-83-swap-64",
+    "profile": "distant",
+    "landComponents": 2,
+    "terrainHash": "d5cd94962553572199a58195ea869e1c6e8f7ed16f07474b6f32980f91ef0488",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-55",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 59,
+        "portCitiesOnStartLandmass": 59,
+        "portIds": [
+          "generated-0",
+          "generated-1",
+          "generated-2",
+          "generated-3",
+          "generated-4",
+          "generated-5",
+          "generated-6",
+          "generated-7",
+          "generated-8",
+          "generated-9",
+          "generated-10",
+          "generated-11",
+          "generated-12",
+          "generated-13",
+          "generated-14",
+          "generated-15",
+          "generated-16",
+          "generated-17",
+          "generated-18",
+          "generated-20",
+          "generated-21",
+          "generated-22",
+          "generated-23",
+          "generated-25",
+          "generated-26",
+          "generated-27",
+          "generated-28",
+          "generated-30",
+          "generated-31",
+          "generated-32",
+          "generated-33",
+          "generated-34",
+          "generated-35",
+          "generated-36",
+          "generated-37",
+          "generated-38",
+          "generated-39",
+          "generated-42",
+          "generated-43",
+          "generated-44",
+          "generated-45",
+          "generated-46",
+          "generated-47",
+          "generated-48",
+          "generated-49",
+          "generated-50",
+          "generated-51",
+          "generated-52",
+          "generated-53",
+          "generated-54",
+          "generated-55",
+          "generated-56",
+          "generated-57",
+          "generated-58",
+          "generated-59",
+          "generated-60",
+          "generated-61",
+          "generated-62",
+          "generated-63"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-29",
+        "component": 1,
+        "startingPort": true,
+        "citiesOnStartLandmass": 5,
+        "portCitiesOnStartLandmass": 5,
+        "portIds": [
+          "generated-19",
+          "generated-24",
+          "generated-29",
+          "generated-40",
+          "generated-41"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "islands-211-normal-12",
+    "profile": "distant",
+    "landComponents": 4,
+    "terrainHash": "69b09fb00c43a480268ef0e6cc35a452ec0327b3d70b71f1c0327a8b4e5edbec",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-13",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 4,
+        "portCitiesOnStartLandmass": 4,
+        "portIds": [
+          "generated-13",
+          "generated-4",
+          "generated-7",
+          "generated-9"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-21",
+        "component": 3,
+        "startingPort": true,
+        "citiesOnStartLandmass": 4,
+        "portCitiesOnStartLandmass": 4,
+        "portIds": [
+          "generated-21",
+          "generated-2",
+          "generated-3",
+          "generated-6"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "islands-211-normal-64",
+    "profile": "distant",
+    "landComponents": 4,
+    "terrainHash": "69b09fb00c43a480268ef0e6cc35a452ec0327b3d70b71f1c0327a8b4e5edbec",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-13",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 13,
+        "portCitiesOnStartLandmass": 13,
+        "portIds": [
+          "generated-4",
+          "generated-7",
+          "generated-9",
+          "generated-12",
+          "generated-13",
+          "generated-18",
+          "generated-28",
+          "generated-31",
+          "generated-33",
+          "generated-36",
+          "generated-44",
+          "generated-46",
+          "generated-59"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-21",
+        "component": 3,
+        "startingPort": true,
+        "citiesOnStartLandmass": 20,
+        "portCitiesOnStartLandmass": 20,
+        "portIds": [
+          "generated-2",
+          "generated-3",
+          "generated-6",
+          "generated-15",
+          "generated-17",
+          "generated-21",
+          "generated-24",
+          "generated-25",
+          "generated-29",
+          "generated-30",
+          "generated-39",
+          "generated-41",
+          "generated-45",
+          "generated-48",
+          "generated-49",
+          "generated-50",
+          "generated-54",
+          "generated-56",
+          "generated-58",
+          "generated-61"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "islands-211-swap-12",
+    "profile": "distant",
+    "landComponents": 4,
+    "terrainHash": "69b09fb00c43a480268ef0e6cc35a452ec0327b3d70b71f1c0327a8b4e5edbec",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-21",
+        "component": 3,
+        "startingPort": true,
+        "citiesOnStartLandmass": 4,
+        "portCitiesOnStartLandmass": 4,
+        "portIds": [
+          "generated-21",
+          "generated-2",
+          "generated-3",
+          "generated-6"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-13",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 4,
+        "portCitiesOnStartLandmass": 4,
+        "portIds": [
+          "generated-13",
+          "generated-4",
+          "generated-7",
+          "generated-9"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "islands-211-swap-64",
+    "profile": "distant",
+    "landComponents": 4,
+    "terrainHash": "69b09fb00c43a480268ef0e6cc35a452ec0327b3d70b71f1c0327a8b4e5edbec",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-21",
+        "component": 3,
+        "startingPort": true,
+        "citiesOnStartLandmass": 20,
+        "portCitiesOnStartLandmass": 20,
+        "portIds": [
+          "generated-2",
+          "generated-3",
+          "generated-6",
+          "generated-15",
+          "generated-17",
+          "generated-21",
+          "generated-24",
+          "generated-25",
+          "generated-29",
+          "generated-30",
+          "generated-39",
+          "generated-41",
+          "generated-45",
+          "generated-48",
+          "generated-49",
+          "generated-50",
+          "generated-54",
+          "generated-56",
+          "generated-58",
+          "generated-61"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-13",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 13,
+        "portCitiesOnStartLandmass": 13,
+        "portIds": [
+          "generated-4",
+          "generated-7",
+          "generated-9",
+          "generated-12",
+          "generated-13",
+          "generated-18",
+          "generated-28",
+          "generated-31",
+          "generated-33",
+          "generated-36",
+          "generated-44",
+          "generated-46",
+          "generated-59"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "archipelago-17-normal-12",
+    "profile": "distant",
+    "landComponents": 9,
+    "terrainHash": "7c5a28c095bd53594f5b097f7a2ed855f0bf76da79609ba0c68f431c9092b60b",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-15",
+        "component": 1,
+        "startingPort": true,
+        "citiesOnStartLandmass": 1,
+        "portCitiesOnStartLandmass": 1,
+        "portIds": [
+          "generated-15"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-28",
+        "component": 3,
+        "startingPort": true,
+        "citiesOnStartLandmass": 1,
+        "portCitiesOnStartLandmass": 1,
+        "portIds": [
+          "generated-28"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "archipelago-17-normal-64",
+    "profile": "distant",
+    "landComponents": 9,
+    "terrainHash": "7c5a28c095bd53594f5b097f7a2ed855f0bf76da79609ba0c68f431c9092b60b",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-15",
+        "component": 1,
+        "startingPort": true,
+        "citiesOnStartLandmass": 8,
+        "portCitiesOnStartLandmass": 8,
+        "portIds": [
+          "generated-15",
+          "generated-18",
+          "generated-37",
+          "generated-42",
+          "generated-56",
+          "generated-57",
+          "generated-59",
+          "generated-60"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-28",
+        "component": 3,
+        "startingPort": true,
+        "citiesOnStartLandmass": 4,
+        "portCitiesOnStartLandmass": 4,
+        "portIds": [
+          "generated-26",
+          "generated-28",
+          "generated-36",
+          "generated-55"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "archipelago-17-swap-12",
+    "profile": "distant",
+    "landComponents": 9,
+    "terrainHash": "7c5a28c095bd53594f5b097f7a2ed855f0bf76da79609ba0c68f431c9092b60b",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-28",
+        "component": 3,
+        "startingPort": true,
+        "citiesOnStartLandmass": 1,
+        "portCitiesOnStartLandmass": 1,
+        "portIds": [
+          "generated-28"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-15",
+        "component": 1,
+        "startingPort": true,
+        "citiesOnStartLandmass": 1,
+        "portCitiesOnStartLandmass": 1,
+        "portIds": [
+          "generated-15"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "archipelago-17-swap-64",
+    "profile": "distant",
+    "landComponents": 9,
+    "terrainHash": "7c5a28c095bd53594f5b097f7a2ed855f0bf76da79609ba0c68f431c9092b60b",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-28",
+        "component": 3,
+        "startingPort": true,
+        "citiesOnStartLandmass": 4,
+        "portCitiesOnStartLandmass": 4,
+        "portIds": [
+          "generated-26",
+          "generated-28",
+          "generated-36",
+          "generated-55"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-15",
+        "component": 1,
+        "startingPort": true,
+        "citiesOnStartLandmass": 8,
+        "portCitiesOnStartLandmass": 8,
+        "portIds": [
+          "generated-15",
+          "generated-18",
+          "generated-37",
+          "generated-42",
+          "generated-56",
+          "generated-57",
+          "generated-59",
+          "generated-60"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "archipelago-83-normal-12",
+    "profile": "distant",
+    "landComponents": 8,
+    "terrainHash": "10af39a492f3e0d82b2e1830db5e11829860392b4378850976169af13c7fdbad",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-13",
+        "component": 3,
+        "startingPort": true,
+        "citiesOnStartLandmass": 1,
+        "portCitiesOnStartLandmass": 1,
+        "portIds": [
+          "generated-13"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-46",
+        "component": 5,
+        "startingPort": true,
+        "citiesOnStartLandmass": 4,
+        "portCitiesOnStartLandmass": 4,
+        "portIds": [
+          "generated-46",
+          "generated-0",
+          "generated-7",
+          "generated-8"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "archipelago-83-normal-64",
+    "profile": "distant",
+    "landComponents": 8,
+    "terrainHash": "10af39a492f3e0d82b2e1830db5e11829860392b4378850976169af13c7fdbad",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-13",
+        "component": 3,
+        "startingPort": true,
+        "citiesOnStartLandmass": 4,
+        "portCitiesOnStartLandmass": 4,
+        "portIds": [
+          "generated-13",
+          "generated-31",
+          "generated-41",
+          "generated-45"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-46",
+        "component": 5,
+        "startingPort": true,
+        "citiesOnStartLandmass": 16,
+        "portCitiesOnStartLandmass": 16,
+        "portIds": [
+          "generated-0",
+          "generated-7",
+          "generated-8",
+          "generated-12",
+          "generated-17",
+          "generated-20",
+          "generated-21",
+          "generated-22",
+          "generated-30",
+          "generated-34",
+          "generated-35",
+          "generated-38",
+          "generated-46",
+          "generated-52",
+          "generated-59",
+          "generated-60"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "archipelago-83-swap-12",
+    "profile": "distant",
+    "landComponents": 8,
+    "terrainHash": "10af39a492f3e0d82b2e1830db5e11829860392b4378850976169af13c7fdbad",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-46",
+        "component": 5,
+        "startingPort": true,
+        "citiesOnStartLandmass": 4,
+        "portCitiesOnStartLandmass": 4,
+        "portIds": [
+          "generated-46",
+          "generated-0",
+          "generated-7",
+          "generated-8"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-13",
+        "component": 3,
+        "startingPort": true,
+        "citiesOnStartLandmass": 1,
+        "portCitiesOnStartLandmass": 1,
+        "portIds": [
+          "generated-13"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "archipelago-83-swap-64",
+    "profile": "distant",
+    "landComponents": 8,
+    "terrainHash": "10af39a492f3e0d82b2e1830db5e11829860392b4378850976169af13c7fdbad",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-46",
+        "component": 5,
+        "startingPort": true,
+        "citiesOnStartLandmass": 16,
+        "portCitiesOnStartLandmass": 16,
+        "portIds": [
+          "generated-0",
+          "generated-7",
+          "generated-8",
+          "generated-12",
+          "generated-17",
+          "generated-20",
+          "generated-21",
+          "generated-22",
+          "generated-30",
+          "generated-34",
+          "generated-35",
+          "generated-38",
+          "generated-46",
+          "generated-52",
+          "generated-59",
+          "generated-60"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-13",
+        "component": 3,
+        "startingPort": true,
+        "citiesOnStartLandmass": 4,
+        "portCitiesOnStartLandmass": 4,
+        "portIds": [
+          "generated-13",
+          "generated-31",
+          "generated-41",
+          "generated-45"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "archipelago-211-normal-12",
+    "profile": "distant",
+    "landComponents": 12,
+    "terrainHash": "651654c7ae87a3f9897f7e23f8a1831b97e8a8c446377cb657197c957393bffb",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-31",
+        "component": 4,
+        "startingPort": true,
+        "citiesOnStartLandmass": 1,
+        "portCitiesOnStartLandmass": 1,
+        "portIds": [
+          "generated-31"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-38",
+        "component": 10,
+        "startingPort": true,
+        "citiesOnStartLandmass": 2,
+        "portCitiesOnStartLandmass": 2,
+        "portIds": [
+          "generated-38",
+          "generated-8"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "archipelago-211-normal-64",
+    "profile": "distant",
+    "landComponents": 12,
+    "terrainHash": "651654c7ae87a3f9897f7e23f8a1831b97e8a8c446377cb657197c957393bffb",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-31",
+        "component": 4,
+        "startingPort": true,
+        "citiesOnStartLandmass": 4,
+        "portCitiesOnStartLandmass": 4,
+        "portIds": [
+          "generated-24",
+          "generated-30",
+          "generated-31",
+          "generated-52"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-38",
+        "component": 10,
+        "startingPort": true,
+        "citiesOnStartLandmass": 4,
+        "portCitiesOnStartLandmass": 4,
+        "portIds": [
+          "generated-8",
+          "generated-38",
+          "generated-42",
+          "generated-58"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "archipelago-211-swap-12",
+    "profile": "distant",
+    "landComponents": 12,
+    "terrainHash": "651654c7ae87a3f9897f7e23f8a1831b97e8a8c446377cb657197c957393bffb",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-38",
+        "component": 10,
+        "startingPort": true,
+        "citiesOnStartLandmass": 2,
+        "portCitiesOnStartLandmass": 2,
+        "portIds": [
+          "generated-38",
+          "generated-8"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-31",
+        "component": 4,
+        "startingPort": true,
+        "citiesOnStartLandmass": 1,
+        "portCitiesOnStartLandmass": 1,
+        "portIds": [
+          "generated-31"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "archipelago-211-swap-64",
+    "profile": "distant",
+    "landComponents": 12,
+    "terrainHash": "651654c7ae87a3f9897f7e23f8a1831b97e8a8c446377cb657197c957393bffb",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-38",
+        "component": 10,
+        "startingPort": true,
+        "citiesOnStartLandmass": 4,
+        "portCitiesOnStartLandmass": 4,
+        "portIds": [
+          "generated-8",
+          "generated-38",
+          "generated-42",
+          "generated-58"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-31",
+        "component": 4,
+        "startingPort": true,
+        "citiesOnStartLandmass": 4,
+        "portCitiesOnStartLandmass": 4,
+        "portIds": [
+          "generated-24",
+          "generated-30",
+          "generated-31",
+          "generated-52"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "continents-83-normal-64-near",
+    "profile": "near",
+    "landComponents": 2,
+    "terrainHash": "5349a86501f3ec488364d0f91289114e0c36f8e19237b23f952de04382355bf7",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-11",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 52,
+        "portCitiesOnStartLandmass": 7,
+        "portIds": [
+          "generated-7",
+          "generated-11",
+          "generated-15",
+          "generated-30",
+          "generated-44",
+          "generated-47",
+          "generated-50"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-19",
+        "component": 1,
+        "startingPort": true,
+        "citiesOnStartLandmass": 12,
+        "portCitiesOnStartLandmass": 1,
+        "portIds": [
+          "generated-19"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "continents-83-swap-64-near",
+    "profile": "near",
+    "landComponents": 2,
+    "terrainHash": "5349a86501f3ec488364d0f91289114e0c36f8e19237b23f952de04382355bf7",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-19",
+        "component": 1,
+        "startingPort": true,
+        "citiesOnStartLandmass": 12,
+        "portCitiesOnStartLandmass": 1,
+        "portIds": [
+          "generated-19"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-11",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 52,
+        "portCitiesOnStartLandmass": 7,
+        "portIds": [
+          "generated-7",
+          "generated-11",
+          "generated-15",
+          "generated-30",
+          "generated-44",
+          "generated-47",
+          "generated-50"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "islands-83-normal-64-near",
+    "profile": "near",
+    "landComponents": 2,
+    "terrainHash": "d5cd94962553572199a58195ea869e1c6e8f7ed16f07474b6f32980f91ef0488",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-13",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 59,
+        "portCitiesOnStartLandmass": 59,
+        "portIds": [
+          "generated-0",
+          "generated-1",
+          "generated-2",
+          "generated-3",
+          "generated-4",
+          "generated-5",
+          "generated-6",
+          "generated-7",
+          "generated-8",
+          "generated-9",
+          "generated-10",
+          "generated-11",
+          "generated-12",
+          "generated-13",
+          "generated-14",
+          "generated-15",
+          "generated-16",
+          "generated-17",
+          "generated-18",
+          "generated-20",
+          "generated-21",
+          "generated-22",
+          "generated-23",
+          "generated-25",
+          "generated-26",
+          "generated-27",
+          "generated-28",
+          "generated-30",
+          "generated-31",
+          "generated-32",
+          "generated-33",
+          "generated-34",
+          "generated-35",
+          "generated-36",
+          "generated-37",
+          "generated-38",
+          "generated-39",
+          "generated-42",
+          "generated-43",
+          "generated-44",
+          "generated-45",
+          "generated-46",
+          "generated-47",
+          "generated-48",
+          "generated-49",
+          "generated-50",
+          "generated-51",
+          "generated-52",
+          "generated-53",
+          "generated-54",
+          "generated-55",
+          "generated-56",
+          "generated-57",
+          "generated-58",
+          "generated-59",
+          "generated-60",
+          "generated-61",
+          "generated-62",
+          "generated-63"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-40",
+        "component": 1,
+        "startingPort": true,
+        "citiesOnStartLandmass": 5,
+        "portCitiesOnStartLandmass": 5,
+        "portIds": [
+          "generated-19",
+          "generated-24",
+          "generated-29",
+          "generated-40",
+          "generated-41"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "islands-83-swap-64-near",
+    "profile": "near",
+    "landComponents": 2,
+    "terrainHash": "d5cd94962553572199a58195ea869e1c6e8f7ed16f07474b6f32980f91ef0488",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-40",
+        "component": 1,
+        "startingPort": true,
+        "citiesOnStartLandmass": 5,
+        "portCitiesOnStartLandmass": 5,
+        "portIds": [
+          "generated-19",
+          "generated-24",
+          "generated-29",
+          "generated-40",
+          "generated-41"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-13",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 59,
+        "portCitiesOnStartLandmass": 59,
+        "portIds": [
+          "generated-0",
+          "generated-1",
+          "generated-2",
+          "generated-3",
+          "generated-4",
+          "generated-5",
+          "generated-6",
+          "generated-7",
+          "generated-8",
+          "generated-9",
+          "generated-10",
+          "generated-11",
+          "generated-12",
+          "generated-13",
+          "generated-14",
+          "generated-15",
+          "generated-16",
+          "generated-17",
+          "generated-18",
+          "generated-20",
+          "generated-21",
+          "generated-22",
+          "generated-23",
+          "generated-25",
+          "generated-26",
+          "generated-27",
+          "generated-28",
+          "generated-30",
+          "generated-31",
+          "generated-32",
+          "generated-33",
+          "generated-34",
+          "generated-35",
+          "generated-36",
+          "generated-37",
+          "generated-38",
+          "generated-39",
+          "generated-42",
+          "generated-43",
+          "generated-44",
+          "generated-45",
+          "generated-46",
+          "generated-47",
+          "generated-48",
+          "generated-49",
+          "generated-50",
+          "generated-51",
+          "generated-52",
+          "generated-53",
+          "generated-54",
+          "generated-55",
+          "generated-56",
+          "generated-57",
+          "generated-58",
+          "generated-59",
+          "generated-60",
+          "generated-61",
+          "generated-62",
+          "generated-63"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "archipelago-83-normal-64-near",
+    "profile": "near",
+    "landComponents": 8,
+    "terrainHash": "10af39a492f3e0d82b2e1830db5e11829860392b4378850976169af13c7fdbad",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-1",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 14,
+        "portCitiesOnStartLandmass": 14,
+        "portIds": [
+          "generated-1",
+          "generated-4",
+          "generated-9",
+          "generated-10",
+          "generated-16",
+          "generated-23",
+          "generated-24",
+          "generated-26",
+          "generated-28",
+          "generated-29",
+          "generated-42",
+          "generated-43",
+          "generated-48",
+          "generated-62"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-22",
+        "component": 5,
+        "startingPort": true,
+        "citiesOnStartLandmass": 16,
+        "portCitiesOnStartLandmass": 16,
+        "portIds": [
+          "generated-0",
+          "generated-7",
+          "generated-8",
+          "generated-12",
+          "generated-17",
+          "generated-20",
+          "generated-21",
+          "generated-22",
+          "generated-30",
+          "generated-34",
+          "generated-35",
+          "generated-38",
+          "generated-46",
+          "generated-52",
+          "generated-59",
+          "generated-60"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  },
+  {
+    "id": "archipelago-83-swap-64-near",
+    "profile": "near",
+    "landComponents": 8,
+    "terrainHash": "10af39a492f3e0d82b2e1830db5e11829860392b4378850976169af13c7fdbad",
+    "factions": {
+      "blue": {
+        "startingCity": "generated-22",
+        "component": 5,
+        "startingPort": true,
+        "citiesOnStartLandmass": 16,
+        "portCitiesOnStartLandmass": 16,
+        "portIds": [
+          "generated-0",
+          "generated-7",
+          "generated-8",
+          "generated-12",
+          "generated-17",
+          "generated-20",
+          "generated-21",
+          "generated-22",
+          "generated-30",
+          "generated-34",
+          "generated-35",
+          "generated-38",
+          "generated-46",
+          "generated-52",
+          "generated-59",
+          "generated-60"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      },
+      "red": {
+        "startingCity": "generated-1",
+        "component": 0,
+        "startingPort": true,
+        "citiesOnStartLandmass": 14,
+        "portCitiesOnStartLandmass": 14,
+        "portIds": [
+          "generated-1",
+          "generated-4",
+          "generated-9",
+          "generated-10",
+          "generated-16",
+          "generated-23",
+          "generated-24",
+          "generated-26",
+          "generated-28",
+          "generated-29",
+          "generated-42",
+          "generated-43",
+          "generated-48",
+          "generated-62"
+        ],
+        "enemyStartsOnLandmass": false,
+        "portAccessPhysicallyPossible": true
+      }
+    }
+  }
+]

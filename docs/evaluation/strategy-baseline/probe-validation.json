@@ -1,0 +1,69 @@
+[
+  {
+    "id": "continents-false",
+    "rounds": 12,
+    "equal": true,
+    "probes": {
+      "event": 7
+    }
+  },
+  {
+    "id": "continents-true",
+    "rounds": 12,
+    "equal": true,
+    "probes": {
+      "event": 7
+    }
+  },
+  {
+    "id": "islands-false",
+    "rounds": 12,
+    "equal": true,
+    "probes": {
+      "event": 6
+    }
+  },
+  {
+    "id": "islands-true",
+    "rounds": 12,
+    "equal": true,
+    "probes": {
+      "event": 6
+    }
+  },
+  {
+    "id": "archipelago-false",
+    "rounds": 12,
+    "equal": true,
+    "probes": {
+      "event": 6
+    }
+  },
+  {
+    "id": "archipelago-true",
+    "rounds": 12,
+    "equal": true,
+    "probes": {
+      "event": 6
+    }
+  },
+  {
+    "id": "invasion-movement-capture",
+    "rounds": 15,
+    "equal": true,
+    "probes": {
+      "event": 11,
+      "move": 10,
+      "removed": 1
+    }
+  },
+  {
+    "id": "close-combat-skirmish",
+    "rounds": 12,
+    "equal": true,
+    "probes": {
+      "event": 27,
+      "removed": 6
+    }
+  }
+]

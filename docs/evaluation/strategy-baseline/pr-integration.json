@@ -1,0 +1,112 @@
+{
+  "baselineSha": "579784a19403f673298199b326163931d7cc4688",
+  "harborSha": "0a5611c1e9cdd15fffa213dcc3a1f78bdbd34fc2",
+  "neutralSha": "602640c772c6edfdb2a3e25728b590a843c04159",
+  "checks": [
+    {
+      "layout": "continents",
+      "swap": false,
+      "rounds": 60,
+      "generatedHarborInvariant": true,
+      "decisionStateEqual": true,
+      "baselineHash": "7560bca7746323f3cd36f314e11820f00b26ec1648e3bf38e4a0f9d9fd7ce471",
+      "neutralHash": "7560bca7746323f3cd36f314e11820f00b26ec1648e3bf38e4a0f9d9fd7ce471",
+      "baselineCities": 5,
+      "neutralCities": 5
+    },
+    {
+      "layout": "continents",
+      "swap": true,
+      "rounds": 60,
+      "generatedHarborInvariant": true,
+      "decisionStateEqual": true,
+      "baselineHash": "0780068b688fc7e0b7c8f8f0f448c7bd58fa526867bbbf2d271bfc6702ddd9e7",
+      "neutralHash": "0780068b688fc7e0b7c8f8f0f448c7bd58fa526867bbbf2d271bfc6702ddd9e7",
+      "baselineCities": 5,
+      "neutralCities": 5
+    },
+    {
+      "layout": "islands",
+      "swap": false,
+      "rounds": 60,
+      "generatedHarborInvariant": true,
+      "decisionStateEqual": true,
+      "baselineHash": "85108932ed618d4122b283b2e25f1ecaab71675da61af16b0d366a3fa2b44881",
+      "neutralHash": "85108932ed618d4122b283b2e25f1ecaab71675da61af16b0d366a3fa2b44881",
+      "baselineCities": 3,
+      "neutralCities": 3
+    },
+    {
+      "layout": "islands",
+      "swap": true,
+      "rounds": 60,
+      "generatedHarborInvariant": true,
+      "decisionStateEqual": true,
+      "baselineHash": "4a030cb0428606fe69075104bd4c8e289f706e25056a525ab420e08a7469c368",
+      "neutralHash": "4a030cb0428606fe69075104bd4c8e289f706e25056a525ab420e08a7469c368",
+      "baselineCities": 3,
+      "neutralCities": 3
+    },
+    {
+      "layout": "archipelago",
+      "swap": false,
+      "rounds": 60,
+      "generatedHarborInvariant": true,
+      "decisionStateEqual": true,
+      "baselineHash": "f5ce563f512a1f27efba5d77e1d80a8d524061e7f0221607f6db5fb192a46376",
+      "neutralHash": "f5ce563f512a1f27efba5d77e1d80a8d524061e7f0221607f6db5fb192a46376",
+      "baselineCities": 3,
+      "neutralCities": 3
+    },
+    {
+      "layout": "archipelago",
+      "swap": true,
+      "rounds": 60,
+      "generatedHarborInvariant": true,
+      "decisionStateEqual": true,
+      "baselineHash": "84750e00836436a8ac18d0fa6fcba8baf4db197ea17b0d734f82743391d23000",
+      "neutralHash": "84750e00836436a8ac18d0fa6fcba8baf4db197ea17b0d734f82743391d23000",
+      "baselineCities": 3,
+      "neutralCities": 3
+    }
+  ],
+  "limits": [
+    "Early 60-round samples and fixtures do not establish long-run equivalence or a change in strength",
+    "Event message text is excluded from decision-state comparison because direct Blue planning corrects embedded faction names",
+    "No empirical advantage is attributed to harbor geometry here"
+  ],
+  "cleanHarbors": {
+    "baseline": [
+      {
+        "id": "c-blue",
+        "position": {
+          "x": 8,
+          "y": 25
+        }
+      },
+      {
+        "id": "c-red",
+        "position": {
+          "x": 80,
+          "y": 36
+        }
+      }
+    ],
+    "proposed": [
+      {
+        "id": "c-blue",
+        "position": {
+          "x": 8,
+          "y": 25
+        }
+      },
+      {
+        "id": "c-red",
+        "position": {
+          "x": 92,
+          "y": 36
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,355 @@
+{
+  "schema": 1,
+  "sourceSha": "579784a19403f673298199b326163931d7cc4688",
+  "node": "v24.22.1",
+  "concurrency": 4,
+  "jobs": [
+    {
+      "id": "continents-17-normal-12",
+      "layout": "continents",
+      "seed": 17,
+      "swap": false,
+      "cities": 12,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "continents-17-normal-64",
+      "layout": "continents",
+      "seed": 17,
+      "swap": false,
+      "cities": 64,
+      "rounds": 300,
+      "budgetMs": 180000
+    },
+    {
+      "id": "continents-17-swap-12",
+      "layout": "continents",
+      "seed": 17,
+      "swap": true,
+      "cities": 12,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "continents-17-swap-64",
+      "layout": "continents",
+      "seed": 17,
+      "swap": true,
+      "cities": 64,
+      "rounds": 300,
+      "budgetMs": 180000
+    },
+    {
+      "id": "continents-83-normal-12",
+      "layout": "continents",
+      "seed": 83,
+      "swap": false,
+      "cities": 12,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "continents-83-normal-64",
+      "layout": "continents",
+      "seed": 83,
+      "swap": false,
+      "cities": 64,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "continents-83-swap-12",
+      "layout": "continents",
+      "seed": 83,
+      "swap": true,
+      "cities": 12,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "continents-83-swap-64",
+      "layout": "continents",
+      "seed": 83,
+      "swap": true,
+      "cities": 64,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "continents-211-normal-12",
+      "layout": "continents",
+      "seed": 211,
+      "swap": false,
+      "cities": 12,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "continents-211-normal-64",
+      "layout": "continents",
+      "seed": 211,
+      "swap": false,
+      "cities": 64,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "continents-211-swap-12",
+      "layout": "continents",
+      "seed": 211,
+      "swap": true,
+      "cities": 12,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "continents-211-swap-64",
+      "layout": "continents",
+      "seed": 211,
+      "swap": true,
+      "cities": 64,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "islands-17-normal-12",
+      "layout": "islands",
+      "seed": 17,
+      "swap": false,
+      "cities": 12,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "islands-17-normal-64",
+      "layout": "islands",
+      "seed": 17,
+      "swap": false,
+      "cities": 64,
+      "rounds": 300,
+      "budgetMs": 180000
+    },
+    {
+      "id": "islands-17-swap-12",
+      "layout": "islands",
+      "seed": 17,
+      "swap": true,
+      "cities": 12,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "islands-17-swap-64",
+      "layout": "islands",
+      "seed": 17,
+      "swap": true,
+      "cities": 64,
+      "rounds": 300,
+      "budgetMs": 180000
+    },
+    {
+      "id": "islands-83-normal-12",
+      "layout": "islands",
+      "seed": 83,
+      "swap": false,
+      "cities": 12,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "islands-83-normal-64",
+      "layout": "islands",
+      "seed": 83,
+      "swap": false,
+      "cities": 64,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "islands-83-swap-12",
+      "layout": "islands",
+      "seed": 83,
+      "swap": true,
+      "cities": 12,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "islands-83-swap-64",
+      "layout": "islands",
+      "seed": 83,
+      "swap": true,
+      "cities": 64,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "islands-211-normal-12",
+      "layout": "islands",
+      "seed": 211,
+      "swap": false,
+      "cities": 12,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "islands-211-normal-64",
+      "layout": "islands",
+      "seed": 211,
+      "swap": false,
+      "cities": 64,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "islands-211-swap-12",
+      "layout": "islands",
+      "seed": 211,
+      "swap": true,
+      "cities": 12,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "islands-211-swap-64",
+      "layout": "islands",
+      "seed": 211,
+      "swap": true,
+      "cities": 64,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "archipelago-17-normal-12",
+      "layout": "archipelago",
+      "seed": 17,
+      "swap": false,
+      "cities": 12,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "archipelago-17-normal-64",
+      "layout": "archipelago",
+      "seed": 17,
+      "swap": false,
+      "cities": 64,
+      "rounds": 300,
+      "budgetMs": 180000
+    },
+    {
+      "id": "archipelago-17-swap-12",
+      "layout": "archipelago",
+      "seed": 17,
+      "swap": true,
+      "cities": 12,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "archipelago-17-swap-64",
+      "layout": "archipelago",
+      "seed": 17,
+      "swap": true,
+      "cities": 64,
+      "rounds": 300,
+      "budgetMs": 180000
+    },
+    {
+      "id": "archipelago-83-normal-12",
+      "layout": "archipelago",
+      "seed": 83,
+      "swap": false,
+      "cities": 12,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "archipelago-83-normal-64",
+      "layout": "archipelago",
+      "seed": 83,
+      "swap": false,
+      "cities": 64,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "archipelago-83-swap-12",
+      "layout": "archipelago",
+      "seed": 83,
+      "swap": true,
+      "cities": 12,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "archipelago-83-swap-64",
+      "layout": "archipelago",
+      "seed": 83,
+      "swap": true,
+      "cities": 64,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "archipelago-211-normal-12",
+      "layout": "archipelago",
+      "seed": 211,
+      "swap": false,
+      "cities": 12,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "archipelago-211-normal-64",
+      "layout": "archipelago",
+      "seed": 211,
+      "swap": false,
+      "cities": 64,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "archipelago-211-swap-12",
+      "layout": "archipelago",
+      "seed": 211,
+      "swap": true,
+      "cities": 12,
+      "rounds": 200,
+      "budgetMs": 180000
+    },
+    {
+      "id": "archipelago-211-swap-64",
+      "layout": "archipelago",
+      "seed": 211,
+      "swap": true,
+      "cities": 64,
+      "rounds": 200,
+      "budgetMs": 180000
+    }
+  ],
+  "turnColumns": [
+    "round",
+    "elapsedMs",
+    "blueCities",
+    "blueUnits",
+    "blueArmiesAshore",
+    "blueTransports",
+    "blueEmbarkedArmies",
+    "blueLoadedShips",
+    "redCities",
+    "redUnits",
+    "redArmiesAshore",
+    "redTransports",
+    "redEmbarkedArmies",
+    "redLoadedShips"
+  ],
+  "limits": [
+    "200/300-round horizon; 180s per worker",
+    "Round-boundary snapshots can miss transient states; legal transport-move and event probes capture short crossings",
+    "Timing includes telemetry overhead and concurrent CPU contention",
+    "Generated maps do not implement original DOS map validation",
+    "Two AI factions, no human adversary; no strategy change comparison"
+  ]
+}

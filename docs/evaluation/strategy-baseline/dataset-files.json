@@ -1,0 +1,296 @@
+[
+  {
+    "path": "runs/archipelago-17-normal-12.json.gz",
+    "rawBytes": 67689,
+    "gzipBytes": 7445,
+    "rawSha256": "d754acff119c782034cc9acd6d4c65f74b9236170e4f49217a800789e40aac75",
+    "gzipSha256": "16123b64276549969b4dffc40c448c048d9d97ed436a813b4979c3be7f126a03"
+  },
+  {
+    "path": "runs/archipelago-17-normal-64.json.gz",
+    "rawBytes": 274320,
+    "gzipBytes": 23719,
+    "rawSha256": "3e11f889f6b0e9743b34d56f1e3fc354b48b9475a2a4312380de46f16e830bcf",
+    "gzipSha256": "1114e1c514cdaabbb16fa94cebf239f703a26e85b91dcae62dc64a048ea6c6fd"
+  },
+  {
+    "path": "runs/archipelago-17-swap-12.json.gz",
+    "rawBytes": 65937,
+    "gzipBytes": 7248,
+    "rawSha256": "ad3474c64f27600145f8e381babc60fa58e20a3b5a8cbdc0bb24444e37fe6acc",
+    "gzipSha256": "a16e754becdc0a5d88e3313a83f598d7dec1d7f8dde3b422ca55c72d5a59dbf9"
+  },
+  {
+    "path": "runs/archipelago-17-swap-64.json.gz",
+    "rawBytes": 315881,
+    "gzipBytes": 26049,
+    "rawSha256": "1fd4ffffe60d8c4124e86be3c6773a9a2e3e8d79caa4814280d6e293c56613ac",
+    "gzipSha256": "e017a9deafd6d296b0d133e747efbf28aa63b232effb543cfe288c478e4fd8a9"
+  },
+  {
+    "path": "runs/archipelago-211-normal-12.json.gz",
+    "rawBytes": 93375,
+    "gzipBytes": 9609,
+    "rawSha256": "4f121af68b9af293ff030e50972884540bbd6075087170c6aeced3c7878bbbb6",
+    "gzipSha256": "3feca0a13e00f1b80d7906f69a5bca58b16f6ff7efc46597ea7cb5c1ecfe7457"
+  },
+  {
+    "path": "runs/archipelago-211-normal-64.json.gz",
+    "rawBytes": 164969,
+    "gzipBytes": 14699,
+    "rawSha256": "7c67a0c0b2689273d826a00d53f6a2aaeb5321a658b1b8145c8590499072a319",
+    "gzipSha256": "be932b3dc2008146b3095bb9b117ca74640fb3bff4090005b186c7795d844739"
+  },
+  {
+    "path": "runs/archipelago-211-swap-12.json.gz",
+    "rawBytes": 86436,
+    "gzipBytes": 8963,
+    "rawSha256": "f4ba23616670b516399ee739463feafaced432c2ab911e87dabc5017e6f88218",
+    "gzipSha256": "cd999c9129cc7778431c3d3b1728c206140205d7574ed5b862a1ace8a7ff8005"
+  },
+  {
+    "path": "runs/archipelago-211-swap-64.json.gz",
+    "rawBytes": 102246,
+    "gzipBytes": 10586,
+    "rawSha256": "7d3c4aabf447668dc0017ff1541783e78f58299df4711c99c7d95d263c188891",
+    "gzipSha256": "b5b2f553fbc5505d4099efa61fb8f2ec16591f96e8bd7589c0af16bc0ef0d9bd"
+  },
+  {
+    "path": "runs/archipelago-83-normal-12.json.gz",
+    "rawBytes": 69849,
+    "gzipBytes": 7835,
+    "rawSha256": "868c369aa071f1430b73f34264bea7a2377111ae9b816c170f029feb68aeec08",
+    "gzipSha256": "990bfe93219c3eeba405b4b50bae0f807f4ff0d3a24f79abb36d9e24bc9bf7b3"
+  },
+  {
+    "path": "runs/archipelago-83-normal-64-near.json.gz",
+    "rawBytes": 47594,
+    "gzipBytes": 6240,
+    "rawSha256": "207123ae031c11ecd2f3f8b5e5e5ac8a3f9df0832f7a99991fae00c143382f84",
+    "gzipSha256": "ae82235269b7dcccc7ade67580bbe40439dc3ef72a0bb1809e9ecb3bd8ae1222"
+  },
+  {
+    "path": "runs/archipelago-83-normal-64.json.gz",
+    "rawBytes": 141399,
+    "gzipBytes": 12950,
+    "rawSha256": "3825343a4fd6c5cd3db2c88e0621207e7c77de296eb68a18ec9eef77d3fc3e28",
+    "gzipSha256": "f29cacba2d79325d8c7416d68a6ed4e5a1102621b66b65c59bf1a5852af0e9d1"
+  },
+  {
+    "path": "runs/archipelago-83-swap-12.json.gz",
+    "rawBytes": 77722,
+    "gzipBytes": 8420,
+    "rawSha256": "7124058d34b603ee63604e01f76be36e7ac8ff8b48badc952cf058df01755058",
+    "gzipSha256": "fb9d48c7c6be3f05ea9cb40ea80027978e096b18d6c1073b596659fb8e7167bc"
+  },
+  {
+    "path": "runs/archipelago-83-swap-64-near.json.gz",
+    "rawBytes": 44012,
+    "gzipBytes": 5996,
+    "rawSha256": "de0cdd3a4921bab5babfcff704f28e890b8348ae418949c6d4c26ca69c32f4fb",
+    "gzipSha256": "c1ef895de296c019b6bedee3c8b1d730977a0304030c6e5d4b4f8df3c2bc4776"
+  },
+  {
+    "path": "runs/archipelago-83-swap-64.json.gz",
+    "rawBytes": 128430,
+    "gzipBytes": 12334,
+    "rawSha256": "55a42fedbdf20105a9cf5a2ed6d45be2ce45d5d12f2fcc21f4d0055b0cfad7e6",
+    "gzipSha256": "3fd73fa7b728f8a37018bbbef5b45b3c76a32537fda6253aabc9cc676ee9d6b2"
+  },
+  {
+    "path": "runs/continents-17-normal-12.json.gz",
+    "rawBytes": 32362,
+    "gzipBytes": 5334,
+    "rawSha256": "a1333f31abe1cc605a7001cf9727ebe8532ed129eea8fc1e2e9d930a16e03113",
+    "gzipSha256": "85de63ada74736b54df897c47496389312415c4fa49c5a49fd7da22f0885f363"
+  },
+  {
+    "path": "runs/continents-17-normal-64.json.gz",
+    "rawBytes": 113463,
+    "gzipBytes": 11568,
+    "rawSha256": "db6e55ef2ede1f0d89682c51a77549737618fa555c714a767c6828928ffdbf09",
+    "gzipSha256": "3af13dd3436c1035f36114e302ffd1ecd76518297a8e2f659d59b1bbb0a552cb"
+  },
+  {
+    "path": "runs/continents-17-swap-12.json.gz",
+    "rawBytes": 32387,
+    "gzipBytes": 5364,
+    "rawSha256": "14187466e253e8005e4f2e205843fe1781d8a7232677ce4a80f3ba4d18256f58",
+    "gzipSha256": "a2e1dfc09d0273784107952ebdb93c68cd6a71420680e9b4993fab646d5f376e"
+  },
+  {
+    "path": "runs/continents-17-swap-64.json.gz",
+    "rawBytes": 93776,
+    "gzipBytes": 9933,
+    "rawSha256": "f9ce606b3cbb5c32980eb0f01cdb8e898a171eaf81fa867067a12a84f1844ee4",
+    "gzipSha256": "8348db38d1eac3cf94b6e5cd7e608b92c94cc110b808589689514ffc2b8de3b4"
+  },
+  {
+    "path": "runs/continents-211-normal-12.json.gz",
+    "rawBytes": 84693,
+    "gzipBytes": 9304,
+    "rawSha256": "88cb746853d07e0f9c2c0f22bd1ed3682236b94f5e581c9b0eb6d3c5aeded14f",
+    "gzipSha256": "182c49f9c4b040d813333f55572c1b36fa9e3ae961e0eec1837476c2e2f1d18b"
+  },
+  {
+    "path": "runs/continents-211-normal-64.json.gz",
+    "rawBytes": 120435,
+    "gzipBytes": 11639,
+    "rawSha256": "25d0dbcf3b75f0ebdf64e8d55466fd6de50f269b50d4c5270b3d4f5e024e5798",
+    "gzipSha256": "c08b5792ffe75432bfb8d818655358f65aa347b09de5396013af7b16279f3867"
+  },
+  {
+    "path": "runs/continents-211-swap-12.json.gz",
+    "rawBytes": 91682,
+    "gzipBytes": 9839,
+    "rawSha256": "9e1e522f07396c947120ffe4aaf87c101637825b21e4c4b20388abcbdb26c9d2",
+    "gzipSha256": "63294541c8d72050de688cd230bd7c2c9e947e39658e0d2cb85f890a1537a71e"
+  },
+  {
+    "path": "runs/continents-211-swap-64.json.gz",
+    "rawBytes": 122367,
+    "gzipBytes": 12338,
+    "rawSha256": "100e49830dcf26a46f8a2f699794db1195d783e2a2ce2d1a8f84c4084b661209",
+    "gzipSha256": "f07a4d7edab6ba1d8755bc1cb8941271e0e6965287cee638f957a55efc433c0d"
+  },
+  {
+    "path": "runs/continents-83-normal-12.json.gz",
+    "rawBytes": 29640,
+    "gzipBytes": 5353,
+    "rawSha256": "af7ee700d41797ec29c4c0aee58a4b767eaeb8006c11e1e62488d2fa81843a7c",
+    "gzipSha256": "99157ab6831170887d6240227d7724e0030424f690f478acd3e7a543802e7c5c"
+  },
+  {
+    "path": "runs/continents-83-normal-64-near.json.gz",
+    "rawBytes": 38475,
+    "gzipBytes": 5487,
+    "rawSha256": "e03411ea1f111596bff368f2ab0ba484bb11e7bb920daaa72bcee9fcbbb7bf9c",
+    "gzipSha256": "0ad59d27cd2000dfb5c3d6233639a9fe871dd49036a989ee37e36917ebb76e78"
+  },
+  {
+    "path": "runs/continents-83-normal-64.json.gz",
+    "rawBytes": 128363,
+    "gzipBytes": 12290,
+    "rawSha256": "fb7be4fc0fac4267bec7c2b6b33b19c22a66ba209c80b37522bbd882ef1decda",
+    "gzipSha256": "9350542f0c4e7f22b951f33f60ba3da95dc4e5eb5b1c2e32dd2ce5b2c86d53d5"
+  },
+  {
+    "path": "runs/continents-83-swap-12.json.gz",
+    "rawBytes": 28067,
+    "gzipBytes": 5229,
+    "rawSha256": "3f9fdc5af38feeeea086a19996d78db51472d5ab525167c6112114eee7b176bc",
+    "gzipSha256": "9f6d49af1cb924070a7e67a926123c72683cbfcbcbdaaf9a5c274fbb04dad5a7"
+  },
+  {
+    "path": "runs/continents-83-swap-64-near.json.gz",
+    "rawBytes": 39066,
+    "gzipBytes": 5577,
+    "rawSha256": "b1c27df84f08219cddf4c15dd127739132064b3703151d20f2b389881f22e4f8",
+    "gzipSha256": "cb707d4c90971b93e05158de22b37265e765e003cc815277cfd45e37d1890a3f"
+  },
+  {
+    "path": "runs/continents-83-swap-64.json.gz",
+    "rawBytes": 123829,
+    "gzipBytes": 11908,
+    "rawSha256": "92359308f9654a885e2a848a96ecc71d2ec37d8e2ef8cbc555e24a63c7f0485d",
+    "gzipSha256": "67b0ad87bb6ae9ab933c6795a860cdb96ca19c2a247297bee02cad3195436bf5"
+  },
+  {
+    "path": "runs/islands-17-normal-12.json.gz",
+    "rawBytes": 27969,
+    "gzipBytes": 4810,
+    "rawSha256": "de66680206d65ab715bd1b6b22c446c8748dc6ac3414f7e5a494e1f59f47648b",
+    "gzipSha256": "ec3d8a693fdb42ba1b24cb63d6bc04d07baa2c98a40f9e8016272047219746d5"
+  },
+  {
+    "path": "runs/islands-17-normal-64.json.gz",
+    "rawBytes": 177712,
+    "gzipBytes": 14157,
+    "rawSha256": "5204719549241695691f029ea844b019d04fc4a03c7184bc1cbbee251276c839",
+    "gzipSha256": "04dcddf41cd8b6843febfec6c79232100b9af14806d39fa0b557b8f86ecb866c"
+  },
+  {
+    "path": "runs/islands-17-swap-12.json.gz",
+    "rawBytes": 29314,
+    "gzipBytes": 4839,
+    "rawSha256": "8b25023eac38f2f32b38fb6573e2d92be274d0f98ab5af12f90c18274f789e8f",
+    "gzipSha256": "48935b6a279e48dc45deaa5abfb819192066ceea1923dcd4424b7e561388706b"
+  },
+  {
+    "path": "runs/islands-17-swap-64.json.gz",
+    "rawBytes": 171096,
+    "gzipBytes": 13745,
+    "rawSha256": "cd8ef8278b2a3f7211206501f4a9676fc43ff67fc902755ddcd59ba9582a9f2e",
+    "gzipSha256": "be9a8a2c0ed4f4211a8c917dd955fbda42267749f1c38d9b32393867b33893f2"
+  },
+  {
+    "path": "runs/islands-211-normal-12.json.gz",
+    "rawBytes": 58221,
+    "gzipBytes": 7014,
+    "rawSha256": "0fef12756456578ae5c332c4f1f2bbba60ee18f29ac1bae1caf0b40b9402b9ab",
+    "gzipSha256": "7049024ed795090d310f1fa3c5e55121555e9d9dacd217f2594e09ca9897cbe2"
+  },
+  {
+    "path": "runs/islands-211-normal-64.json.gz",
+    "rawBytes": 137873,
+    "gzipBytes": 12827,
+    "rawSha256": "2abae0a7e4f2414bb7970971c070c0c9a5f282a112dc61a8d4a066da3722041b",
+    "gzipSha256": "34873cce22eee6ad86450155fb52262500f6e6583d173afafeb3309cbf5ef96a"
+  },
+  {
+    "path": "runs/islands-211-swap-12.json.gz",
+    "rawBytes": 58497,
+    "gzipBytes": 7051,
+    "rawSha256": "f59939e18167354f8612ab038389ea5bf858e8c5393b44dff357ecb1df970d64",
+    "gzipSha256": "95a983168f39df05e12f94e1073556a00f9fa0eba18ba4df09a517b405c2e276"
+  },
+  {
+    "path": "runs/islands-211-swap-64.json.gz",
+    "rawBytes": 137017,
+    "gzipBytes": 12686,
+    "rawSha256": "90f1cbd5fa3678f63b494ac0835c0e69f435452c8a55cc1bc501a481d124fabf",
+    "gzipSha256": "5aed719de4a0e55c11daf77b0d1491608e44a02aff314195d83747054628dbd5"
+  },
+  {
+    "path": "runs/islands-83-normal-12.json.gz",
+    "rawBytes": 71846,
+    "gzipBytes": 7853,
+    "rawSha256": "63897aa7937fbe2b86798db0900c7ff81514ef6117bd53075da69801be268bb7",
+    "gzipSha256": "be4748714cf08aabe7fbbbb76f984e255dbc2982071668256c0d0be804a54372"
+  },
+  {
+    "path": "runs/islands-83-normal-64-near.json.gz",
+    "rawBytes": 40387,
+    "gzipBytes": 5412,
+    "rawSha256": "cabcd7e53ab5f1095d3dba361b39b145c5e62e60be975d36f587801282ea019c",
+    "gzipSha256": "858a129026329d8f2384db3fe1152e4be809e9df8cad591e19dcd2fa934fe71e"
+  },
+  {
+    "path": "runs/islands-83-normal-64.json.gz",
+    "rawBytes": 143066,
+    "gzipBytes": 12785,
+    "rawSha256": "2be4faf1959d760fa8968e42cd982765dae9ff0ce53b759b8b7e9e7ce7c08235",
+    "gzipSha256": "24d45e160d9a80ad646974958fec87e0e5123aa170ecad67b83462a5aeb2a45a"
+  },
+  {
+    "path": "runs/islands-83-swap-12.json.gz",
+    "rawBytes": 71011,
+    "gzipBytes": 7788,
+    "rawSha256": "f9fac686955bb6d484b6469778d8e816372b854ae3ae20152dbb33f419dda905",
+    "gzipSha256": "a2bd47c414b30549be09a033989b8c29088d9b764ac5cdc3d4765ce1c254ee63"
+  },
+  {
+    "path": "runs/islands-83-swap-64-near.json.gz",
+    "rawBytes": 37311,
+    "gzipBytes": 5349,
+    "rawSha256": "264c29b5224a018fe52152b2fc00b6109a6cedd71205b66acfa6d270a5219548",
+    "gzipSha256": "d7c919eae1219c7a66c058c190f0b4ac6831e2051c20355f464e66d7ac059273"
+  },
+  {
+    "path": "runs/islands-83-swap-64.json.gz",
+    "rawBytes": 133617,
+    "gzipBytes": 12043,
+    "rawSha256": "5218a77f8b132920c9c0b9778ed6bf764041dfdc4a07e0c4fbd26283536600fd",
+    "gzipSha256": "d489fbf263bbaf1a79b21ff887d531fe43197927d2629a3f83e5e63b3472f108"
+  }
+]
