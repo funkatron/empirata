@@ -1,4 +1,4 @@
-import {drawCity,drawTerrain,drawUnit} from './map-art.js';
+import {drawCity,drawCoast,drawTerrain,drawUnit} from './map-art.js';
 import {endgameModal} from './endgame.js';
 import {advanceLabRound,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,makeCampaignMap,
   moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
@@ -141,18 +141,26 @@ function paint():void {
     stack.push(unit);
     unitsByCell.set(index,stack);
   }
+  const neighbors=[[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]] as const;
+  const cellAt=(x:number,y:number)=>x>=0&&x<view.width&&y>=0&&y<view.height?view.cells[y*view.width+x]:undefined;
+  const fitSize=Math.min(w/view.width,h/view.height);
+  const fitWeight=Math.max(0,Math.min(1,(Math.max(30,fitSize+8)-tileSize)/(Math.max(30,fitSize+8)-fitSize)));
+  for(let y=sy;y<ey;y++)for(let x=sx;x<ex;x++){
+    const c=view.cells[y*view.width+x]!;
+    const px=x*tileSize-cameraX,py=y*tileSize-cameraY;
+    const seaAt=(dx:number,dy:number)=>cellAt(x+dx,y+dy)?.terrain==='sea';
+    drawTerrain(ctx,c.terrain,px,py,tileSize,x,y);
+    if(c.terrain==='land')drawCoast(ctx,px,py,tileSize,seaAt(0,-1),seaAt(1,0),seaAt(0,1),seaAt(-1,0));
+    if(c.terrain!==null&&!c.visible){ctx.fillStyle='rgba(3,13,22,.52)';ctx.fillRect(px,py,tileSize,tileSize);}
+    if(tileSize>=9){ctx.strokeStyle='rgba(120,159,166,.12)';ctx.lineWidth=.65;ctx.strokeRect(px+.3,py+.3,tileSize-.6,tileSize-.6);}
+  }
+  // Paint symbols after terrain so a large icon can cross its tile edge.
   for(let y=sy;y<ey;y++)for(let x=sx;x<ex;x++){
     const i=y*view.width+x,c=view.cells[i]!;
     const px=x*tileSize-cameraX,py=y*tileSize-cameraY;
     const stack=unitsByCell.get(i);
-    drawTerrain(ctx,c.terrain,px,py,tileSize,x,y);
-    if(c.terrain!==null&&!c.visible){ctx.fillStyle='rgba(3,13,22,.52)';ctx.fillRect(px,py,tileSize,tileSize);}
-    if(tileSize>=9){ctx.strokeStyle='rgba(120,159,166,.12)';ctx.lineWidth=.65;ctx.strokeRect(px+.3,py+.3,tileSize-.6,tileSize-.6);}
     if(c.city){
-      const coastal=[[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]].some(([dx,dy])=>{
-        const nx=x+dx!,ny=y+dy!;
-        return nx>=0&&nx<view.width&&ny>=0&&ny<view.height&&view.cells[ny*view.width+nx]?.terrain==='sea';
-      });
+      const coastal=neighbors.some(([dx,dy])=>cellAt(x+dx,y+dy)?.terrain==='sea');
       const size=tileSize*(stack ? .44 : .74);
       const offset=tileSize*(stack ? .04 : .13);
       drawCity(ctx,coastal,px+offset,py+offset,size,colors[c.city.owner??'neutral']);
@@ -163,8 +171,13 @@ function paint():void {
     if(!stack)continue;
     const u=stack.find(unit=>unit.id===selectedUnit||unit.id===spectatorContact)??stack.filter(unit=>!unit.stale).at(-1)??stack[stack.length-1]!;
     ctx.globalAlpha=u.stale?.48:1;
-    const offset=tileSize*(c.city?.28:.09);
-    drawUnit(ctx,u.kind,px+offset,py+offset,tileSize*(c.city?.66:.82),colors[u.owner],!u.stale&&u.owner===observer&&loadedShips.has(u.id));
+    const isolated=fitWeight>0&&stack.length===1&&neighbors.every(([dx,dy])=>{
+      const cell=cellAt(x+dx,y+dy);
+      return cell?.terrain===c.terrain&&!cell?.city&&!unitsByCell.has((y+dy)*view.width+x+dx);
+    });
+    const scale=c.city?.66:.82+fitWeight*(isolated?.28:.18);
+    const offset=tileSize*(c.city?.28:(1-scale)/2);
+    drawUnit(ctx,u.kind,px+offset,py+offset,tileSize*scale,colors[u.owner],!u.stale&&u.owner===observer&&loadedShips.has(u.id));
     ctx.globalAlpha=1;
     const count=stack.filter(unit=>!unit.stale).length;
     if(count>1&&tileSize>=20){
