@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "status": "ready-for-screening",
+  "baselineSha": "bc3b729649bf962a05cf3ad17d9b1603d6fbfc43",
+  "candidateSha": "3e3ef1038f64f7dc3493139044e68ee971f7e4f1",
+  "roundLimit": 300,
+  "cityCount": 12,
+  "mapSeeds": [
+    104729,
+    130363
+  ],
+  "combatSeeds": [
+    32452843,
+    49979687
+  ],
+  "layouts": [
+    "continents",
+    "islands",
+    "archipelago"
+  ],
+  "candidateLocations": [
+    "A",
+    "B"
+  ],
+  "candidateFactions": [
+    "blue",
+    "red"
+  ],
+  "candidateCampaigns": 48,
+  "baselineControlCampaigns": 24,
+  "holdoutStatus": "Audited 2026-11-07: map seeds 104729 and 130363 are disjoint from strategy-baseline seeds 17/83/211; see held-out-manifest-audit.json.",
+  "requirements": [
+    "Generate initial terrain and cities with the baseline generator and freeze initial states before evaluation.",
+    "Select each faction policy independently in one shared engine; do not run two copies of the same policy and label that a comparison.",
+    "Separate map generation RNG from combat RNG; reset combat RNG after map generation.",
+    "Treat candidate location and candidate faction as independent factors; preserve blue-first turn order and record its confounding with faction.",
+    "Record both policy SHAs, engine SHA, generator SHA, initial-state hash, seed, Node version, metric definitions and terminal status.",
+    "Reject missing metadata, duplicate jobs and mismatched terrain across paired starts.",
+    "Report timeouts and incomplete campaigns explicitly; do not count them as draws or completed 300-round observations."
+  ]
+}
