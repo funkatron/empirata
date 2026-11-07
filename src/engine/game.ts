@@ -993,10 +993,15 @@ export function planAiNavalScoutStep(view:ReturnType<typeof getPlayerView>,ship:
       if(x<=0||y<=0||x>=width-1||y>=height-1)continue;
       if(cells[y*width+x]?.terrain===null)unknown++;
     }
+    // Stale contacts remain hypotheses, not known targets. Give nearby
+    // unexplored frontiers a bounded bonus, without routing toward hidden map data.
     const stale=view.enemies.filter(e=>e.stale&&e.kind!=='submarine'&&
       Math.max(Math.abs(e.position.x-p.x),Math.abs(e.position.y-p.y))<=1).length;
+    const nearby=unknown>0?view.enemies.filter(e=>e.stale&&e.kind!=='submarine'&&
+      Math.max(Math.abs(e.position.x-p.x),Math.abs(e.position.y-p.y))>1&&
+      Math.max(Math.abs(e.position.x-p.x),Math.abs(e.position.y-p.y))<=4).length:0;
     if(here!==start&&(unknown>0||stale>0)){
-      const score=(unknown+stale*4)/(steps+1);
+      const score=(unknown+stale*4+Math.min(nearby,2))/(steps+1);
       if(score>bestScore){best=here;bestScore=score;}
     }
     for(const d of directions){
@@ -1034,10 +1039,15 @@ export function planAiGroundScoutStep(view:ReturnType<typeof getPlayerView>,ship
       if(x<=0||y<=0||x>=width-1||y>=height-1)continue;
       if(cells[y*width+x]?.terrain===null)unknown++;
     }
+    // Stale contacts remain hypotheses, not known targets. Give nearby
+    // unexplored frontiers a bounded bonus, without routing toward hidden map data.
     const stale=view.enemies.filter(e=>e.stale&&e.kind!=='submarine'&&
       Math.max(Math.abs(e.position.x-p.x),Math.abs(e.position.y-p.y))<=1).length;
+    const nearby=unknown>0?view.enemies.filter(e=>e.stale&&e.kind!=='submarine'&&
+      Math.max(Math.abs(e.position.x-p.x),Math.abs(e.position.y-p.y))>1&&
+      Math.max(Math.abs(e.position.x-p.x),Math.abs(e.position.y-p.y))<=4).length:0;
     if(here!==start&&(unknown>0||stale>0)){
-      const score=(unknown+stale*4)/(steps+1);
+      const score=(unknown+stale*4+Math.min(nearby,2))/(steps+1);
       if(score>bestScore){best=here;bestScore=score;}
     }
     for(const d of directions){
