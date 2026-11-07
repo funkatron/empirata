@@ -1,0 +1,62 @@
+name: Held-out reconnaissance evaluation
+on:
+  pull_request:
+    paths:
+      - 'scripts/held-out-*.mjs'
+      - 'scripts/run-held-out.mjs'
+      - 'tests/held-out-evaluation.test.mjs'
+      - 'agents/evaluation/**'
+      - '.github/workflows/held-out-reconnaissance.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+      - run: node --test tests/held-out-evaluation.test.mjs
+  campaigns:
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        layout: [continents, islands, archipelago]
+        seed: [104729, 130363]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build pinned revisions
+        shell: bash
+        run: |
+          BASELINE_SHA=$(node -p "JSON.parse(require('fs').readFileSync('agents/evaluation/held-out-reconnaissance.json')).baselineSha")
+          CANDIDATE_SHA=$(node -p "JSON.parse(require('fs').readFileSync('agents/evaluation/held-out-reconnaissance.json')).candidateSha")
+          git worktree add /tmp/empirata-baseline "$BASELINE_SHA"
+          git worktree add /tmp/empirata-candidate "$CANDIDATE_SHA"
+          for directory in /tmp/empirata-baseline /tmp/empirata-candidate; do
+            (cd "$directory" && npm install --no-audit --no-fund && npm run build)
+          done
+      - name: Run balanced campaign shard
+        env:
+          MAP_LAYOUT: ${{ matrix.layout }}
+          MAP_SEED: ${{ matrix.seed }}
+        run: node scripts/run-held-out.mjs /tmp/empirata-baseline /tmp/empirata-candidate
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: held-out-${{ matrix.layout }}-${{ matrix.seed }}-${{ github.sha }}
+          path: held-out-results/
+          if-no-files-found: error
+          retention-days: 30
