@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "heldMapSeeds": [
+    104729,
+    130363
+  ],
+  "heldLayouts": [
+    "continents",
+    "islands",
+    "archipelago"
+  ],
+  "baselineSeeds": [
+    17,
+    83,
+    211
+  ],
+  "baselineLayouts": [
+    "archipelago",
+    "continents",
+    "islands"
+  ],
+  "overlapWithBaselineManifest": [],
+  "otherEvaluationJsonReferences": [],
+  "cleared": true,
+  "recommendation": "Map seeds 104729 and 130363 are not used in the 42-campaign baseline manifest; treat as screening holdout, not optimization fixtures."
+}

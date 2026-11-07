@@ -27,7 +27,7 @@ Report paired differences within map, combat seed, starting location and faction
 - [x] Pin baseline and candidate revisions
 - [x] Specify independent map/combat seeds and balanced placements
 - [x] Identify limitations in existing runner
-- [ ] Audit proposed maps against historical manifests (required before merge)
+- [x] Audit proposed maps against historical manifests (`scripts/audit-held-out-manifest.mjs`, `held-out-manifest-audit.json`)
 - [x] Implement per-faction policy selection with shared rules engine
 - [x] Freeze initial states and emit complete reproducibility metadata
 - [x] Add manifest validation and grouped reporting (`tests/held-out-evaluation.test.mjs`)
@@ -37,4 +37,4 @@ Report paired differences within map, combat seed, starting location and faction
 - [ ] Add per-action transport metrics where still marked unavailable in reports
 - [ ] Review CI and any Copilot feedback before merge
 
-No application version change, merge, or deployment is included until the draft PR is explicitly marked ready.
+Pinned **baseline** `bc3b729` (pre–scout frontier) vs **candidate** `3e3ef10` (#51). Screening only: transport-loss and cargo-idle metrics remain explicitly unavailable in reports.

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "status": "proposed-not-executed",
+  "status": "ready-for-screening",
   "baselineSha": "bc3b729649bf962a05cf3ad17d9b1603d6fbfc43",
-  "candidateSha": "96140e6c8ec789fa739f0e470bb3a8ef636fcb1f",
+  "candidateSha": "3e3ef1038f64f7dc3493139044e68ee971f7e4f1",
   "roundLimit": 300,
   "cityCount": 12,
   "mapSeeds": [
@@ -28,7 +28,7 @@
   ],
   "candidateCampaigns": 48,
   "baselineControlCampaigns": 24,
-  "holdoutStatus": "Proposed seeds; audit previous manifests before treating these maps as held out.",
+  "holdoutStatus": "Audited 2026-11-07: map seeds 104729 and 130363 are disjoint from strategy-baseline seeds 17/83/211; see held-out-manifest-audit.json.",
   "requirements": [
     "Generate initial terrain and cities with the baseline generator and freeze initial states before evaluation.",
     "Select each faction policy independently in one shared engine; do not run two copies of the same policy and label that a comparison.",
