@@ -38,7 +38,7 @@ jobs:
       - name: Compare matched campaigns
         working-directory: candidate
         env:
-          RECON_ROUNDS: '60'
+          RECON_ROUNDS: '180'
         run: node scripts/compare-reconnaissance.mjs ../baseline/dist/engine/index.js dist/engine/index.js
       - name: Upload comparative report
         if: always()
