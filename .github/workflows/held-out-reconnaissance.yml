@@ -5,7 +5,7 @@ on:
       - 'scripts/held-out-*.mjs'
       - 'scripts/run-held-out.mjs'
       - 'tests/held-out-evaluation.test.mjs'
-      - 'agents/evaluation/**'
+      - 'agents/evaluation/*.json'
       - '.github/workflows/held-out-reconnaissance.yml'
   workflow_dispatch:
 permissions:
