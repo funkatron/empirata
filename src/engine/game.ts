@@ -1162,12 +1162,12 @@ export function planAiReconLandingSquare(view:ReturnType<typeof getPlayerView>,s
 
 /** Fuel-safe aerial reconnaissance over faction-known obstacles. Return distances
  * are actual air routes to owned cities/carriers, not hidden-map estimates. */
-export function planAiFighterStep(view:ReturnType<typeof getPlayerView>,fighter:Unit):Coord|null {
-  if(fighter.kind!=='fighter')return null;
+function planAiFighter(view:ReturnType<typeof getPlayerView>,fighter:Unit):{next:Coord|null;rebase?:string|undefined} {
+  if(fighter.kind!=='fighter')return {next:null};
   const key=(p:Coord)=>p.y*view.width+p.x;
   const bases=[...view.ownCities.map(c=>c.position),...view.ownUnits.filter(u=>u.kind==='carrier'&&(fighter.aboard===u.id||
     view.ownUnits.filter(c=>c.aboard===u.id).length<(capacity(u)??0))).map(u=>u.position)];
-  if(!bases.length)return null;
+  if(!bases.length)return {next:null};
   const baseKeys=new Set(bases.map(key));
   const blocked=new Set(view.ownUnits.filter(u=>!u.aboard&&u.id!==fighter.id&&!baseKeys.has(key(u.position))).map(u=>key(u.position)));
   for(const enemy of view.enemies)if(!enemy.stale)blocked.add(key(enemy.position));
@@ -1200,6 +1200,14 @@ export function planAiFighterStep(view:ReturnType<typeof getPlayerView>,fighter:
       depth.set(next,steps+1);parent.set(next,k);paths.push(p);
     }
   }
+  let rebase:string|undefined;
+  const assigned=view.ownCities.find(c=>c.id===fighter.aiReconBase);
+  const assignedKey=assigned?key(assigned.position):undefined;
+  if(assignedKey!==undefined&&assignedKey!==start&&
+    depth.has(assignedKey)&&depth.get(assignedKey)!+2<=fuel){
+    // Finish a planned city-to-city transfer before resuming local sorties.
+    best=assignedKey;rebase=assigned!.id;
+  }
   if(best===undefined&&!returning){
     // Prefer bases near remembered enemies, then remaining unexplored terrain.
     // Intermediate friendly cities let idle scouts relocate over several legs.
@@ -1218,13 +1226,17 @@ export function planAiFighterStep(view:ReturnType<typeof getPlayerView>,fighter:
       if(destination===start||steps===undefined||steps+2>fuel)continue;
       const nextDistance=distance(city.position,goal.position);
       if(nextDistance<remaining||nextDistance===remaining&&steps<travel&&best!==undefined){
-        remaining=nextDistance;travel=steps;best=destination;
+        remaining=nextDistance;travel=steps;best=destination;rebase=city.id;
       }
     }
   }
-  if(best===undefined)return null;
-  let next=best;while(parent.get(next)!==start){const previous=parent.get(next);if(previous===undefined)return null;next=previous;}
-  return {x:next%view.width,y:Math.floor(next/view.width)};
+  if(best===undefined)return {next:null};
+  let next=best;while(parent.get(next)!==start){const previous=parent.get(next);if(previous===undefined)return {next:null};next=previous;}
+  return {next:{x:next%view.width,y:Math.floor(next/view.width)},rebase};
+}
+
+export function planAiFighterStep(view:ReturnType<typeof getPlayerView>,fighter:Unit):Coord|null {
+  return planAiFighter(view,fighter).next;
 }
 
 export function playAiOpponent(game:Game,faction:FactionId):Game {
@@ -1407,8 +1419,14 @@ export function playAiOpponent(game:Game,faction:FactionId):Game {
         try{g=aiMove(g,id,intercept);if(attacking)break;continue;}catch{break;}
       }
       if(unit.kind==='fighter'){
-        const next=planAiFighterStep(view,unit);if(!next)break;
-        try{g=aiMove(g,id,next);continue;}catch{break;}
+        const plan=planAiFighter(view,unit);
+        if(unit.aiReconBase!==plan.rebase){
+          g=clone(g);
+          const actual=g.units.find(u=>u.id===id)!;
+          if(plan.rebase)actual.aiReconBase=plan.rebase;else delete actual.aiReconBase;
+        }
+        if(!plan.next)break;
+        try{g=aiMove(g,id,plan.next);continue;}catch{break;}
       }
       // Initial carrier role: remain a safe refueling station. Moving naval air
       // groups require the subsequent carrier/patrol coordination milestone.
@@ -1447,7 +1465,19 @@ export function playAiOpponent(game:Game,faction:FactionId):Game {
         }
       }
       if(unit.kind==='transport'&&view.ownUnits.some(u=>u.aboard===id)){
-        const step=planAiInvasionStep(view,unit);
+        let step=planAiInvasionStep(view,unit);
+        // A fleet with no known city or exploration route returns to supply
+        // instead of holding indefinitely at a remote edge of the chart.
+        if(!step&&!unit.aiObjective&&!planAiReconLandingSquare(view,unit)){
+          const ports=view.ownCities.filter(c=>isCoastal(g,c.position))
+            .sort((a,b)=>distance(a.position,unit.position)-distance(b.position,unit.position)||a.id.localeCompare(b.id));
+          if(ports.some(c=>equal(c.position,unit.position)))break;
+          for(const port of ports){
+            step=routeStep(g,unit,port.position);
+            if(step&&aiTransportThreatened(view,step))step=null;
+            if(step)break;
+          }
+        }
         // Once in landing range, hold station for the next available cargo turn.
         if(!step)break;
         try {g=aiMove(g,id,step);continue;}

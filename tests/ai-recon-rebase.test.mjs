@@ -66,3 +66,37 @@ test('Ground and naval scouts investigate remembered contacts on charted terrain
     assert.equal(plan(view,fighter),null);
   }
 });
+
+test('AI completes a long transfer, survives, and resumes scouting after save/reload',async()=>{
+  const {playAiOpponent,endTurn,emptyKnowledge,updateAllKnowledge,exportSave,importSave}=await import('../dist/engine/index.js');
+  let game=makeRulesLab();
+  game.tiles.fill('land');
+  const original=game.units[0];
+  game.cities=[
+    {id:'home',owner:'blue',position:{x:30,y:30},production:'army',progress:0,firstCycle:false},
+    {id:'forward',owner:'blue',position:{x:14,y:30},production:'army',progress:0,firstCycle:false},
+    {id:'red-home',owner:'red',position:{x:80,y:40},production:'army',progress:0,firstCycle:false},
+  ];
+  game.units=[
+    {...structuredClone(original),id:'air',owner:'blue',kind:'fighter',position:{x:30,y:30},aboard:null,fuel:20},
+    ...game.cities.filter(c=>c.owner==='blue').map(c=>({...structuredClone(original),id:c.id+'-guard',owner:'blue',kind:'army',position:c.position,aboard:null,fuel:null})),
+  ];
+  game.knowledge.blue=emptyKnowledge(game);
+  game.knowledge.blue.terrain=[...game.tiles];
+  for(let y=28;y<=32;y++)for(let x=5;x<=8;x++)game.knowledge.blue.terrain[y*game.width+x]=null;
+  updateAllKnowledge(game);
+  const unknown=getPlayerView(game,'blue').cells.filter(c=>c.terrain===null).length;
+  let arrived=false;
+  for(let turn=0;turn<10;turn++){
+    const previous=game.units.find(u=>u.id==='air');
+    const replay=importSave(exportSave(game));
+    const acted=playAiOpponent(game,'blue');
+    assert.deepEqual(acted,playAiOpponent(replay,'blue'));
+    const air=acted.units.find(u=>u.id==='air');
+    assert.ok(air,'Assigned aircraft survives its transfer and sorties');
+    if(previous.aiReconBase==='forward'&&air.fuel>previous.fuel)arrived=true;
+    game=endTurn(endTurn(acted));
+  }
+  assert.ok(arrived,'Aircraft refuels at the forward city');
+  assert.ok(getPlayerView(game,'blue').cells.filter(c=>c.terrain===null).length<unknown);
+});
