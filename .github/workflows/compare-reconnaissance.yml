@@ -1,0 +1,50 @@
+name: Compare reconnaissance AI
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'src/engine/**'
+      - 'scripts/compare-reconnaissance.mjs'
+      - '.github/workflows/compare-reconnaissance.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          path: candidate
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build candidate
+        working-directory: candidate
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Build pinned PR 50 baseline
+        run: |
+          git clone --no-checkout --shared candidate baseline
+          git -C baseline checkout bc3b729649bf962a05cf3ad17d9b1603d6fbfc43
+          cd baseline
+          npm ci --no-audit --no-fund
+          npm run build
+      - name: Compare matched campaigns
+        working-directory: candidate
+        env:
+          RECON_ROUNDS: '60'
+        run: node scripts/compare-reconnaissance.mjs ../baseline/dist/engine/index.js dist/engine/index.js
+      - name: Upload comparative report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reconnaissance-comparison-${{ github.sha }}
+          path: candidate/recon-results/
+          if-no-files-found: warn
+          retention-days: 21
