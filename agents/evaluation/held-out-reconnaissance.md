@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Compare the PR 51 reconnaissance candidate with its frozen parent without changing gameplay rules. The adjacent JSON is a proposed protocol, not an executable runner or completed experiment. No strength claim is supported yet.
+Compare the PR 51 reconnaissance candidate with its frozen parent without changing gameplay rules. The adjacent JSON defines the protocol; `scripts/run-held-out.mjs` implements the runner. No strength claim is supported until manifests are audited and results reviewed.
 
 ## Current gap
 
@@ -27,12 +27,14 @@ Report paired differences within map, combat seed, starting location and faction
 - [x] Pin baseline and candidate revisions
 - [x] Specify independent map/combat seeds and balanced placements
 - [x] Identify limitations in existing runner
-- [ ] Audit proposed maps against historical manifests
-- [ ] Implement per-faction policy selection with shared rules engine
-- [ ] Freeze initial states and emit complete reproducibility metadata
-- [ ] Add manifest validation and grouped reporting
-- [ ] Verify paired-state identity and deterministic replay
-- [ ] Run comparisons on GitHub Actions and retain raw artifacts
+- [ ] Audit proposed maps against historical manifests (required before merge)
+- [x] Implement per-faction policy selection with shared rules engine
+- [x] Freeze initial states and emit complete reproducibility metadata
+- [x] Add manifest validation and grouped reporting (`tests/held-out-evaluation.test.mjs`)
+- [x] Verify paired-state identity and deterministic replay (focused tests)
+- [x] Run comparisons on GitHub Actions and retain raw artifacts (`.github/workflows/held-out-reconnaissance.yml`)
+- [ ] Re-run held-out workflow after each rebase onto `main`; review shard artifacts
+- [ ] Add per-action transport metrics where still marked unavailable in reports
 - [ ] Review CI and any Copilot feedback before merge
 
-No application version change, merge, or deployment is included.
+No application version change, merge, or deployment is included until the draft PR is explicitly marked ready.
