@@ -126,3 +126,27 @@ No implementation, merge, or deployment is implied by completing this worksheet.
 
 ## Dependencies and next action
 G1 and U2 are safe to investigate while replay PR #53/#54 is pending. G2 depends on G1; G3 depends on G2; U1 can proceed independently. Next step is **inventory and screenshots**, then fill in exact module names and asset dimensions rather than guessing them. Keep this document updated when decisions change; link implementation PRs back here and to #55.
+
+
+## G1 source inventory (verified against main `3e3ef1038f64f7dc3493139044e68ee971f7e4f1`)
+
+| Concern | Source and observed implementation |
+|---|---|
+| Engine terrain | `src/engine/types.ts`: `Terrain = 'land' | 'sea'`; unexplored player-view terrain is `null`. No additional terrain enum is established. |
+| Unit classes | `src/engine/types.ts`: army, fighter, destroyer, transport, submarine, cruiser, carrier, battleship (8). |
+| Terrain art | `src/ui/map-art.ts`: procedural 32×32 canvas stamps, four deterministic variants each for land and sea, drawn with `drawImage` at current tile size plus 0.25 px. Coast edges are vector strokes and corner bevels. |
+| Unit/city art | `src/ui/map-art.ts`: eight `Path2D` unit silhouettes in a 24-unit coordinate system; city and harbor `Path2D` symbols. Stroke plus fill, scaled by `size/24`. No external sprite atlas is used in this path. |
+| Render entry and ordering | `src/ui/main.ts` `paint()`: terrain → coast → explored fog overlay → grid → city → one representative unit per occupied cell → stack count → selection outline. Stale contacts use reduced alpha and a raster compositing layer in `map-art.ts`. |
+| Canvas and DPR | `src/ui/main.ts` `resize()`: backing dimensions use `floor(client dimension × devicePixelRatio)`, transform set to DPR. No explicit `imageSmoothingEnabled` assignment found in these two inspected modules; verify browser defaults and behavior experimentally. |
+| Zoom | `src/ui/main.ts`: initial tile size 30 CSS px; `zoom()` clamps to world-fit minimum and 45 CSS px maximum; `fitWorld()` fits 100×60 world to canvas. Icons already scale up at overview via `fitWeight`, with isolated units receiving a larger adjustment. This is existing behavior, not a proposed new feature. |
+| City/stack layout | `paint()`: city icon size .44 tile when stacked, .74 otherwise; unit scale .66 on city or .82 plus overview adjustment elsewhere. Counts are drawn only at tile size ≥20. |
+| Hit-testing | `src/ui/main.ts` `cellFromPointer()`: floor of pointer CSS coordinates plus camera offset divided by tile size. Hitbox is grid cell, independent of icon overhang. |
+| Existing stack selector | `src/ui/main.ts` `showCityStack()`: already provides a city-first dialog with unit choices. Further U1 work must audit gaps rather than reimplement this feature. |
+
+### G1 findings and bounded first candidate
+
+**Observed:** terrain is a raster 32×32 stamp but unit/city silhouettes are vector paths. Therefore nearest-neighbor sampling alone cannot guarantee sharp pixel-art edges for all elements. Fractional tile coordinates, vector scaling, coastline strokes, and `size+.25` terrain overlap need separate visual inspection before any change.
+
+**Candidate G2 hypothesis (not yet validated):** controlling raster sampling and pixel alignment at integer zoom factors may improve terrain sharpness without changing game logic. **Do not** globally disable smoothing or snap all positions before screenshot A/B: vector outlines and fractional full-map fit may degrade. First capture the current state at fit, normal, and maximum zoom; then isolate one rendering adjustment and compare.
+
+**Remaining unknowns:** screenshots on desktop/iPad and DPR 1/2+, actual CSS sizing/resize behavior across devices, attributable DOS references, visual evidence of blur/clipping, and whether a rendering adjustment is warranted. These are not marked complete.
