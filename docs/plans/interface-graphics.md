@@ -150,3 +150,15 @@ G1 and U2 are safe to investigate while replay PR #53/#54 is pending. G2 depends
 **Candidate G2 hypothesis (not yet validated):** controlling raster sampling and pixel alignment at integer zoom factors may improve terrain sharpness without changing game logic. **Do not** globally disable smoothing or snap all positions before screenshot A/B: vector outlines and fractional full-map fit may degrade. First capture the current state at fit, normal, and maximum zoom; then isolate one rendering adjustment and compare.
 
 **Remaining unknowns:** screenshots on desktop/iPad and DPR 1/2+, actual CSS sizing/resize behavior across devices, attributable DOS references, visual evidence of blur/clipping, and whether a rendering adjustment is warranted. These are not marked complete.
+
+## Reusable browser screenshot testing: verified starting point
+
+The repository already contains a real-browser Playwright smoke test at `smoke/observer.mjs`, so a new browser framework is unnecessary. It launches **WebKit**, serves built `dist/` assets through a local ephemeral HTTP server, uses a **1024×1366** viewport, checks observer behavior, and optionally saves `observer-progress-portrait.png` when `EMPIRATA_SCREENSHOT_DIR` is set. `package.json` exposes `npm run test:observer` (build then smoke test). The Playwright module is loaded dynamically, and the smoke-test header explicitly states browser downloads are optional for normal CI. This is confirmed source behavior, **not** evidence that a GitHub Actions screenshot job currently runs.
+
+**Recommended reusable extension, separate from the docs-only G1 packet:**
+1. Add a dedicated opt-in browser capture command that reuses the existing static-server and Playwright approach. Do not run browser downloads in ordinary unit-test CI.
+2. Load a fixed deterministic scenario or saved state, disable animation and wait for stable rendering, and capture minimum/normal/maximum zoom plus a crowded coast/stack scene. Record commit, map seed, viewport, DPR, browser engine, zoom and viewpoint in a JSON manifest alongside PNG files.
+3. Add a manually dispatched GitHub Actions workflow with pinned Node 24 and Playwright/browser versions; upload PNGs and manifest as a retained Actions artifact, including on test failure. Do not assume iPad Safari parity from desktop WebKit; actual iPad touch testing remains separate.
+4. Later use these captures for visual regression review with explicit, reviewed thresholds and masks for nondeterministic UI. Do not make pixel-diff failures a default CI gate until a stable baseline exists.
+
+**Status:** existing WebKit screenshot capability confirmed in source; four-scene zoom capture, workflow, artifact retention, and actual screenshot output **not yet implemented or verified**.
