@@ -993,8 +993,10 @@ export function planAiNavalScoutStep(view:ReturnType<typeof getPlayerView>,ship:
       if(x<=0||y<=0||x>=width-1||y>=height-1)continue;
       if(cells[y*width+x]?.terrain===null)unknown++;
     }
-    if(here!==start&&unknown>0){
-      const score=unknown/(steps+1);
+    const stale=view.enemies.filter(e=>e.stale&&e.kind!=='submarine'&&
+      Math.max(Math.abs(e.position.x-p.x),Math.abs(e.position.y-p.y))<=1).length;
+    if(here!==start&&(unknown>0||stale>0)){
+      const score=(unknown+stale*4)/(steps+1);
       if(score>bestScore){best=here;bestScore=score;}
     }
     for(const d of directions){
@@ -1032,8 +1034,10 @@ export function planAiGroundScoutStep(view:ReturnType<typeof getPlayerView>,ship
       if(x<=0||y<=0||x>=width-1||y>=height-1)continue;
       if(cells[y*width+x]?.terrain===null)unknown++;
     }
-    if(here!==start&&unknown>0){
-      const score=unknown/(steps+1);
+    const stale=view.enemies.filter(e=>e.stale&&e.kind!=='submarine'&&
+      Math.max(Math.abs(e.position.x-p.x),Math.abs(e.position.y-p.y))<=1).length;
+    if(here!==start&&(unknown>0||stale>0)){
+      const score=(unknown+stale*4)/(steps+1);
       if(score>bestScore){best=here;bestScore=score;}
     }
     for(const d of directions){
@@ -1362,6 +1366,7 @@ export function playAiOpponent(game:Game,faction:FactionId):Game {
   const activeUnitIds=g.units.filter(u=>u.owner===faction&&!u.aboard).map(u=>u.id);
   const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
   for(const id of activeUnitIds){
+    let returningToSupply=false;
     for(let step=0;step<5;step++){
       const view=getPlayerView(g,faction);
       const unit=view.ownUnits.find(u=>u.id===id);
@@ -1421,7 +1426,19 @@ export function playAiOpponent(game:Game,faction:FactionId):Game {
         }
       }
       if(unit.kind==='transport'&&view.ownUnits.some(u=>u.aboard===id)){
-        const step=planAiInvasionStep(view,unit);
+        let step=planAiInvasionStep(view,unit);
+        // A fleet with no known city or exploration route returns to supply
+        // instead of holding indefinitely at a remote edge of the chart.
+        if(!step&&(unit.spent===0||returningToSupply)&&!unit.aiObjective&&!planAiReconLandingSquare(view,unit)){
+          const ports=view.ownCities.filter(c=>isCoastal(g,c.position))
+            .sort((a,b)=>distance(a.position,unit.position)-distance(b.position,unit.position)||a.id.localeCompare(b.id));
+          if(ports.some(c=>equal(c.position,unit.position)))break;
+          for(const port of ports){
+            step=routeStep(g,unit,port.position);
+            if(step&&aiTransportThreatened(view,step))step=null;
+            if(step){returningToSupply=true;break;}
+          }
+        }
         // Once in landing range, hold station for the next available cargo turn.
         if(!step)break;
         try {g=aiMove(g,id,step);continue;}

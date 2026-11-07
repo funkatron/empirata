@@ -87,3 +87,29 @@ test('Loaded transport explores when a known overseas city has no charted landin
   assert.notDeepEqual(acted.units.find(u=>u.id===ship.id).position,before,
     'A known target without a charted beach must not freeze reconnaissance');
 });
+
+test('Loaded transport without any city target or scouting route returns toward supply',async()=>{
+  const {emptyKnowledge,playAiOpponent,exportSave,importSave}=await import('../dist/engine/index.js');
+  const g=makeRulesLab(),base=g.units[0];
+  g.tiles.fill('sea');
+  g.cities=[
+    {id:'supply',owner:'blue',position:{x:10,y:10},production:'army',progress:0,firstCycle:false},
+    {id:'enemy',owner:'red',position:{x:80,y:40},production:'army',progress:0,firstCycle:false},
+  ];
+  g.tiles[10*g.width+10]='land';
+  g.tiles[11*g.width+10]='land';
+  g.units=[
+    {...structuredClone(base),id:'ship',owner:'blue',kind:'transport',position:{x:30,y:30},aboard:null,fuel:null},
+    {...structuredClone(base),id:'cargo',owner:'blue',kind:'army',position:{x:30,y:30},aboard:'ship',fuel:null},
+    {...structuredClone(base),id:'guard',owner:'blue',kind:'army',position:{x:10,y:10},aboard:null,fuel:null},
+  ];
+  g.knowledge.blue=emptyKnowledge(g);
+  g.knowledge.blue.terrain=[...g.tiles];
+  updateAllKnowledge(g);
+  const acted=playAiOpponent(g,'blue');
+  assert.deepEqual(acted,playAiOpponent(importSave(exportSave(g)),'blue'));
+  const ship=acted.units.find(u=>u.id==='ship');
+  assert.ok(Math.max(Math.abs(ship.position.x-10),Math.abs(ship.position.y-10))<20);
+  assert.deepEqual(acted.units.find(u=>u.id==='cargo').position,ship.position);
+  assert.equal(ship.aiObjective,undefined);
+});
