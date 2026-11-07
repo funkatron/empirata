@@ -1,0 +1,39 @@
+name: Map screenshots (manual)
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'smoke/map-screenshots.mjs'
+      - '.github/workflows/map-screenshots.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Install pinned Playwright and WebKit
+        run: |
+          npm install --no-save --package-lock=false playwright@1.65.0
+          npx playwright install --with-deps webkit
+      - run: npm run build
+      - name: Capture map views
+        run: node smoke/map-screenshots.mjs
+        env:
+          EMPIRATA_SCREENSHOT_DIR: artifacts/map-screenshots
+      - name: Upload screenshots and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: map-screenshots
+          path: artifacts/map-screenshots/
+          if-no-files-found: warn
+          retention-days: 14
