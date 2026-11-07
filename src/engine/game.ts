@@ -993,8 +993,10 @@ export function planAiNavalScoutStep(view:ReturnType<typeof getPlayerView>,ship:
       if(x<=0||y<=0||x>=width-1||y>=height-1)continue;
       if(cells[y*width+x]?.terrain===null)unknown++;
     }
-    if(here!==start&&unknown>0){
-      const score=unknown/(steps+1);
+    const stale=view.enemies.filter(e=>e.stale&&e.kind!=='submarine'&&
+      Math.max(Math.abs(e.position.x-p.x),Math.abs(e.position.y-p.y))<=1).length;
+    if(here!==start&&(unknown>0||stale>0)){
+      const score=(unknown+stale*4)/(steps+1);
       if(score>bestScore){best=here;bestScore=score;}
     }
     for(const d of directions){
@@ -1032,8 +1034,10 @@ export function planAiGroundScoutStep(view:ReturnType<typeof getPlayerView>,ship
       if(x<=0||y<=0||x>=width-1||y>=height-1)continue;
       if(cells[y*width+x]?.terrain===null)unknown++;
     }
-    if(here!==start&&unknown>0){
-      const score=unknown/(steps+1);
+    const stale=view.enemies.filter(e=>e.stale&&e.kind!=='submarine'&&
+      Math.max(Math.abs(e.position.x-p.x),Math.abs(e.position.y-p.y))<=1).length;
+    if(here!==start&&(unknown>0||stale>0)){
+      const score=(unknown+stale*4)/(steps+1);
       if(score>bestScore){best=here;bestScore=score;}
     }
     for(const d of directions){
@@ -1194,6 +1198,28 @@ export function planAiFighterStep(view:ReturnType<typeof getPlayerView>,fighter:
     for(const d of directions){const p={x:here.x+d.x,y:here.y+d.y},next=key(p);
       if(!legal(p)||depth.has(next))continue;
       depth.set(next,steps+1);parent.set(next,k);paths.push(p);
+    }
+  }
+  if(best===undefined&&!returning){
+    // Prefer bases near remembered enemies, then remaining unexplored terrain.
+    // Intermediate friendly cities let idle scouts relocate over several legs.
+    const intelligence=view.cells.flatMap((cell,i)=>cell.terrain===null?
+      [{x:i%view.width,y:Math.floor(i/view.width),weight:1}]:[])
+      .concat(view.enemies.filter(e=>e.stale&&e.kind!=='submarine')
+        .map(e=>({...e.position,weight:4})));
+    const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
+    const potential=(p:Coord)=>Math.max(0,...intelligence.map(q=>q.weight/(distance(p,q)+1)));
+    const goals=[...view.ownCities].sort((a,b)=>potential(b.position)-potential(a.position)||a.id.localeCompare(b.id));
+    const goal=intelligence.length?goals[0]:undefined;
+    let remaining=goal?distance(fighter.position,goal.position):0;
+    let travel=Infinity;
+    if(goal)for(const city of view.ownCities){
+      const destination=key(city.position),steps=depth.get(destination);
+      if(destination===start||steps===undefined||steps+2>fuel)continue;
+      const nextDistance=distance(city.position,goal.position);
+      if(nextDistance<remaining||nextDistance===remaining&&steps<travel&&best!==undefined){
+        remaining=nextDistance;travel=steps;best=destination;
+      }
     }
   }
   if(best===undefined)return null;
