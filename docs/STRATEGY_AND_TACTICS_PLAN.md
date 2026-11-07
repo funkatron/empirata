@@ -40,6 +40,7 @@ The strategic layer must not use the evaluator’s omniscient map diagnostics. U
 - Assign reachable scouts to investigate last-known enemy positions and nearby unexplored territory. Prefer frontiers around recent or clustered sightings, then fall back to other reachable gaps. Reassess after a sighting is checked or a city is discovered.
 - Use destroyers, fighters and ground scouts for investigation. A loaded transport with no city objective or useful exploration route should return to a reachable friendly port.
 - Match the scout to the terrain and range. A fighter needs a safe return, a destroyer needs a sea route that brings the area into view, and a ground scout needs a land approach or a viable landing.
+- Evaluate fighter transfers through friendly cities with congestion, fuel loss, and safe arrival checks. The initial attempt lost aircraft in the round-524 replay and needs further work.
 - Evaluate against Continents seed 83 from the round-524 save. Blue knows of no hostile or neutral city, remembers six stale enemy contacts, and has no planned move or assault landing for its 24 loaded transports. Compare time to rediscovery, useful landings, and armies held aboard before changing transport production policy.
 
 ### Production and reserves

@@ -17,7 +17,6 @@ export type Unit = {
   aiPickup?: {armies:string[];startedRound:number};
   aiBeachhead?: string; // City objective attached to AI-delivered assault troops.
   aiAssembly?: {objective:string;startedRound:number;staging?:Coord;gathered?:boolean};
-  aiReconBase?: string; // Friendly city selected for a fighter transfer.
   aiObjective?: string; // Experimental AI city mission, independent of player orders.
 };
 export type Sight = { id: string; kind: UnitType; owner: FactionId; position: Coord; observedRound: number };
