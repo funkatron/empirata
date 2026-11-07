@@ -6,6 +6,9 @@ on:
     paths:
       - 'src/engine/**'
       - 'scripts/compare-reconnaissance.mjs'
+      - 'scripts/compare-seeded-reconnaissance.mjs'
+      - 'scripts/reconnaissance-fixture.mjs'
+      - 'scripts/campaign-maps.mjs'
       - '.github/workflows/compare-reconnaissance.yml'
 
 permissions:
@@ -40,6 +43,9 @@ jobs:
         env:
           RECON_ROUNDS: '180'
         run: node scripts/compare-reconnaissance.mjs ../baseline/dist/engine/index.js dist/engine/index.js
+      - name: Compare seeded scout scenarios
+        working-directory: candidate
+        run: node scripts/compare-seeded-reconnaissance.mjs ../baseline/dist/engine/index.js dist/engine/index.js
       - name: Upload comparative report
         if: always()
         uses: actions/upload-artifact@v4
