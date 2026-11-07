@@ -4,6 +4,8 @@ import {verificationScope,selectScope} from '../scripts/ci-scope.mjs';
 const sha='a'.repeat(40);
 test('Known display paths qualify; mixed logic and unknown paths require full verification',()=>{
  assert.equal(verificationScope(['src/ui/main.ts','public/styles.css','README.md','src/engine/unit-names.ts']),'focused');
+ assert.equal(verificationScope(['docs/WORKSTREAM_STATUS.md','agents/evaluation/held-out-reconnaissance.md']),'focused');
+ assert.equal(verificationScope(['agents/evaluation/held-out-reconnaissance.json']),'full');
  for(const path of ['src/engine/game.ts','src/engine/presentation.ts','src/engine/save.ts','package.json','.github/workflows/verify.yml','scripts/ci-scope.mjs','unfamiliar.ts'])
   assert.equal(verificationScope(['public/styles.css',path]),'full',path);
  assert.equal(verificationScope([]),'full');
