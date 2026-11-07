@@ -61,8 +61,9 @@ No rendering layer may disclose hidden information. A cell's click/tap hitbox re
 ## Execution packets
 ### G1: Reference and inventory (docs-only)
 1. Capture current screenshots at minimum, middle and maximum zoom on iPad and desktop.
+   - **On main (merged [PR #57](https://github.com/funkatron/empirata/pull/57)):** `smoke/map-screenshots.mjs` captures full-page WebKit shots (`01-fit-world`, `02-normal`, `03-zoomed-in`, `04-invasion`) with a manifest; CI workflow `.github/workflows/map-screenshots.yml` runs on PRs that touch the harness (Playwright **1.65.0**, `ubuntu-latest`). Artifacts are human-review baselines, not pixel gates. **Still open:** iPad portrait/landscape viewports, `devicePixelRatio` 2+, and explicit maximum-zoom vs fit-world separation on hardware.
 2. Obtain legally usable 1987 DOS Empire screenshots; record version/source and uncertainties.
-3. Extract actual terrain/unit/city enum names and existing render paths.
+3. Extract actual terrain/unit/city enum names and existing render paths (see `src/ui/map-art.ts`, `src/ui/main.ts` `paint()` layering).
 4. Produce side-by-side annotated comparison and a sprite specification table.
 **Completion:** source-backed asset inventory and approved visual direction, no invented DOS details.
 
@@ -125,7 +126,7 @@ No implementation, merge, or deployment is implied by completing this worksheet.
 - Merge/deploy: require explicit authorization and independently verify deployment.
 
 ## Dependencies and next action
-G1 and U2 are safe to investigate while replay PR #53/#54 is pending. G2 depends on G1; G3 depends on G2; U1 can proceed independently. Next step is **inventory and screenshots**, then fill in exact module names and asset dimensions rather than guessing them. Keep this document updated when decisions change; link implementation PRs back here and to #55.
+G1 screenshot automation is on `main` (#57); extend it before claiming G1 complete on all viewports. Saved-game replay Action is on `main` (#53). G2 depends on G1 inventory sign-off; G3 depends on G2; U1 can proceed independently (`#stackDialog` exists—audit against U1 cases). Next step: **DOS reference captures + render-path inventory table**, then G2 sharpness PR. Keep this document updated; link implementation PRs here and to #55.
 
 
 ## G1 source inventory (verified against main `3e3ef1038f64f7dc3493139044e68ee971f7e4f1`)
