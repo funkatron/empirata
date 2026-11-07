@@ -82,6 +82,33 @@ Implement city-first list and unit inspection, including touch and keyboard dism
 Check mode/map selection, batching, inspection, progress, and victory presentation against existing implementation; fix only demonstrated gaps.
 **Completion:** documented iPad and desktop manual walkthrough plus automated coverage for core flows.
 
+## G1 capture protocol and evidence ledger (ready for execution)
+
+Use one pinned commit and one fixed save/map for all comparisons. Record the commit SHA, browser/device, viewport CSS dimensions, device-pixel ratio, map ID/seed, faction viewpoint, zoom value, and whether fog is enabled. Do not compare different game states as though they were a zoom A/B test.
+
+| Capture | Zoom | Scene | What to inspect |
+|---|---|---|---|
+| A | full-map minimum | same saved state | icons distinguishable, ownership, coasts, fog, crowded cells |
+| B | ordinary play / midpoint | same saved state and center | source pixel sharpness, sprite anchors, labels |
+| C | maximum | same saved state and center | diagonal edges, transparency, clipping, canvas smoothing |
+| D | minimum, dense area | fixed crowded stack/coast | overlapping silhouettes and selection hitbox |
+
+Repeat A–C on desktop and iPad, and explicitly record any unavailable device capture rather than treating it as passed. Capture at DPR 1 and DPR 2+ where practical. For each image, record the corresponding file or artifact URL; screenshots alone do not establish historical fidelity.
+
+**Rendering inventory worksheet:** module path + function, drawing surface (canvas/DOM/image), terrain enum and asset source, unit enum and sprite source, city marker states, tile dimensions in source pixels, scaling formula, smoothing settings, render order, fog handling, hit-testing path, and known discrepancies. Mark unverified fields `unknown`, never inferred.
+
+**1987 comparison worksheet:** reference URL/rights, exact game version if known, image resolution and zoom, observed palette/silhouette/terrain/city convention, confidence, and whether the proposal is faithful, adapted for legibility, or unresolved. Avoid claiming equivalence across unknown DOS versions.
+
+**G1 exit checks:**
+- [ ] Pin baseline commit and saved state; record capture metadata.
+- [ ] Locate rendering and hit-testing entry points by actual source inspection.
+- [ ] Fill terrain/unit/city enum and sprite-size inventory with code references.
+- [ ] Capture A–C on desktop and iPad; document any unavailable checks.
+- [ ] Obtain attributable DOS references and annotate similarities/differences.
+- [ ] Record one recommended smallest G2 change, or explicitly conclude none is justified.
+
+No implementation, merge, or deployment is implied by completing this worksheet.
+
 ## PR evidence template
 - Problem and screenshot/reproduction:
 - Baseline behavior and pinned SHA:
