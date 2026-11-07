@@ -1,6 +1,10 @@
 name: Map screenshots (manual)
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'smoke/map-screenshots.mjs'
+      - '.github/workflows/map-screenshots.yml'
 
 permissions:
   contents: read
