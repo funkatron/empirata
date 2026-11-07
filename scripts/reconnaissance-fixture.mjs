@@ -9,11 +9,22 @@ export function makeReconnaissanceFixture(engine,{layout='continents',seed=83,sw
  const home=g.cities.find(c=>c.owner===faction);
  const at=p=>g.tiles[p.y*g.width+p.x];
  const adjacent=p=>[{x:0,y:-1},{x:1,y:0},{x:0,y:1},{x:-1,y:0}].map(d=>({x:p.x+d.x,y:p.y+d.y})).filter(q=>q.x>1&&q.y>1&&q.x<g.width-2&&q.y<g.height-2);
- const land=adjacent(home.position).find(p=>at(p)==='land');
- const sea=adjacent(home.position).find(p=>at(p)==='sea');
- if(!land||!sea)throw Error('Fixture requires a coastal home city; select another seed/layout');
+ // Starting cities may be inland, especially on continents. Find a natural
+ // coast without editing terrain or granting the faction a new city.
+ const coastal=[];
+ for(let y=2;y<g.height-2;y++)for(let x=2;x<g.width-2;x++){
+  const p={x,y};
+  if(at(p)==='land'&&adjacent(p).some(q=>at(q)==='sea'))coastal.push(p);
+ }
+ coastal.sort((a,b)=>Math.max(Math.abs(a.x-home.position.x),Math.abs(a.y-home.position.y))-
+  Math.max(Math.abs(b.x-home.position.x),Math.abs(b.y-home.position.y))||a.y-b.y||a.x-b.x);
+ const land=coastal[0];
+ if(!land)throw Error('No coastal land in generated map');
+ const sea=adjacent(land).find(p=>at(p)==='sea');
+ const secondSea=adjacent(sea).find(p=>at(p)==='sea'&&(p.x!==land.x||p.y!==land.y));
+ if(!secondSea)throw Error('No second sea cell for separate destroyer placement');
  const unit=(id,kind,position,aboard=null)=>({id,owner:faction,kind,position,damage:0,spent:0,fuel:null,order:{kind:'none'},aboard});
- const destroyer=unit('fixture-destroyer','destroyer',sea);
+ const destroyer=unit('fixture-destroyer','destroyer',secondSea);
  const scout=unit('fixture-scout','army',land);
  const transport=unit('fixture-transport','transport',sea);
  const cargo=unit('fixture-cargo','army',sea,transport.id);
@@ -33,6 +44,8 @@ export function makeReconnaissanceFixture(engine,{layout='continents',seed=83,sw
  k.freshEnemies=k.freshEnemies.filter(id=>id!=='fixture-stale-contact');
  const view=engine.getPlayerView(g,faction);
  if(!view.enemies.some(e=>e.id==='fixture-stale-contact'&&e.stale))throw Error('Stale contact not visible in private view');
+ // Save/load compatibility is a prerequisite for comparative evaluation.
+ engine.importSave(engine.exportSave(g));
  const digest=createHash('sha256').update(JSON.stringify(g)).digest('hex');
  return {state:g,faction,digest,scoutIds:[destroyer.id,scout.id],contact};
 }
