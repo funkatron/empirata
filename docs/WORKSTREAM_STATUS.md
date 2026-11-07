@@ -1,14 +1,16 @@
 # Empirata parallel workstream ledger
 
-Updated 2026-10-26. This ledger tracks independent areas of work and their CI gates. **These are workstreams, not claims that separate autonomous subagents have been launched.** No subagent-spawning capability is available in this session.
+Updated 2026-11-07. This ledger tracks independent areas of work and their CI gates. **These are workstreams, not claims that separate autonomous subagents have been launched.**
 
 | Stream | Scope | Status | Dependency / gate | Evidence |
 |---|---|---|---|---|
-| A — CI and reliability | Restore green build after naval-scout regression; guard save/replay, fog and boundaries | **In progress** | Must pass before expanding strategic AI | `48700b7` corrects test expectation; CI pending |
-| B — Reconnaissance AI | Destroyer frontier scoring; later production, map coverage and scout benchmarking | **Planner implemented; integration next** | Stream A CI green | `20b3298`, `4547529` |
-| C — Manual/DOS conformance | Eight-unit audit, detection/attack matrix, controlled 2.05C comparisons | **Initial audit complete; deeper audit pending** | Independent of B's gameplay logic | `docs/MANUAL_CONFORMANCE_AUDIT.md`, `tests/manual-unit-roster.test.mjs` |
-| D — Campaign outcomes | 100–200 round AI-vs-AI telemetry: cities discovered/captured, landings, attrition, stalls | **Pending** | Stable B planner, repeatable tests | `tests/ai-vs-ai.test.mjs`, `tests/ai-campaign.test.mjs` |
-| E — Independent review | Adversarial testing and wargaming second pass | **Pending** | Manual audit and campaign evidence | `docs/ROADMAP.md` |
+| A — CI and reliability | Green verify, reproducible installs, replay/screenshot tooling | **Stable** | Baseline for engine and eval PRs | `main` verify green; #58 `package-lock.json` + Node 24.22.2; #53 replay Action; #57 map-screenshots workflow |
+| B — Reconnaissance AI | Frontier scouting, stale sightings, held-out policy comparison | **Active** | Held-out manifest audit before merge | #51 scout targeting; #50 stale sightings/idle transports; draft #52 runner + GA (rebased 2026-11-07) |
+| C — Manual/DOS conformance | Unit/rules audit, detection/combat, 2.05C comparisons | **In progress** | Independent of AI tuning | `docs/MANUAL_CONFORMANCE_AUDIT.md`, `tests/manual-unit-roster.test.mjs` |
+| D — Campaign outcomes | Baseline study + follow-on telemetry on holdout maps | **Baseline complete; tuning pending** | Do not mutate raw 42-campaign archive | #45 baseline + `STRATEGY_AND_TACTICS_PLAN.md`; `tests/ai-campaign.test.mjs`, `ai-vs-ai` |
+| E — UI / graphics | Fit world, Game menu, screenshot baselines, G1–U1 plan | **Partial** | Draft #56 spec; G1 harness on main | #47–49 map/campaign UI; #57 WebKit captures; `docs/ROADMAP.md` Priority 1 acceptance open |
+| F — Gameplay defects | Lost ports, post-capture production, ownership memory | **Open** | Regression tests before strategy work | `docs/ROADMAP.md` 2026-10-27 issues |
+| G — Independent review | Adversarial testing and wargaming second pass | **Pending** | Manual audit + campaign evidence | `docs/ROADMAP.md` Priority 3A |
 
 ## Coordination rules
 
