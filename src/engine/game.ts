@@ -1366,6 +1366,7 @@ export function playAiOpponent(game:Game,faction:FactionId):Game {
   const activeUnitIds=g.units.filter(u=>u.owner===faction&&!u.aboard).map(u=>u.id);
   const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
   for(const id of activeUnitIds){
+    let returningToSupply=false;
     for(let step=0;step<5;step++){
       const view=getPlayerView(g,faction);
       const unit=view.ownUnits.find(u=>u.id===id);
@@ -1428,14 +1429,14 @@ export function playAiOpponent(game:Game,faction:FactionId):Game {
         let step=planAiInvasionStep(view,unit);
         // A fleet with no known city or exploration route returns to supply
         // instead of holding indefinitely at a remote edge of the chart.
-        if(!step&&!unit.aiObjective&&!planAiReconLandingSquare(view,unit)){
+        if(!step&&(unit.spent===0||returningToSupply)&&!unit.aiObjective&&!planAiReconLandingSquare(view,unit)){
           const ports=view.ownCities.filter(c=>isCoastal(g,c.position))
             .sort((a,b)=>distance(a.position,unit.position)-distance(b.position,unit.position)||a.id.localeCompare(b.id));
           if(ports.some(c=>equal(c.position,unit.position)))break;
           for(const port of ports){
             step=routeStep(g,unit,port.position);
             if(step&&aiTransportThreatened(view,step))step=null;
-            if(step)break;
+            if(step){returningToSupply=true;break;}
           }
         }
         // Once in landing range, hold station for the next available cargo turn.
