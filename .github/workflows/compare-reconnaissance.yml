@@ -38,7 +38,7 @@ jobs:
           cd baseline
           npm install --no-audit --no-fund
           npm run build
-      - name: Compare matched campaigns
+      - name: Validate seeded fixtures\n        working-directory: candidate\n        run: node --test tests/reconnaissance-fixture.test.mjs\n      - name: Compare matched campaigns
         working-directory: candidate
         env:
           RECON_ROUNDS: '180'
