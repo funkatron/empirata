@@ -1,0 +1,42 @@
+name: Replay uploaded Empirata save (25 rounds)
+
+on:
+  workflow_dispatch:
+    inputs:
+      save_gzip_base64:
+        description: 'Base64 of gzip-compressed exported JSON save (never a secret)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Decode uploaded save
+        env:
+          SAVE_GZIP_BASE64: ${{ inputs.save_gzip_base64 }}
+        run: |
+          printf '%s' "$SAVE_GZIP_BASE64" | base64 -d | gzip -d > /tmp/empirata-save.json
+          node -e "const s=require('/tmp/empirata-save.json'); if(s.schema!==1||s.scenario!=='ai-vs-ai')process.exit(1)"
+      - name: Build engine
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+      - name: Replay exactly 25 rounds or until game ends
+        run: node scripts/replay-uploaded-save.mjs /tmp/empirata-save.json
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: saved-game-replay-${{ github.run_id }}
+          path: replay-results/
+          if-no-files-found: warn
+          retention-days: 21
