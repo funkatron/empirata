@@ -44,9 +44,10 @@ try{
   }
   await page.locator('#fitWorld').click();
   await capture('01-fit-world');
+  for(let i=0;i<6;i++)await page.locator('#zoomIn').click();
   await page.locator('#recenter').click();
   await capture('02-normal');
-  for(let i=0;i<8;i++)await page.locator('#zoomIn').click();
+  for(let i=0;i<12;i++)await page.locator('#zoomIn').click();
   await capture('03-zoomed-in');
   // A staged invasion scenario adds a second useful, repeatable scene.
   await page.locator('#gameMenu summary').click();
@@ -60,7 +61,7 @@ try{
     browser:'Playwright WebKit',
     viewport:{width:1024,height:768},deviceScaleFactor:1,
     scenarios:['continents:83 / ai-vs-ai / round 1','AI Invasion staged test'],
-    note:'Normal view uses the app recenter control; zoomed-in view adds eight zoom clicks.',
+    note:'Normal view uses the app recenter control; normal view adds six zoom clicks after fit; zoomed-in view adds twelve more.',
     shots
   };
   await writeFile(resolve(output,'manifest.json'),JSON.stringify(metadata,null,2)+'\n');
