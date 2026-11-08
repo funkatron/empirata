@@ -3,7 +3,7 @@ import {execFileSync} from 'node:child_process';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {performance} from 'node:perf_hooks';
-import {digest,jobsFor,initialFor,advanceMixed} from './held-out-core.mjs';
+import {digest,jobsFor,initialFor,advanceMixed,completionFor} from './held-out-core.mjs';
 const [baselineDir,candidateDir]=process.argv.slice(2).map(p=>resolve(p));
 if(!baselineDir||!candidateDir)throw Error('Pass baseline and candidate checkout directories');
 const m=JSON.parse(readFileSync('agents/evaluation/held-out-reconnaissance.json','utf8'));
@@ -25,7 +25,7 @@ if(!jobs.length)throw Error('Empty shard');
 const out='held-out-results';mkdirSync(out,{recursive:true});
 const metadata={schemaVersion:1,baselineSha:m.baselineSha,candidateSha:m.candidateSha,engineSha:m.baselineSha,generatorSha:m.baselineSha,evaluatorSha:sha('.'),manifestHash:digest(m),node:process.version,holdoutStatus:m.holdoutStatus,definitions:{retainedEnemyCities:'Initially enemy-owned cities captured and still held at final observation; early terminal observations separate from round-limit observations.',firstEnemyDiscovery:'First round-boundary private view containing an enemy-owned city.',loadedTransportLosses:'Unavailable: per-action removal instrumentation not implemented.',cargoIdleTurns:'Unavailable: per-action movement instrumentation not implemented.'}};
 writeFileSync(out+'/metadata.json',JSON.stringify(metadata,null,2));
-let failed=0, incomplete=0;
+const statuses=[];
 for(const j of jobs){
  const start=performance.now(),initial=initialFor(E,makeCampaign,m,j);
  let g=initial.state,rounds=0,status='running',error=null;
@@ -41,9 +41,9 @@ for(const j of jobs){
    g=advanceMixed(g,E,policies);rounds++;observe();
   }
   if(status==='running')status=E.gameOutcome(g).state==='finished'?'finished':'round-limit';
- }catch(e){status='error';error=String(e.stack??e);failed++;}
+ }catch(e){status='error';error=String(e.stack??e);}
  const row={...j,...metadata,initialHash,geometryHash:initial.geometryHash,candidateStart:initial.candidateStart,status,error,completedRounds:rounds,elapsedMs:performance.now()-start,finalHash:digest(g),outcome:E.gameOutcome(g),firstEnemyDiscovery,retainedEnemyCities:g.cities.filter(c=>initialEnemy.has(c.id)&&c.owner===j.faction).length,finalCities:Object.fromEntries(['blue','red'].map(f=>[f,g.cities.filter(c=>c.owner===f).length])),loadedTransportLosses:null,cargoIdleTurns:null};
- if(status!=='finished'&&status!=='round-limit'&&status!=='error')incomplete++;\n writeFileSync(out+'/'+j.id+'.json',JSON.stringify(row,null,2)+'\n');
+ statuses.push(status);\n writeFileSync(out+'/'+j.id+'.json',JSON.stringify(row,null,2)+'\n');
  console.log(j.id+': '+status+' '+rounds+' rounds');
 }
-// Keep every campaign record, but never report a successful evaluation when\n// any job failed or stopped short of a terminal/round-limit observation.\nconst completion={schemaVersion:1,expectedJobs:jobs.length,failed,incomplete,complete:failed===0&&incomplete===0};\nwriteFileSync(out+'/completion.json',JSON.stringify(completion,null,2)+'\\n');\nconsole.log('Evaluation completion:',JSON.stringify(completion));\nif(!completion.complete)process.exitCode=1;
+// Keep every campaign record, but never report a successful evaluation when\n// any job failed or stopped short of a terminal/round-limit observation.\nconst completion=completionFor(statuses);\nwriteFileSync(out+'/completion.json',JSON.stringify(completion,null,2)+'\\n');\nconsole.log('Evaluation completion:',JSON.stringify(completion));\nif(!completion.complete)process.exitCode=1;
