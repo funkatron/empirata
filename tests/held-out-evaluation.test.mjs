@@ -4,7 +4,7 @@ import {readFileSync,existsSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import * as E from '../dist/engine/index.js';
 import {makeCampaign} from '../scripts/campaign-maps.mjs';
-import {jobsFor,initialFor,advanceMixed,digest} from '../scripts/held-out-core.mjs';
+import {jobsFor,initialFor,advanceMixed,digest,completionFor} from '../scripts/held-out-core.mjs';
 const m=JSON.parse(readFileSync('agents/evaluation/held-out-reconnaissance.json','utf8'));
 test('held-out map seeds are disjoint from 42-campaign baseline manifest',()=>{
  execFileSync('node',['scripts/audit-held-out-manifest.mjs'],{stdio:'inherit'});
@@ -42,4 +42,11 @@ test('mixed runner dispatches both policies and matches baseline round',()=>{
  const mixed=advanceMixed(structuredClone(g),E,{blue:wrap('blue'),red:wrap('red')});
  assert.deepEqual(calls,['blue','red']);
  assert.deepEqual(mixed,E.advanceLabRound(structuredClone(g)));
+});
+
+test('campaign time limits and errors cannot pass a shard',()=>{
+ assert.equal(completionFor(['finished','round-limit']).complete,true);
+ assert.deepEqual(completionFor(['finished','time-limit']),{schemaVersion:1,expectedJobs:2,failed:0,incomplete:1,complete:false});
+ assert.deepEqual(completionFor(['error','round-limit']),{schemaVersion:1,expectedJobs:2,failed:1,incomplete:0,complete:false});
+ assert.equal(completionFor(['running']).complete,false);
 });

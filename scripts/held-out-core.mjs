@@ -39,3 +39,9 @@ export function advanceMixed(g,E,policies){
  while(g.active!=='blue'){if(++turns>3)throw Error('Turn cycle failed');g=E.endTurn(g);}
  return g;
 }
+
+export function completionFor(statuses){
+ const failed=statuses.filter(s=>s==='error').length;
+ const incomplete=statuses.filter(s=>s!=='finished'&&s!=='round-limit'&&s!=='error').length;
+ return {schemaVersion:1,expectedJobs:statuses.length,failed,incomplete,complete:failed===0&&incomplete===0};
+}

@@ -8,6 +8,13 @@ on:
       - 'agents/evaluation/*.json'
       - '.github/workflows/held-out-reconnaissance.yml'
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Quick screening or full 72-campaign evaluation (manual only)'
+        required: true
+        type: choice
+        options: [smoke, full]
+        default: smoke
 permissions:
   contents: read
 jobs:
@@ -24,14 +31,14 @@ jobs:
       - run: node scripts/audit-held-out-manifest.mjs
       - run: node --test tests/held-out-evaluation.test.mjs
   campaigns:
+    if: github.event_name == 'workflow_dispatch'
     needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        layout: [continents, islands, archipelago]
-        seed: [104729, 130363]
+        include: ${{ fromJSON(inputs.mode == 'full' && '[{"layout":"continents","seed":104729},{"layout":"islands","seed":104729},{"layout":"archipelago","seed":104729},{"layout":"continents","seed":130363},{"layout":"islands","seed":130363},{"layout":"archipelago","seed":130363}]' || '[{"layout":"continents","seed":104729}]') }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -53,6 +60,7 @@ jobs:
         env:
           MAP_LAYOUT: ${{ matrix.layout }}
           MAP_SEED: ${{ matrix.seed }}
+          EVALUATION_MODE: ${{ inputs.mode }}
         run: node scripts/run-held-out.mjs /tmp/empirata-baseline /tmp/empirata-candidate
       - uses: actions/upload-artifact@v4
         if: always()
