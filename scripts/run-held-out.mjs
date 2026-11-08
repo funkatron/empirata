@@ -43,7 +43,7 @@ for(const j of jobs){
   if(status==='running')status=E.gameOutcome(g).state==='finished'?'finished':'round-limit';
  }catch(e){status='error';error=String(e.stack??e);failed++;}
  const row={...j,...metadata,initialHash,geometryHash:initial.geometryHash,candidateStart:initial.candidateStart,status,error,completedRounds:rounds,elapsedMs:performance.now()-start,finalHash:digest(g),outcome:E.gameOutcome(g),firstEnemyDiscovery,retainedEnemyCities:g.cities.filter(c=>initialEnemy.has(c.id)&&c.owner===j.faction).length,finalCities:Object.fromEntries(['blue','red'].map(f=>[f,g.cities.filter(c=>c.owner===f).length])),loadedTransportLosses:null,cargoIdleTurns:null};
- writeFileSync(out+'/'+j.id+'.json',JSON.stringify(row,null,2)+'\n');
+ if(status!=='finished'&&status!=='round-limit'&&status!=='error')incomplete++;\n writeFileSync(out+'/'+j.id+'.json',JSON.stringify(row,null,2)+'\n');
  console.log(j.id+': '+status+' '+rounds+' rounds');
 }
 // Keep every campaign record, but never report a successful evaluation when\n// any job failed or stopped short of a terminal/round-limit observation.\nconst completion={schemaVersion:1,expectedJobs:jobs.length,failed,incomplete,complete:failed===0&&incomplete===0};\nwriteFileSync(out+'/completion.json',JSON.stringify(completion,null,2)+'\\n');\nconsole.log('Evaluation completion:',JSON.stringify(completion));\nif(!completion.complete)process.exitCode=1;
