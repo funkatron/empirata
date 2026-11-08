@@ -38,8 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        layout: [continents, islands, archipelago]
-        seed: [104729, 130363]
+        include: ${{ fromJSON(inputs.mode == 'full' && '[{"layout":"continents","seed":104729},{"layout":"islands","seed":104729},{"layout":"archipelago","seed":104729},{"layout":"continents","seed":130363},{"layout":"islands","seed":130363},{"layout":"archipelago","seed":130363}]' || '[{"layout":"continents","seed":104729}]') }}
     steps:
       - uses: actions/checkout@v4
         with:
