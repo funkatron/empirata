@@ -29,9 +29,11 @@ const audit={
   baselineLayouts:[...usedLayouts].sort(),
   overlapWithBaselineManifest:overlaps,
   otherEvaluationJsonReferences:otherRefs.filter((r,i,a)=>a.findIndex(x=>x.file===r.file&&x.mapSeed===r.mapSeed)===i),
+  auditScope:'Only the recorded strategy-baseline and pressure-manifest jobs are checked for exact numeric seed overlap. Other top-level evaluation JSON files are scanned for textual references; this is not a repository-history or private-fixture audit.',
+  checkedSources:['docs/evaluation/strategy-baseline/manifest.json',...(pressure?['docs/evaluation/strategy-baseline/pressure-manifest.json']:[])],
   cleared:overlaps.length===0,
   recommendation:overlaps.length===0
-    ? 'Map seeds 104729 and 130363 are not used in the 42-campaign baseline manifest; treat as screening holdout, not optimization fixtures.'
+    ? 'Map seeds 104729 and 130363 are not used in the 42-campaign baseline manifest; treat as screening holdout only; absence from these manifests does not prove the maps were never used.'
     : 'Replace overlapping seeds before merging held-out results.',
 };
 writeFileSync('agents/evaluation/held-out-manifest-audit.json',JSON.stringify(audit,null,2)+'\n');
