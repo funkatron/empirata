@@ -126,6 +126,7 @@ function fitWorld():void {
   cameraY=(game.height*tileSize-canvas.clientHeight)/2;
   clamp();paint();
 }
+window.addEventListener('empirata-terrain-ready',()=>paint());
 function paint():void {
   const w=canvas.clientWidth,h=canvas.clientHeight;
   ctx.clearRect(0,0,w,h);

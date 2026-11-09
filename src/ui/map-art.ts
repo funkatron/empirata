@@ -14,66 +14,89 @@ const paths=new Map(Object.entries(silhouettes).map(([kind,path])=>[kind,new Pat
 const city=new Path2D('M2 20V10H7V20Z M8 20V5H15V20Z M16 20V12H22V20Z M10 3H13V5H10Z M1 21H23V23H1Z');
 const harbor=new Path2D('M3 11V8H9V5H15V8H21V11Z M10 10H14V18H20V15H23V20L20 23H4L1 20V15H4V18H10Z');
 
-function terrainStamp(terrain:Terrain,variant:number):HTMLCanvasElement {
-  const tile=document.createElement('canvas');
-  tile.width=tile.height=32;
-  const ctx=tile.getContext('2d')!;
-  ctx.fillStyle=(terrain==='land'?['#607d47','#65824a','#5d7945','#68854c']:['#21486f','#234c75','#224a72','#254f79'])[variant]!;
-  ctx.fillRect(0,0,32,32);
-  for(let i=0;i<5;i++){
-    const x=(variant*11+i*13)%25+2,y=(variant*7+i*9)%26+2;
-    ctx.fillStyle=i%2?'#ffffff17':'#081b2633';
-    if(terrain==='sea'){
-      ctx.fillRect(x,y,5+i%3,1);
-      ctx.fillRect(x+2,y+1,3,1);
-    }else{
-      ctx.fillRect(x,y,2,2);
-      ctx.fillRect(x+2,y+2,2,1);
-      ctx.fillRect(x+4,y-1,1,2);
-    }
-  }
-  return tile;
+// Authored pixel-art sprite atlas: 8 land sprites on row 0, 8 sea on row 1.
+// Decorative variants never change Empire's land/sea movement or combat rules.
+const atlas=new Image();
+let atlasReady=false;
+export function isTerrainAtlasReady():boolean{return atlasReady;}
+atlas.onload=()=>{atlasReady=true;window.dispatchEvent(new Event('empirata-terrain-ready'));};
+atlas.src='./terrain-atlas.svg';
+function tileVariant(column:number,row:number):number {
+  // The eight variants share matching perimeter pixels, allowing arbitrary
+  // neighbors without visible seams while avoiding obvious periodic repeats.
+  return ((Math.imul(column,73856093)^Math.imul(row,19349663))>>>0)&7;
 }
-
-const terrainArt={land:Array.from({length:4},(_,i)=>terrainStamp('land',i)),sea:Array.from({length:4},(_,i)=>terrainStamp('sea',i))};
 
 export function drawTerrain(ctx:CanvasRenderingContext2D,terrain:Terrain|null,x:number,y:number,size:number,column:number,row:number):void {
-  if(terrain){
-    ctx.drawImage(terrainArt[terrain][(Math.imul(column,31)^Math.imul(row,17)^(column>>2)^(row>>1))&3]!,x,y,size+.25,size+.25);
-  }else{
-    ctx.fillStyle='#080e15';
-    ctx.fillRect(x,y,size+.25,size+.25);
+  if(!terrain){
+    ctx.fillStyle='#080e15';ctx.fillRect(x,y,size+.25,size+.25);return;
   }
+  if(!atlasReady){
+    ctx.fillStyle=terrain==='land'?'#6f9746':'#134c78';
+    ctx.fillRect(x,y,size+.25,size+.25);return;
+  }
+  ctx.save();
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(atlas,tileVariant(column,row)*32,terrain==='land'?0:32,32,32,x,y,size+.25,size+.25);
+  ctx.restore();
 }
 
-export function drawCoast(ctx:CanvasRenderingContext2D,x:number,y:number,size:number,north:boolean,east:boolean,south:boolean,west:boolean):void {
-  if(!north&&!east&&!south&&!west)return;
-  const bevel=size*.16;
-  const corners=[
-    [x,y,1,1,north&&west],
-    [x+size,y,-1,1,north&&east],
-    [x+size,y+size,-1,-1,south&&east],
-    [x,y+size,1,-1,south&&west],
-  ] as const;
-  ctx.fillStyle='#234c75';
-  for(const [cx,cy,dx,dy,cut] of corners){
-    if(!cut)continue;
-    ctx.beginPath();
-    ctx.moveTo(cx,cy);
-    ctx.lineTo(cx+dx*bevel,cy);
-    ctx.lineTo(cx,cy+dy*bevel);
-    ctx.fill();
+// Shore overlay is assembled from neighboring *known* sea cells.
+// Drawn in a 32-pixel offscreen grid to retain hard pixel edges at every zoom.
+const shoreCache=new Map<number,HTMLCanvasElement>();
+function shoreSprite(mask:number):HTMLCanvasElement {
+  const cached=shoreCache.get(mask);
+  if(cached)return cached;
+  const canvas=document.createElement('canvas');
+  canvas.width=canvas.height=32;
+  const c=canvas.getContext('2d')!;
+  const n=!!(mask&1),e=!!(mask&2),s=!!(mask&4),w=!!(mask&8);
+  const sea='#247d9b',shallows='#40a5b4',sand='#c9b57a',highlight='#e3d49c';
+  // Blocky stepped coastline, with the ocean cut into land on exposed edges.
+  // No gradients or antialiasing: 32x32 source pixels scale as exact blocks.
+  const top=[5,5,4,4,3,3,4,4,5,5,4,4,3,3,4,4,5,5,4,4,3,3,4,4,5,5,4,4,3,3,4,4];
+  function edge(horizontal:boolean,reverse:boolean){
+    for(let i=0;i<32;i++){
+      const depth=top[i]!;
+      if(horizontal){
+        const y=reverse?32-depth:0;
+        c.fillStyle=sea;c.fillRect(i,y,1,depth);
+        c.fillStyle=shallows;c.fillRect(i,reverse?y-1:depth,1,1);
+        c.fillStyle=sand;c.fillRect(i,reverse?y-3:depth+1,1,2);
+        if(i%9===0){c.fillStyle=highlight;c.fillRect(i,reverse?y-3:depth+1,1,1);}
+      }else{
+        const x=reverse?32-depth:0;
+        c.fillStyle=sea;c.fillRect(x,i,depth,1);
+        c.fillStyle=shallows;c.fillRect(reverse?x-1:depth,i,1,1);
+        c.fillStyle=sand;c.fillRect(reverse?x-3:depth+1,i,2,1);
+        if(i%9===0){c.fillStyle=highlight;c.fillRect(reverse?x-3:depth+1,i,1,1);}
+      }
+    }
   }
-  const inset=Math.min(1,size*.06);
-  const left=x+inset,right=x+size-inset,top=y+inset,bottom=y+size-inset;
-  ctx.strokeStyle='#93ac6b';
-  ctx.lineWidth=inset;
-  ctx.beginPath();
-  if(north){ctx.moveTo(left+(west?bevel:0),top);ctx.lineTo(right-(east?bevel:0),top);}
-  if(east){ctx.moveTo(right,top+(north?bevel:0));ctx.lineTo(right,bottom-(south?bevel:0));}
-  if(south){ctx.moveTo(right-(east?bevel:0),bottom);ctx.lineTo(left+(west?bevel:0),bottom);}
-  if(west){ctx.moveTo(left,bottom-(south?bevel:0));ctx.lineTo(left,top+(north?bevel:0));}
-  ctx.stroke();
+  if(n)edge(true,false);
+  if(s)edge(true,true);
+  if(w)edge(false,false);
+  if(e)edge(false,true);
+  // Convex exposed corners: avoid a square green protrusion at diagonal sea.
+  for(const [cut,cx,cy,dx,dy] of [
+    [n&&w,0,0,1,1],[n&&e,31,0,-1,1],
+    [s&&e,31,31,-1,-1],[s&&w,0,31,1,-1],
+  ] as const){
+    if(!cut)continue;
+    c.fillStyle=sea;
+    for(let j=0;j<7;j++)c.fillRect(cx+(dx<0?-j:0),cy+j*dy,8-j,1);
+    c.fillStyle=shallows;c.fillRect(cx+dx*6,cy+dy*6,2,2);
+  }
+  shoreCache.set(mask,canvas);
+  return canvas;
+}
+export function drawCoast(ctx:CanvasRenderingContext2D,x:number,y:number,size:number,north:boolean,east:boolean,south:boolean,west:boolean):void {
+  const mask=(north?1:0)|(east?2:0)|(south?4:0)|(west?8:0);
+  if(!mask)return;
+  ctx.save();
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(shoreSprite(mask),x,y,size+.25,size+.25);
+  ctx.restore();
 }
 
 function drawSymbol(ctx:CanvasRenderingContext2D,path:Path2D,x:number,y:number,size:number,ink:string,loaded=false):void {

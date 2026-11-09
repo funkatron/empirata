@@ -20,7 +20,7 @@ const server=createServer(async(req,res)=>{
     const route=new URL(req.url??'/','http://localhost').pathname;
     const path=resolve(root,`.${route==='/'?'/index.html':route}`);
     if(!path.startsWith(root.endsWith(sep)?root:root+sep))throw Error('Invalid path');
-    res.setHeader('Content-Type',({'.js':'text/javascript','.css':'text/css','.html':'text/html'})[extname(path)]??'application/octet-stream');
+    res.setHeader('Content-Type',({'.js':'text/javascript','.css':'text/css','.html':'text/html','.svg':'image/svg+xml'})[extname(path)]??'application/octet-stream');
     res.end(await readFile(path));
   }catch{res.writeHead(404);res.end();}
 });
@@ -75,12 +75,21 @@ try{
       reducedMotion:'reduce',
     });
     const errors=[];
+    page.on('console',message=>{if(message.type()==='error')errors.push('console: '+message.text());});
+    page.on('requestfailed',request=>errors.push('request: '+request.url()+' '+request.failure()?.errorText));
     page.on('pageerror',error=>errors.push(error.message));
     page.on('dialog',dialog=>dialog.accept());
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
     const shots=await captureScenario(page,profile.prefix);
     assert.deepEqual(errors,[],`Browser must not report uncaught errors (${name})`);
     allShots.push(...shots);
+    // Fully revealed artwork showcase avoids fog-of-war obscuring the terrain review.
+    await page.goto(`http://127.0.0.1:${server.address().port}/terrain-showcase.html`);
+    await page.locator('#map').waitFor();
+    await page.waitForFunction(()=>window.__terrainShowcaseReady===true,null,{timeout:15000}).catch(async error=>{throw new Error(`Terrain showcase did not initialize: ${JSON.stringify({url:page.url(),errors,ready:await page.evaluate(()=>window.__terrainShowcaseReady??null)})}`,{cause:error});});
+    const showcaseFile=`${profile.prefix}06-terrain-showcase.png`;
+    await page.screenshot({path:resolve(output,showcaseFile),animations:'disabled',fullPage:true});
+    allShots.push({file:showcaseFile,scenario:'fully revealed synthetic island'});
     await page.close();
   }
   await mkdir(output,{recursive:true});
