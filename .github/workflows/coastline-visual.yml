@@ -3,9 +3,10 @@ name: Optional coastline visual review
 on:
   workflow_dispatch:
     inputs:
-      ref_note:
-        description: 'Optional note identifying the PR or map scenario being reviewed'
-        required: false
+      target_ref:
+        description: 'Branch, tag or SHA to visually review (e.g. fix/coast-diagonal-corners)'
+        required: true
+        default: main
         type: string
 
 permissions:
@@ -17,6 +18,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_ref }}
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
