@@ -81,6 +81,13 @@ try{
     const shots=await captureScenario(page,profile.prefix);
     assert.deepEqual(errors,[],`Browser must not report uncaught errors (${name})`);
     allShots.push(...shots);
+    // Fully revealed artwork showcase avoids fog-of-war obscuring the terrain review.
+    await page.goto(`http://127.0.0.1:${server.address().port}/terrain-showcase.html`);
+    await page.locator('#map').waitFor();
+    await page.waitForFunction(()=>document.querySelector('#map')?.getContext('2d')?.getImageData(1,1,1,1).data[3]===255);
+    const showcaseFile=`${profile.prefix}06-terrain-showcase.png`;
+    await page.screenshot({path:resolve(output,showcaseFile),animations:'disabled',fullPage:true});
+    allShots.push({file:showcaseFile,scenario:'fully revealed synthetic island'});
     await page.close();
   }
   await mkdir(output,{recursive:true});
