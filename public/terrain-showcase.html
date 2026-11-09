@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Empirata · Terrain Art Showcase</title>
+<style>body{margin:0;background:#0b1823;color:#dce7dd;font:16px system-ui;padding:16px}header{max-width:1000px;margin:auto}h1{font-size:22px;margin:0 0 8px}p{color:#b5c8c6;margin:6px 0 12px}.controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0}canvas{display:block;width:100%;max-width:1000px;image-rendering:pixelated;border:1px solid #426278;background:#123c60}main{max-width:1000px;margin:auto}.note{font-size:13px}</style>
+<header><h1>Empirata · Terrain Artwork Showcase</h1><p>Actual 32-pixel PNG sprites. Decorative forests and hills do not affect the original land/sea rules.</p></header>
+<main><div class="controls"><label>Zoom <input id="zoom" type="range" min="1" max="4" step="1" value="2"></label><output id="value">2×</output><label><input id="grid" type="checkbox"> Show tile grid</label></div><canvas id="map" width="896" height="576" aria-label="Fully revealed sample island map"></canvas><p class="note">Fully revealed synthetic demonstration map, not a gameplay save. Sprite assets: <a style="color:#a8d7e5" href="./terrain-atlas.png">terrain-atlas.png</a>. All zoom levels use nearest-neighbor scaling.</p></main>
+<script>
+const canvas=document.querySelector('#map'),ctx=canvas.getContext('2d'),atlas=new Image(),zoom=document.querySelector('#zoom'),grid=document.querySelector('#grid'),value=document.querySelector('#value');
+const W=28,H=18;const hash=(x,y)=>((Math.imul(x,73856093)^Math.imul(y,19349663))>>>0);
+function land(x,y){const islands=[[8,8,7.8,6.7],[19,9,5.2,5.1],[23,3,2.6,2.3],[3,14,2.2,2.1]];return islands.some(([cx,cy,rx,ry])=>{const dx=(x-cx)/rx,dy=(y-cy)/ry;return dx*dx+dy*dy<.85+(hash(x,y)%30)/100;});}
+function draw(){if(!atlas.complete||!atlas.naturalWidth)return;const z=Number(zoom.value);value.textContent=z+'×';canvas.width=W*32;canvas.height=H*32;ctx.imageSmoothingEnabled=false;for(let y=0;y<H;y++)for(let x=0;x<W;x++){const isLand=land(x,y),variant=hash(x,y)&7;ctx.drawImage(atlas,variant*32,isLand?0:32,32,32,x*32,y*32,32,32);if(isLand){const neighbors=[[0,-1],[1,0],[0,1],[-1,0]];neighbors.forEach(([dx,dy],i)=>{if(!land(x+dx,y+dy)){ctx.fillStyle='#d6bc78';if(i===0)ctx.fillRect(x*32,y*32,32,3);if(i===1)ctx.fillRect(x*32+29,y*32,3,32);if(i===2)ctx.fillRect(x*32,y*32+29,32,3);if(i===3)ctx.fillRect(x*32,y*32,3,32);}});}if(grid.checked){ctx.strokeStyle='#c3d5d033';ctx.strokeRect(x*32+.5,y*32+.5,31,31);}}canvas.style.width=(W*32*z/2)+'px';canvas.style.maxWidth='none';canvas.parentElement.style.overflowX='auto';}
+atlas.onload=draw;atlas.src='./terrain-atlas.png';zoom.oninput=draw;grid.onchange=draw;
+</script></html>
