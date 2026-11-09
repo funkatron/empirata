@@ -20,9 +20,18 @@ const atlas=new Image();
 let atlasReady=false;
 atlas.onload=()=>{atlasReady=true;window.dispatchEvent(new Event('empirata-terrain-ready'));};
 atlas.src='./terrain-atlas.png';
-function tileVariant(column:number,row:number):number {
-  return ((Math.imul(column,73856093)^Math.imul(row,19349663))>>>0)&7;
+function tileVariant(column:number,row:number,terrain:Terrain):number {
+  const seed=(Math.imul(column,73856093)^Math.imul(row,19349663))>>>0;
+  if(terrain==='sea')return seed&7;
+  // Cluster decorations in broad regions rather than alternating isolated
+  // forest/hill sprites every square. The classification is visual only.
+  const region=(Math.imul(Math.floor(column/5),83492791)^Math.imul(Math.floor(row/5),297657976))>>>0;
+  const kind=region%11;
+  if(kind<=2)return [2,3,6][seed%3]!; // forest cluster
+  if(kind===3)return [4,7][seed%2]!; // rocky uplands
+  return [0,1,5][seed%3]!; // open ground
 }
+
 export function drawTerrain(ctx:CanvasRenderingContext2D,terrain:Terrain|null,x:number,y:number,size:number,column:number,row:number):void {
   if(!terrain){
     ctx.fillStyle='#080e15';ctx.fillRect(x,y,size+.25,size+.25);return;
@@ -33,7 +42,7 @@ export function drawTerrain(ctx:CanvasRenderingContext2D,terrain:Terrain|null,x:
   }
   ctx.save();
   ctx.imageSmoothingEnabled=false;
-  ctx.drawImage(atlas,tileVariant(column,row)*32,terrain==='land'?0:32,32,32,x,y,size+.25,size+.25);
+  ctx.drawImage(atlas,tileVariant(column,row,terrain)*32,terrain==='land'?0:32,32,32,x,y,size+.25,size+.25);
   ctx.restore();
 }
 
