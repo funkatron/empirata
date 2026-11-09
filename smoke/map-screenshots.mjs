@@ -20,7 +20,7 @@ const server=createServer(async(req,res)=>{
     const route=new URL(req.url??'/','http://localhost').pathname;
     const path=resolve(root,`.${route==='/'?'/index.html':route}`);
     if(!path.startsWith(root.endsWith(sep)?root:root+sep))throw Error('Invalid path');
-    res.setHeader('Content-Type',({'.js':'text/javascript','.css':'text/css','.html':'text/html'})[extname(path)]??'application/octet-stream');
+    res.setHeader('Content-Type',({'.js':'text/javascript','.css':'text/css','.html':'text/html','.svg':'image/svg+xml'})[extname(path)]??'application/octet-stream');
     res.end(await readFile(path));
   }catch{res.writeHead(404);res.end();}
 });
@@ -75,6 +75,8 @@ try{
       reducedMotion:'reduce',
     });
     const errors=[];
+    page.on('console',message=>{if(message.type()==='error')errors.push('console: '+message.text());});
+    page.on('requestfailed',request=>errors.push('request: '+request.url()+' '+request.failure()?.errorText));
     page.on('pageerror',error=>errors.push(error.message));
     page.on('dialog',dialog=>dialog.accept());
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
