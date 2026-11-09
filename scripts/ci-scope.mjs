@@ -5,7 +5,7 @@ import {pathToFileURL} from 'node:url';
 function displayOnlyPath(path){
  if(path.startsWith('src/ui/')||path.startsWith('public/')||path.startsWith('docs/'))return true;
  if(path.endsWith('.md')&&(path.startsWith('agents/')||path==='README.md'||path==='DEPLOYMENT.md'))return true;
- return ['src/engine/unit-names.ts','tests/unit-names.test.mjs','smoke/bundle.mjs','smoke/observer-batching.mjs'].includes(path);
+ return ['src/engine/unit-names.ts','tests/unit-names.test.mjs','tests/ui-camera.test.mjs','tests/ui-structure.test.mjs','smoke/bundle.mjs','smoke/observer-batching.mjs'].includes(path);
 }
 export function verificationScope(files){
  return files.length>0&&files.every(displayOnlyPath)?'focused':'full';
