@@ -24,6 +24,42 @@ reinforcement, while neutral expansion must continue during war. Add evaluation
 maps near the documented 60–70-city density and validator constraints alongside
 unusual stress maps. Remaining visual checks and independent review stay open.
 
+## Review-driven execution queue (2026-11-09)
+
+Source: external Codex project-review handoff (2026-11-09). These are **review findings and hypotheses**, not newly verified engine defects or claims of DOS parity. Existing sections below remain authoritative for detailed gameplay symptoms. Execute one bounded change per PR; do not tune strategy until the two P0 investigations are resolved or explicitly reclassified with evidence.
+
+### P0: Correct evaluation-contaminating gameplay behavior
+
+1. **Lost-port ownership memory (existing issue below).** Construct a minimal capture fixture for each faction; inspect the former owner's `Knowledge.cities` immediately after capture and after save/reload. Correct stale friendly ownership without disclosing enemy production, movements, or other hidden information. Keep lost-port recovery strategy separate from the knowledge-correctness fix. **Complete when:** a regression reproduces the error before the fix, passes afterward, and both faction directions and save/reload are covered. Mark any unverified historical call order provisional.
+2. **Production following city capture (existing issue below).** First determine whether the observed stall is in the engine, AI production assignment, or UI presentation. Trace capture → ownership → eligible production choice → progress → first completed unit in short human, AI, and AI-vs-AI fixtures. Verify save/reload continuity and inspector truthfulness. **Complete when:** the actual cause is demonstrated and covered by focused tests, without unrelated AI tuning.
+
+### P1: Reduce `src/engine/game.ts` coupling without behavior changes
+
+3. Extract `planAi*` and private planning helpers into `src/engine/ai/` (exact modules to be decided from current source). Planners must score only faction-available `PlayerView` intelligence and return intentions; the authoritative engine must apply legal actions. Preserve existing deterministic decisions, fog boundaries, and test expectations. **Complete when:** `npm run build` and `npm test` pass with no intentional behavior change; separate PR from P0.
+4. **Optional, separate PR:** Extract `playAiOpponent` into a thin executor after planners are isolated. Preserve legal action routing and replay determinism.
+
+### P2: Remove misleading behavior and clarify model ownership
+
+5. Inspect the embarked-unit `moveUnit` path for `RuleNotImplemented('CARGO', ...)` despite existing `disembarkArmy` / `launchFighter` APIs. Route supported actions through legal APIs or return an accurate error; add a minimal regression. Verify the current code path before changing it.
+6. Document experimental `Unit` fields (`aiObjective`, `aiPickup`, `aiBeachhead`, `aiAssembly`, `aiMissionProgress`, `aiAvoidObjective`) and their save-schema semantics. **Do not** move them to a separate `AiUnitState` map without explicit approval.
+
+### P3: Documentation accuracy
+
+7. Reconcile `docs/ENGINE_STATUS.md` and `docs/TEST_STRATEGY.md` against current source, Node 24 and coverage policy; update `docs/WORKSTREAM_STATUS.md` only when its evidence/status changes. Keep documentation commits separate from gameplay changes.
+
+### P4: Remaining UI confidence
+
+8. Audit Priority 1 map UX against already merged #62/#63 work; implement only demonstrably missing behavior.
+9. Consider one inexpensive real-browser smoke check in default CI if measured runtime is acceptable; otherwise retain observer Playwright checks as opt-in.
+
+### Fast tactical verification policy
+
+- Prefer deterministic **small seeded fixtures with only the required units, cities, known terrain, and faction knowledge**. Assert decisions or state transitions over 1–5 rounds where feasible; use short 10–30-round scenarios only when the behavior requires them.
+- Repeat asymmetric cases with factions swapped; preserve fog-of-war and legal-action boundaries. Record the seed, starting state, expected decision, and reason for failure.
+- Build on existing `makeAiInvasionLab()` and `advanceLabRound()` infrastructure rather than inventing a parallel simulator. Priority follow-ons after P0: idle transport reassignment, destroyer investigation of stale sightings, and coordinated landing with a small pre-seeded force.
+- Long held-out campaigns remain **manual/opt-in milestone checks**, never the routine PR feedback loop. Do not modify the frozen 42-campaign baseline. A single passing scenario is a regression check, not proof of overall AI strength.
+- For engine changes: Node 24, `npm run build`, `npm test`, GitHub CI and Copilot/Cursor review checks before merge. UI changes also require relevant browser evidence. Do not commit generated `dist/` or root standalone `index.html` as source patches. Keep `AGENTS.md` and `agents/` guidance authoritative.
+
 ## Gameplay issue — Lost ports and stale ownership (2026-10-27)
 
 Round 753/758 screenshots show Blue with 186–189 units and three cities, with remembered friendly city markers where Red shows ownership. Capture notifications must update the former owner's ownership memory without revealing subsequent enemy production or movements. Add lost-port recovery objectives using known reachable targets, and bound reserve production even when no transport exists. Test landlocked starts and loss of the last port; do not assume a fleet can always be rebuilt. Use the supplied save as diagnostic evidence; validate fixes in newly constructed games. Existing-save repair and backward compatibility are explicitly out of scope.
