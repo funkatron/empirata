@@ -63,7 +63,10 @@ test('AI spectator controls support automatic viewpoint alternation and dual sco
 
 test('Touch map supports pinch gestures without dispatching accidental taps',()=>{
   assert.match(html,/function beginPinch\(/);
-  assert.match(html,/clampTileSize\(pinch\.scale\s*\*\s*p\.distance\s*\/\s*pinch\.distance/);
+  // The standalone bundler qualifies imported helpers; verify the call in source and the bundled module separately.
+  const cameraSource=readFileSync(new URL('../src/ui/main.ts',import.meta.url),'utf8');
+  assert.match(cameraSource,/clampTileSize\(pinch\.scale\s*\*\s*p\.distance\s*\/\s*pinch\.distance/);
+  assert.match(html,/__modules\["ui\/camera\.js"\]/);
   assert.match(html,/pinch\.worldX\s*\*\s*tileSize/);
   assert.match(html,/pinch\.worldY\s*\*\s*tileSize/);
   assert.match(html,/if\s*\(pinch\s*\|\|\s*suppressTap\)/);
