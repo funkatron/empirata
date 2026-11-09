@@ -117,3 +117,31 @@ test('A-014 reports are delivered to participants without omniscient information
   assert.equal(getPlayerView(g,'red').cells[25*g.width+10].city.production,null);
   assert.deepEqual(getPlayerView(importSave(exportSave(g)),'red'),getPlayerView(g,'red'));
 });
+
+
+test('A-015 lost home-port intelligence is corrected for both factions and survives reload',()=>{
+  for(const attacker of ['blue','red']){
+    const defender=attacker==='blue'?'red':'blue';
+    const g=base();
+    const target=g.cities.find(c=>c.owner===defender);
+    const army=g.units.find(u=>u.kind==='army'&&u.owner===attacker);
+    // A deliberately seeded, one-step assault. No campaign or random combat.
+    g.active=attacker;
+    army.position={x:target.position.x+1,y:target.position.y};
+    army.spent=0;
+    target.production='fighter';target.progress=3;target.firstCycle=false;
+    updateAllKnowledge(g);
+    assert.equal(g.knowledge[defender].cities[target.id].owner,defender);
+    const captured=adjudicateCityCapture(g,{armyId:army.id,cityId:target.id,outcome:'captured'});
+    const intel=captured.knowledge[defender].cities[target.id];
+    assert.equal(intel.owner,attacker);
+    assert.equal(intel.production,null);
+    assert.equal(intel.productionKnown,false);
+    const cell=getPlayerView(captured,defender).cells[target.position.y*captured.width+target.position.x];
+    assert.equal(cell.city.owner,attacker);
+    assert.equal(cell.city.productionKnown,false);
+    const restored=importSave(exportSave(captured));
+    assert.deepEqual(restored.knowledge[defender].cities[target.id],intel);
+    assert.deepEqual(getPlayerView(restored,defender).cells[target.position.y*restored.width+target.position.x],cell);
+  }
+});
