@@ -14,51 +14,70 @@ const paths=new Map(Object.entries(silhouettes).map(([kind,path])=>[kind,new Pat
 const city=new Path2D('M2 20V10H7V20Z M8 20V5H15V20Z M16 20V12H22V20Z M10 3H13V5H10Z M1 21H23V23H1Z');
 const harbor=new Path2D('M3 11V8H9V5H15V8H21V11Z M10 10H14V18H20V15H23V20L20 23H4L1 20V15H4V18H10Z');
 
-// Small, deterministic pixel-art stamps. No random noise or per-frame allocations.
+// Decorative biomes only: Empire's authoritative terrain remains land/sea.
+// Every stamp is deterministic, and motifs avoid the central unit/city glyph.
 function terrainStamp(terrain:Terrain,variant:number):HTMLCanvasElement {
   const tile=document.createElement('canvas');
   tile.width=tile.height=32;
-  const ctx=tile.getContext('2d')!;
+  const c=tile.getContext('2d')!;
   const land=terrain==='land';
-  ctx.fillStyle=(land?['#607a46','#647e49','#5c7643','#69814c']:['#20476d','#224a70','#21496f','#254b72'])[variant]!;
-  ctx.fillRect(0,0,32,32);
-  // Broad, irregular patches suggest vegetation and shallow water without
-  // introducing new terrain types or interfering with unit silhouettes.
-  const patches=land?['#526c3d','#789055','#4c683b','#83965a']:['#1a405f','#2b5679','#1c4365','#315b7b'];
-  for(let i=0;i<6;i++){
-    const x=(variant*7+i*11+3)%29;
-    const y=(variant*13+i*7+5)%29;
-    ctx.fillStyle=patches[(i+variant)&3]!;
-    const width=3+(i%3)*2;
-    ctx.fillRect(x,y,width,2+(i&1));
-    ctx.fillRect(x+1,y+2,Math.max(2,width-2),2);
-    if(land){
-      ctx.fillRect(x+2,y-1,2,1);
-      ctx.fillStyle=i%2?'#94a66a':'#425f37';
-      ctx.fillRect(x+1,y+1,2,1);
-    }else{
-      ctx.fillStyle=i%2?'#3a6380':'#183b5d';
-      ctx.fillRect(x+2,y+1,Math.max(2,width-1),1);
-    }
+  const hash=(n:number)=>(Math.imul(n+variant*19,1103515245)>>>16)&255;
+  c.fillStyle=land?'#6a8c49':'#164d79';
+  c.fillRect(0,0,32,32);
+  // Sparse coherent clusters instead of uniform per-pixel noise.
+  for(let i=0;i<7;i++){
+    const x=2+hash(i*7)%25,y=2+hash(i*7+1)%25;
+    c.fillStyle=land?(i%2?'#789a51':'#54783e'):(i%2?'#205b83':'#125075');
+    c.fillRect(x,y,4+hash(i*7+2)%5,2);
+    c.fillRect(x+2,y+2,3,2);
   }
-  // Sparse one-pixel accents remain readable when zoomed in, not speckled.
-  for(let i=0;i<4;i++){
-    const x=(variant*5+i*9+4)%30,y=(variant*11+i*13+2)%30;
-    ctx.fillStyle=land?'#a0ad73':'#47708a';
-    ctx.fillRect(x,y,land?2:4,1);
+  if(land){
+    // Distinct but infrequent forest/hill accents; no gameplay implications.
+    if(variant%5===0||variant%7===0){
+      const x=2+hash(49)%8,y=2+hash(50)%7;
+      for(let i=0;i<3;i++){
+        const tx=x+(i%2)*6,ty=y+Math.floor(i/2)*6;
+        c.fillStyle='#284f32';c.fillRect(tx+2,ty,3,6);
+        c.fillStyle='#3b7338';c.fillRect(tx+1,ty+1,6,3);
+        c.fillStyle='#579447';c.fillRect(tx+2,ty,3,2);
+        c.fillStyle='#90b75b';c.fillRect(tx+2,ty,2,1);
+      }
+    }else if(variant%6===1){
+      c.fillStyle='#796e53';c.fillRect(4,5,11,3);c.fillRect(6,3,7,2);
+      c.fillStyle='#a49a70';c.fillRect(7,3,5,2);c.fillRect(5,5,3,1);
+      c.fillStyle='#485f3b';c.fillRect(4,8,11,2);
+    }else{
+      for(let i=0;i<4;i++){
+        const x=2+hash(60+i*2)%25,y=2+hash(61+i*2)%25;
+        c.fillStyle='#9bb56c';c.fillRect(x,y,2,1);
+      }
+    }
+  }else{
+    // Short horizontal wavelets, no checkerboard or visible grid edges.
+    for(let i=0;i<4;i++){
+      const x=2+hash(80+i*2)%22,y=2+hash(81+i*2)%27;
+      c.fillStyle=i%2?'#31769a':'#24678c';
+      c.fillRect(x,y,5+hash(90+i)%4,1);
+      c.fillRect(x+2,y+1,3,1);
+    }
   }
   return tile;
 }
-
-const terrainArt={land:Array.from({length:4},(_,i)=>terrainStamp('land',i)),sea:Array.from({length:4},(_,i)=>terrainStamp('sea',i))};
-
+const terrainArt={
+  land:Array.from({length:24},(_,i)=>terrainStamp('land',i)),
+  sea:Array.from({length:24},(_,i)=>terrainStamp('sea',i)),
+};
 export function drawTerrain(ctx:CanvasRenderingContext2D,terrain:Terrain|null,x:number,y:number,size:number,column:number,row:number):void {
-  if(terrain){
-    ctx.drawImage(terrainArt[terrain][(Math.imul(column,31)^Math.imul(row,17)^(column>>2)^(row>>1))&3]!,x,y,size+.25,size+.25);
-  }else{
+  if(!terrain){
     ctx.fillStyle='#080e15';
     ctx.fillRect(x,y,size+.25,size+.25);
+    return;
   }
+  const index=((Math.imul(column,73856093)^Math.imul(row,19349663))>>>0)%24;
+  ctx.save();
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(terrainArt[terrain][index]!,x,y,size+.25,size+.25);
+  ctx.restore();
 }
 
 export function drawCoast(ctx:CanvasRenderingContext2D,x:number,y:number,size:number,north:boolean,east:boolean,south:boolean,west:boolean):void {
