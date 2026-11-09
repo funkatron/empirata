@@ -49,10 +49,14 @@ async function captureScenario(page,prefix){
   await capture('02-normal');
   for(let i=0;i<12;i++)await page.locator('#zoomIn').click();
   await capture('03-zoomed-in');
+  // The ordinary zoomed-in frame is not the maximum. Capture the actual camera limit separately.
+  // Each zoom-in click adds 4 CSS pixels; 220 steps cover the largest supported profile.
+  await page.locator('#zoomIn').evaluate(button=>{for(let i=0;i<220;i++)button.click();});
+  await capture('04-maximum-zoom');
   await page.locator('#gameMenu summary').click();
   await page.locator('#invasionGame').click();
   await page.locator('#recenter').click();
-  await capture('04-invasion');
+  await capture('05-invasion');
   return shots;
 }
 
@@ -86,7 +90,7 @@ try{
     browser:'Playwright WebKit',
     profiles,
     scenarios:['continents:83 / ai-vs-ai / round 1','AI Invasion staged test'],
-    note:'Set EMPIRATA_SCREENSHOT_PROFILES=desktop,ipad-portrait,ipad-landscape for full matrix. Normal view adds six zoom clicks after fit; zoomed-in adds twelve more.',
+    note:'Set EMPIRATA_SCREENSHOT_PROFILES=desktop,ipad-portrait,ipad-landscape for full matrix. Normal view adds six zoom clicks after fit; zoomed-in adds twelve more; maximum zoom drives the zoom control to its viewport-aware cap.',
     shots:allShots,
   };
   await writeFile(resolve(output,'manifest.json'),JSON.stringify(metadata,null,2)+'\n');
