@@ -34,7 +34,7 @@ jobs:
         run: node smoke/map-screenshots.mjs
         env:
           EMPIRATA_SCREENSHOT_DIR: artifacts/map-screenshots
-          EMPIRATA_SCREENSHOT_PROFILES: ${{ github.event_name == 'workflow_dispatch' && inputs.profiles || 'desktop' }}
+          EMPIRATA_SCREENSHOT_PROFILES: ${{ github.event_name == 'workflow_dispatch' && inputs.profiles || 'desktop,ipad-portrait,ipad-landscape' }}
       - name: Upload screenshots and manifest
         if: always()
         uses: actions/upload-artifact@v4
