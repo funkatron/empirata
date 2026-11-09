@@ -9,6 +9,13 @@ for (const filename of walk(path.join(root,'src')).filter(f=>f.endsWith('.ts')).
   const js=ts.transpileModule(fs.readFileSync(filename,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
   registry+=`__modules[${JSON.stringify(id)}] = function(module, exports, require) {\n${js}\n};\n`;
 }
+// Pages publishes only index.html. Embed the atlas so the standalone renderer
+// never requests a missing external terrain asset.
+const atlasSvg=fs.readFileSync(path.join(root,'public/terrain-atlas.svg'));
+const atlasDataUrl='data:image/svg+xml;base64,'+atlasSvg.toString('base64');
+const atlasAssignment="atlas.src = './terrain-atlas.svg';";
+if (!registry.includes(atlasAssignment)) throw new Error('Terrain atlas assignment not found in bundle');
+registry=registry.replace(atlasAssignment,'atlas.src = '+JSON.stringify(atlasDataUrl)+';');
 const loader=`\n(()=>{\n'use strict';\nconst __modules=Object.create(null);\nconst __cache=Object.create(null);\n${registry}\nfunction __load(id){\n if(Object.hasOwn(__cache,id))return __cache[id].exports;\n const factory=__modules[id];if(!factory)throw new Error('Missing Empirata module: '+id);\n const module={exports:{}};__cache[id]=module;\n factory(module,module.exports,(request)=>{\n   if(!request.startsWith('.'))throw new Error('Unexpected external module: '+request);\n   const parts=id.split('/');parts.pop();\n   for(const part of request.split('/')){if(part==='.'||part==='')continue;if(part==='..')parts.pop();else parts.push(part)}\n   return __load(parts.join('/'));\n });\n return module.exports;\n}\n__load('ui/main.js');\n})();\n`;
 let html=fs.readFileSync(path.join(root,'dist/index.html'),'utf8');
 const css=fs.readFileSync(path.join(root,'dist/styles.css'),'utf8');
