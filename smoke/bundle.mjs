@@ -110,3 +110,12 @@ test('Endgame dialog has accessible labels and reuses save and restart actions',
   assert.match(source,/el\('endgameExport'\).*el\('exportSave'\)\.click\(\)/);
   assert.match(source,/el\('endgameNewGame'\).*el\('resultNewGame'\)\.click\(\)/);
 });
+
+
+test('Standalone Pages bundle embeds the terrain atlas rather than requesting an absent file',()=>{
+  const source=readFileSync(new URL('../public/terrain-atlas.svg',import.meta.url),'utf8');
+  const embedded=html.match(/atlas\.src\s*=\s*["'](data:image\/svg\+xml;base64,([A-Za-z0-9+/=]+))["']/);
+  assert.ok(embedded,'Standalone bundle must embed its terrain atlas as a data URL');
+  assert.equal(Buffer.from(embedded[2],'base64').toString('utf8'),source,'Embedded atlas must match the authored source asset');
+  assert.doesNotMatch(html,/atlas\.src\s*=\s*["']\.\/terrain-atlas\.svg["']/);
+});
