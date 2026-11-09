@@ -18,6 +18,7 @@ const harbor=new Path2D('M3 11V8H9V5H15V8H21V11Z M10 10H14V18H20V15H23V20L20 23H
 // Decorative variants never change Empire's land/sea movement or combat rules.
 const atlas=new Image();
 let atlasReady=false;
+export function isTerrainAtlasReady():boolean{return atlasReady;}
 atlas.onload=()=>{atlasReady=true;window.dispatchEvent(new Event('empirata-terrain-ready'));};
 atlas.src='./terrain-atlas.svg';
 function tileVariant(column:number,row:number):number {
