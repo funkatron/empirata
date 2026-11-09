@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {makeRulesLab,adjudicateCityCapture,adjudicateCombat,updateAllKnowledge,
-  getPlayerView,moveUnit,movementAllowance,exportSave,importSave} from '../dist/engine/index.js';
+  getPlayerView,moveUnit,movementAllowance,exportSave,importSave,selectProduction,endTurn} from '../dist/engine/index.js';
 const copy=(u,patch)=>({...structuredClone(u),...patch});
 const base=()=>makeRulesLab();
 const addCity=(game,patch={})=>{game.cities.push({id:'test-city',position:{x:10,y:25},owner:null,production:null,progress:0,firstCycle:true,...patch});updateAllKnowledge(game);return game;};
@@ -143,5 +143,31 @@ test('A-015 lost home-port intelligence is corrected for both factions and survi
     const restored=importSave(exportSave(captured));
     assert.deepEqual(restored.knowledge[defender].cities[target.id],intel);
     assert.deepEqual(getPlayerView(restored,defender).cells[target.position.y*restored.width+target.position.x],cell);
+  }
+});
+
+
+test('A-016 captured city resumes production after explicit assignment for either faction',()=>{
+  for(const attacker of ['blue','red']){
+    const defender=attacker==='blue'?'red':'blue';
+    const initial=base();
+    const target=initial.cities.find(c=>c.owner===defender);
+    const army=initial.units.find(u=>u.owner===attacker&&u.kind==='army');
+    army.position={x:target.position.x+1,y:target.position.y};
+    army.spent=0;
+    initial.active=attacker;
+    target.production='fighter';target.progress=5;target.firstCycle=false;
+    const captured=adjudicateCityCapture(initial,{armyId:army.id,cityId:target.id,outcome:'captured'});
+    assert.equal(captured.cities.find(c=>c.id===target.id).production,null);
+    let g=selectProduction(captured,target.id,'army');
+    const city=g.cities.find(c=>c.id===target.id);
+    assert.equal(city.progress,0);assert.equal(city.firstCycle,true);
+    const before=g.units.filter(u=>u.owner===attacker&&u.position.x===target.position.x&&u.position.y===target.position.y).length;
+    for(let i=0;i<40;i++){
+      g=endTurn(g);
+      if(g.units.filter(u=>u.owner===attacker&&u.position.x===target.position.x&&u.position.y===target.position.y).length>before)break;
+    }
+    assert.ok(g.units.some(u=>u.owner===attacker&&u.kind==='army'&&u.position.x===target.position.x&&u.position.y===target.position.y),'captured city should complete its first army');
+    assert.equal(g.cities.find(c=>c.id===target.id).firstCycle,false);
   }
 });
