@@ -2,8 +2,8 @@
 <html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Empirata · Terrain Art Showcase</title>
 <style>body{margin:0;background:#0b1823;color:#dce7dd;font:16px system-ui;padding:16px}header{max-width:1000px;margin:auto}h1{font-size:22px;margin:0 0 8px}p{color:#b5c8c6;margin:6px 0 12px}.controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0}canvas{display:block;width:100%;max-width:1000px;image-rendering:pixelated;border:1px solid #426278;background:#123c60}main{max-width:1000px;margin:auto}.note{font-size:13px}</style>
-<header><h1>Empirata · Terrain Artwork Showcase</h1><p>Actual 32-pixel PNG sprites. Decorative forests and hills do not affect the original land/sea rules.</p></header>
-<main><div class="controls"><label>Zoom <input id="zoom" type="range" min="1" max="4" step="1" value="2"></label><output id="value">2×</output><label><input id="grid" type="checkbox"> Show tile grid</label></div><canvas id="map" width="896" height="576" aria-label="Fully revealed sample island map"></canvas><p class="note">Fully revealed synthetic demonstration map, not a gameplay save. Sprite assets: <a style="color:#a8d7e5" href="./terrain-atlas.png">terrain-atlas.png</a>. All zoom levels use nearest-neighbor scaling.</p></main>
+<header><h1>Empirata · Terrain Artwork Showcase</h1><p>Seam-compatible 32-pixel pixel-art sprites. Decorative forests and hills do not affect the original land/sea rules.</p></header>
+<main><section aria-label="Repeatability tests" style="display:flex;gap:24px;flex-wrap:wrap;margin:14px 0"><div><strong>Grassland: 3 × 3 identical tile</strong><canvas id="repeat-grass" width="288" height="288" style="width:288px;height:288px"></canvas></div><div><strong>Ocean: 3 × 3 identical tile</strong><canvas id="repeat-ocean" width="288" height="288" style="width:288px;height:288px"></canvas></div><div><strong>Grassland: 3 × 3 mixed variants</strong><canvas id="mix-grass" width="288" height="288" style="width:288px;height:288px"></canvas></div><div><strong>Ocean: 3 × 3 mixed variants</strong><canvas id="mix-ocean" width="288" height="288" style="width:288px;height:288px"></canvas></div></section><div class="controls"><label>Zoom <input id="zoom" type="range" min="1" max="4" step="1" value="2"></label><output id="value">2×</output><label><input id="grid" type="checkbox"> Show tile grid</label></div><canvas id="map" width="896" height="576" aria-label="Fully revealed sample island map"></canvas><p class="note">Fully revealed synthetic demonstration map, not a gameplay save. Sprite assets: <a style="color:#a8d7e5" href="./terrain-atlas.svg">terrain-atlas.png</a>. All zoom levels use nearest-neighbor scaling.</p></main>
 <script type="module">
 import {drawTerrain,drawCoast} from './ui/map-art.js';
 const canvas=document.querySelector('#map'),ctx=canvas.getContext('2d'),zoom=document.querySelector('#zoom'),grid=document.querySelector('#grid'),value=document.querySelector('#value');
@@ -15,6 +15,16 @@ function land(x,y){
     const dx=(x-cx)/rx,dy=(y-cy)/ry;
     return dx*dx+dy*dy<.85+(hash(x,y)%30)/100;
   });
+}
+function repeatTests(){
+  for(const [id,kind,mixed] of [['repeat-grass','land',false],['repeat-ocean','sea',false],['mix-grass','land',true],['mix-ocean','sea',true]]){
+    const c=document.getElementById(id),p=c.getContext('2d');
+    p.imageSmoothingEnabled=false;
+    for(let y=0;y<3;y++)for(let x=0;x<3;x++){
+      // Use exact same tile for the first two tests, randomized variants for others.
+      drawTerrain(p,kind,x*96,y*96,96,mixed?x:0,mixed?y:0);
+    }
+  }
 }
 function draw(){
   const z=Number(zoom.value);
@@ -29,6 +39,6 @@ function draw(){
   canvas.style.width=(W*32*z/2)+'px';canvas.style.maxWidth='none';
   canvas.parentElement.style.overflowX='auto';
 }
-window.addEventListener('empirata-terrain-ready',()=>{draw();window.__terrainShowcaseReady=true;});
+window.addEventListener('empirata-terrain-ready',()=>{repeatTests();draw();window.__terrainShowcaseReady=true;});
 zoom.oninput=draw;grid.onchange=draw;draw();
 </script></html>
