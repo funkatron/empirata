@@ -14,23 +14,38 @@ const paths=new Map(Object.entries(silhouettes).map(([kind,path])=>[kind,new Pat
 const city=new Path2D('M2 20V10H7V20Z M8 20V5H15V20Z M16 20V12H22V20Z M10 3H13V5H10Z M1 21H23V23H1Z');
 const harbor=new Path2D('M3 11V8H9V5H15V8H21V11Z M10 10H14V18H20V15H23V20L20 23H4L1 20V15H4V18H10Z');
 
+// Small, deterministic pixel-art stamps. No random noise or per-frame allocations.
 function terrainStamp(terrain:Terrain,variant:number):HTMLCanvasElement {
   const tile=document.createElement('canvas');
   tile.width=tile.height=32;
   const ctx=tile.getContext('2d')!;
-  ctx.fillStyle=(terrain==='land'?['#607d47','#65824a','#5d7945','#68854c']:['#21486f','#234c75','#224a72','#254f79'])[variant]!;
+  const land=terrain==='land';
+  ctx.fillStyle=(land?['#607a46','#647e49','#5c7643','#69814c']:['#20476d','#224a70','#21496f','#254b72'])[variant]!;
   ctx.fillRect(0,0,32,32);
-  for(let i=0;i<5;i++){
-    const x=(variant*11+i*13)%25+2,y=(variant*7+i*9)%26+2;
-    ctx.fillStyle=i%2?'#ffffff17':'#081b2633';
-    if(terrain==='sea'){
-      ctx.fillRect(x,y,5+i%3,1);
-      ctx.fillRect(x+2,y+1,3,1);
+  // Broad, irregular patches suggest vegetation and shallow water without
+  // introducing new terrain types or interfering with unit silhouettes.
+  const patches=land?['#526c3d','#789055','#4c683b','#83965a']:['#1a405f','#2b5679','#1c4365','#315b7b'];
+  for(let i=0;i<6;i++){
+    const x=(variant*7+i*11+3)%29;
+    const y=(variant*13+i*7+5)%29;
+    ctx.fillStyle=patches[(i+variant)&3]!;
+    const width=3+(i%3)*2;
+    ctx.fillRect(x,y,width,2+(i&1));
+    ctx.fillRect(x+1,y+2,Math.max(2,width-2),2);
+    if(land){
+      ctx.fillRect(x+2,y-1,2,1);
+      ctx.fillStyle=i%2?'#94a66a':'#425f37';
+      ctx.fillRect(x+1,y+1,2,1);
     }else{
-      ctx.fillRect(x,y,2,2);
-      ctx.fillRect(x+2,y+2,2,1);
-      ctx.fillRect(x+4,y-1,1,2);
+      ctx.fillStyle=i%2?'#3a6380':'#183b5d';
+      ctx.fillRect(x+2,y+1,Math.max(2,width-1),1);
     }
+  }
+  // Sparse one-pixel accents remain readable when zoomed in, not speckled.
+  for(let i=0;i<4;i++){
+    const x=(variant*5+i*9+4)%30,y=(variant*11+i*13+2)%30;
+    ctx.fillStyle=land?'#a0ad73':'#47708a';
+    ctx.fillRect(x,y,land?2:4,1);
   }
   return tile;
 }
