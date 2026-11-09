@@ -1,3 +1,4 @@
+import {clampTileSize,fitTileSize} from './camera.js';
 import {drawCity,drawCoast,drawTerrain,drawUnit} from './map-art.js';
 import {endgameModal} from './endgame.js';
 import {advanceLabRound,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,makeCampaignMap,
@@ -113,14 +114,14 @@ function focus(p:Coord):void{
   clamp();paint();
 }
 function zoom(change:number):void {
-  const old=tileSize;
-  tileSize=Math.max(Math.min(canvas.clientWidth/game.width,canvas.clientHeight/game.height),Math.min(45,tileSize+change));
-  cameraX=(cameraX+canvas.clientWidth/2)*(tileSize/old)-canvas.clientWidth/2;
-  cameraY=(cameraY+canvas.clientHeight/2)*(tileSize/old)-canvas.clientHeight/2;
+  const old=tileSize,w=canvas.clientWidth,h=canvas.clientHeight;
+  tileSize=clampTileSize(tileSize+change,w,h,game.width,game.height);
+  cameraX=(cameraX+w/2)*(tileSize/old)-w/2;
+  cameraY=(cameraY+h/2)*(tileSize/old)-h/2;
   clamp();paint();
 }
 function fitWorld():void {
-  tileSize=Math.min(canvas.clientWidth/game.width,canvas.clientHeight/game.height);
+  tileSize=fitTileSize(canvas.clientWidth,canvas.clientHeight,game.width,game.height);
   cameraX=(game.width*tileSize-canvas.clientWidth)/2;
   cameraY=(game.height*tileSize-canvas.clientHeight)/2;
   clamp();paint();
@@ -479,8 +480,8 @@ canvas.addEventListener('pointermove',ev=>{
   touches.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
   if(pinch&&touches.size===2){
     const p=pinchPoints()!,rect=canvas.getBoundingClientRect();
-    tileSize=Math.max(Math.min(canvas.clientWidth/game.width,canvas.clientHeight/game.height),
-      Math.min(45,pinch.scale*p.distance/pinch.distance));
+    const w=canvas.clientWidth,h=canvas.clientHeight;
+    tileSize=clampTileSize(pinch.scale*p.distance/pinch.distance,w,h,game.width,game.height);
     cameraX=pinch.worldX*tileSize-(p.x-rect.left);
     cameraY=pinch.worldY*tileSize-(p.y-rect.top);
     clamp();paint();return;
