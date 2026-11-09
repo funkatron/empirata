@@ -1,0 +1,37 @@
+name: Optional coastline visual review
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_ref:
+        description: 'Branch, tag or SHA to visually review (e.g. fix/coast-diagonal-corners)'
+        required: true
+        default: main
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - run: node scripts/build-single-file.cjs
+      - run: npm install --no-save --no-package-lock playwright
+      - run: npx playwright install --with-deps chromium
+      - name: Capture deterministic browser screenshots
+        run: node scripts/coastline-screenshots.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coastline-visual-review-${{ github.sha }}
+          path: coastline-screenshots/
+          retention-days: 14
