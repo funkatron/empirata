@@ -14,69 +14,26 @@ const paths=new Map(Object.entries(silhouettes).map(([kind,path])=>[kind,new Pat
 const city=new Path2D('M2 20V10H7V20Z M8 20V5H15V20Z M16 20V12H22V20Z M10 3H13V5H10Z M1 21H23V23H1Z');
 const harbor=new Path2D('M3 11V8H9V5H15V8H21V11Z M10 10H14V18H20V15H23V20L20 23H4L1 20V15H4V18H10Z');
 
-// Decorative biomes only: Empire's authoritative terrain remains land/sea.
-// Every stamp is deterministic, and motifs avoid the central unit/city glyph.
-function terrainStamp(terrain:Terrain,variant:number):HTMLCanvasElement {
-  const tile=document.createElement('canvas');
-  tile.width=tile.height=32;
-  const c=tile.getContext('2d')!;
-  const land=terrain==='land';
-  const hash=(n:number)=>(Math.imul(n+variant*19,1103515245)>>>16)&255;
-  c.fillStyle=land?'#6a8c49':'#164d79';
-  c.fillRect(0,0,32,32);
-  // Sparse coherent clusters instead of uniform per-pixel noise.
-  for(let i=0;i<7;i++){
-    const x=2+hash(i*7)%25,y=2+hash(i*7+1)%25;
-    c.fillStyle=land?(i%2?'#789a51':'#54783e'):(i%2?'#205b83':'#125075');
-    c.fillRect(x,y,4+hash(i*7+2)%5,2);
-    c.fillRect(x+2,y+2,3,2);
-  }
-  if(land){
-    // Distinct but infrequent forest/hill accents; no gameplay implications.
-    if(variant%5===0||variant%7===0){
-      const x=2+hash(49)%8,y=2+hash(50)%7;
-      for(let i=0;i<3;i++){
-        const tx=x+(i%2)*6,ty=y+Math.floor(i/2)*6;
-        c.fillStyle='#284f32';c.fillRect(tx+2,ty,3,6);
-        c.fillStyle='#3b7338';c.fillRect(tx+1,ty+1,6,3);
-        c.fillStyle='#579447';c.fillRect(tx+2,ty,3,2);
-        c.fillStyle='#90b75b';c.fillRect(tx+2,ty,2,1);
-      }
-    }else if(variant%6===1){
-      c.fillStyle='#796e53';c.fillRect(4,5,11,3);c.fillRect(6,3,7,2);
-      c.fillStyle='#a49a70';c.fillRect(7,3,5,2);c.fillRect(5,5,3,1);
-      c.fillStyle='#485f3b';c.fillRect(4,8,11,2);
-    }else{
-      for(let i=0;i<4;i++){
-        const x=2+hash(60+i*2)%25,y=2+hash(61+i*2)%25;
-        c.fillStyle='#9bb56c';c.fillRect(x,y,2,1);
-      }
-    }
-  }else{
-    // Short horizontal wavelets, no checkerboard or visible grid edges.
-    for(let i=0;i<4;i++){
-      const x=2+hash(80+i*2)%22,y=2+hash(81+i*2)%27;
-      c.fillStyle=i%2?'#31769a':'#24678c';
-      c.fillRect(x,y,5+hash(90+i)%4,1);
-      c.fillRect(x+2,y+1,3,1);
-    }
-  }
-  return tile;
+// Authored pixel-art sprite atlas: 8 land sprites on row 0, 8 sea on row 1.
+// Decorative variants never change Empire's land/sea movement or combat rules.
+const atlas=new Image();
+let atlasReady=false;
+atlas.onload=()=>{atlasReady=true;window.dispatchEvent(new Event('empirata-terrain-ready'));};
+atlas.src='./terrain-atlas.png';
+function tileVariant(column:number,row:number):number {
+  return ((Math.imul(column,73856093)^Math.imul(row,19349663))>>>0)&7;
 }
-const terrainArt={
-  land:Array.from({length:24},(_,i)=>terrainStamp('land',i)),
-  sea:Array.from({length:24},(_,i)=>terrainStamp('sea',i)),
-};
 export function drawTerrain(ctx:CanvasRenderingContext2D,terrain:Terrain|null,x:number,y:number,size:number,column:number,row:number):void {
   if(!terrain){
-    ctx.fillStyle='#080e15';
-    ctx.fillRect(x,y,size+.25,size+.25);
-    return;
+    ctx.fillStyle='#080e15';ctx.fillRect(x,y,size+.25,size+.25);return;
   }
-  const index=((Math.imul(column,73856093)^Math.imul(row,19349663))>>>0)%24;
+  if(!atlasReady){
+    ctx.fillStyle=terrain==='land'?'#6f9746':'#134c78';
+    ctx.fillRect(x,y,size+.25,size+.25);return;
+  }
   ctx.save();
   ctx.imageSmoothingEnabled=false;
-  ctx.drawImage(terrainArt[terrain][index]!,x,y,size+.25,size+.25);
+  ctx.drawImage(atlas,tileVariant(column,row)*32,terrain==='land'?0:32,32,32,x,y,size+.25,size+.25);
   ctx.restore();
 }
 
