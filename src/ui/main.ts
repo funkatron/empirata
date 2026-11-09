@@ -152,7 +152,8 @@ function paint():void {
     const px=x*tileSize-cameraX,py=y*tileSize-cameraY;
     const seaAt=(dx:number,dy:number)=>cellAt(x+dx,y+dy)?.terrain==='sea';
     drawTerrain(ctx,c.terrain,px,py,tileSize,x,y);
-    if(c.terrain==='land')drawCoast(ctx,px,py,tileSize,seaAt(0,-1),seaAt(1,0),seaAt(0,1),seaAt(-1,0));
+    if(c.terrain==='land')drawCoast(ctx,px,py,tileSize,seaAt(0,-1),seaAt(1,0),seaAt(0,1),seaAt(-1,0),
+      seaAt(1,-1),seaAt(1,1),seaAt(-1,1),seaAt(-1,-1));
     if(c.terrain!==null&&!c.visible){ctx.fillStyle='rgba(3,13,22,.52)';ctx.fillRect(px,py,tileSize,tileSize);}
     if(tileSize>=9){ctx.strokeStyle='rgba(120,159,166,.12)';ctx.lineWidth=.65;ctx.strokeRect(px+.3,py+.3,tileSize-.6,tileSize-.6);}
   }
