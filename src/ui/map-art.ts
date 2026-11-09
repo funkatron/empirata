@@ -63,7 +63,6 @@ function shoreSprite(mask:number):HTMLCanvasElement {
   function edge(horizontal:boolean,reverse:boolean){
     for(let i=0;i<32;i++){
       const depth=top[i]!;
-      const pos=reverse?31-i:i;
       if(horizontal){
         const y=reverse?32-depth:0;
         c.fillStyle=sea;c.fillRect(i,y,1,depth);
