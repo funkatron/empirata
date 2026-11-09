@@ -77,15 +77,22 @@ function shoreSprite(mask:number):HTMLCanvasElement {
   if(s)edge(true,true);
   if(w)edge(false,false);
   if(e)edge(false,true);
-  // Convex exposed corners: avoid a square green protrusion at diagonal sea.
-  for(const [cut,cx,cy,dx,dy] of [
-    [n&&w,0,0,1,1],[n&&e,31,0,-1,1],
-    [s&&e,31,31,-1,-1],[s&&w,0,31,1,-1],
+  // Join two exposed edges using the same stepped bands. The previous corner
+  // patch drew one-sided horizontal strips, leaving seams at east/south joins.
+  // Build a symmetric quarter-corner instead, clipped entirely to this tile.
+  for(const [corner,active] of [
+    [0,n&&w],[1,n&&e],[2,s&&e],[3,s&&w],
   ] as const){
-    if(!cut)continue;
-    c.fillStyle=sea;
-    for(let j=0;j<7;j++)c.fillRect(cx+(dx<0?-j:0),cy+j*dy,8-j,1);
-    c.fillStyle=shallows;c.fillRect(cx+dx*6,cy+dy*6,2,2);
+    if(!active)continue;
+    const right=corner===1||corner===2,bottom=corner>=2;
+    for(let yy=0;yy<9;yy++)for(let xx=0;xx<9;xx++){
+      const x=right?31-xx:xx,y=bottom?31-yy:yy;
+      // Rounded stair-step transition from sea at the outside to beach inland.
+      const distance=Math.hypot(xx,yy);
+      if(distance>=9)continue;
+      c.fillStyle=distance<6?sea:distance<7?shallows:sand;
+      c.fillRect(x,y,1,1);
+    }
   }
   shoreCache.set(mask,canvas);
   return canvas;
