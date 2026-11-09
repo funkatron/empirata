@@ -84,7 +84,7 @@ try{
     // Fully revealed artwork showcase avoids fog-of-war obscuring the terrain review.
     await page.goto(`http://127.0.0.1:${server.address().port}/terrain-showcase.html`);
     await page.locator('#map').waitFor();
-    await page.waitForFunction(()=>document.querySelector('#map')?.getContext('2d')?.getImageData(1,1,1,1).data[3]===255);
+    await page.waitForFunction(()=>window.__terrainShowcaseReady===true);
     const showcaseFile=`${profile.prefix}06-terrain-showcase.png`;
     await page.screenshot({path:resolve(output,showcaseFile),animations:'disabled',fullPage:true});
     allShots.push({file:showcaseFile,scenario:'fully revealed synthetic island'});
