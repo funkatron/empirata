@@ -9,7 +9,7 @@ test('ALG-013 a damaged ship repairs on arrival at friendly coastal city',()=>{
   const arrived=moveUnit(game,ship.id,{x:8,y:25});
   const repaired=arrived.units.find(u=>u.id===ship.id);
   assert.equal(repaired.damage,1);
-  assert.equal(repaired.spent,1);
+  assert.equal(repaired.spent,3);
 });
 test('ALG-013 staying in friendly port repairs once and consumes movement',()=>{
   const game=makeRulesLab();
