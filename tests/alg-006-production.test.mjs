@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { requiredProductionTurns } from '../dist/engine/units.js';
-import { makeRulesLab, beginTurn } from '../dist/engine/game.js';
 
 test('ALG-006 recovered first and repeat tables at default efficiency', () => {
   const kinds = ['army','fighter','destroyer','transport','submarine','cruiser','carrier','battleship'];
