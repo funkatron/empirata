@@ -24,3 +24,10 @@ test('shoreline pixels are composed once from cardinal edge distances',()=>{
   assert.doesNotMatch(art,/function edge\(/);
   assert.doesNotMatch(art,/for\(const \[corner,active\]/);
 });
+
+test('adjacent sea edges use symmetric rounded corner joins',()=>{
+  for(const pair of ['n&&w','n&&e','s&&w','s&&e'])assert.ok(art.includes('if('+pair+')d=Math.min(d,roundedJoin('));
+  assert.match(art,/Math\.abs\(a-b\)/);
+  assert.match(art,/const band=Math\.floor\(d\)/);
+  assert.doesNotMatch(art,/c\.fillRect\(x,y,1,1\)[\s\S]*c\.fillRect\(x,y,1,1\)/);
+});
