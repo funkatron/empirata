@@ -243,6 +243,8 @@ The following assertions are testable against manual-confirmed behavior, without
 
 ### Open verification queue (priority order)
 
+Binary algorithm extractions are collected in [DOS_ALGORITHM_RULESET.md](DOS_ALGORITHM_RULESET.md) (ALG-001–013: HP combat `%200`, city assault, production tables, detection matrix, unit cap 1000, turn/repair). This classic spec remains the manual-facing layer.
+
 - **V-01 High:** Combat exchange algorithm: probabilities, attack/defense multipliers, initiative, and resolution.
 - **V-02 High:** City assault and capture probabilities; neutral versus enemy-city behavior.
 - **V-03 High:** Exact production progress timing, efficiency rounding, and capture resets.

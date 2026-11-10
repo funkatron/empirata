@@ -42,7 +42,7 @@ the pre-fix baseline; other findings remain open.
 | --- | --- | --- |
 | Scan pp. 26–27 | Only city/cargo stacks are exceptions; captured-city occupants are destroyed; successful army becomes garrison | `adjudicateCityCapture`; cargo-combat tests |
 | Scan p. 26 | City occupants do not increase city defense | Capture odds do not inspect stationed army count; retain this separation |
-| Scan p. 27 | Port repair restores one damage point per turn; docking unloads cargo | `beginTurn`, `moveUnit`; exact repair-phase timing still needs DOS comparison |
+| Scan p. 27 | Port repair restores one damage point per turn; docking unloads cargo | DOS: +1 remaining HP on movement-phase dock/stay (`dir=-1`) at friendly city, then clears moves (ALG-013). Empirata repairs in `beginTurn` instead — same rate, different schedule |
 | Scan p. 26 | Ships at least half damaged move one square per turn | `movementAllowance`; odd-HP boundaries need historical examples |
 | Scan p. 49 | Switching production discards incomplete unit; first/repeat production differ | `selectProduction`, `requiredProductionTurns`; factory-history semantics across switches remain a DOS question |
 | Scan pp. 22–24, 49 | Eight-unit constants and 50% production table agree with existing transcription | `STATS`, manual-unit-roster test; no blanket verification of all rules |
@@ -51,14 +51,18 @@ the pre-fix baseline; other findings remain open.
 
 ## Algorithms the manual does not settle
 
-- Exact combat RNG call sequence, seeding, hit exchange and factor application.
-  `combat.ts` describes weighted allocation as verified more strongly than the
-  available evidence supports; correct that comment when the resolver is audited.
-- City conquest formula beyond dependence on attacking combat efficiency;
-  whether our direct percentage roll matches DOS is still unproved.
-- Captured factory initialization, precise refuel/repair timing, cargo survivor
-  priority, and blocked-order resumption/temporary activation scheduling.
-- Global unit saturation threshold and whether all relevant object pools share it.
+See also the binary extraction log in [DOS_ALGORITHM_RULESET.md](../DOS_ALGORITHM_RULESET.md).
+
+- Combat HP exchange is `rand()%200` vs `(atk_eff - def_eff + 100)` with per-type
+  damage table `[1,1,1,1,3,2,1,3]` and efficiency halves — ALG-002. The `%2` loop is
+  animation only (ALG-002b). Empirata’s weighted resolver still differs.
+- City conquest: `combat_eff >= rand()%100` (ALG-004); default 50% ≈ half.
+- Overload survivors: high→low unit index, first `capacity` live (ALG-011).
+- Global unit cap **1000**; embarked units consume slots (ALG-007).
+- Production tables + `(50*base)/efficiency` — ALG-006 (cruiser first **36**).
+- Detection 8×8 + city type `-1` bypass + Chebyshev-1 wake — ALG-012.
+- Turn order prod→move→end; dock repair +1 on stay — ALG-013.
+- Captured-factory UI timing and AI policy remain outside this extraction pass.
 - Original AI objective scoring, production policy, difficulty heuristics and
   surrender threshold. Human strategy guidance is not the computer source code.
 

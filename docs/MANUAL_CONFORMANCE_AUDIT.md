@@ -63,4 +63,4 @@ Consulted the publicly available text transcription of the original [Interstel D
 4. Add missing classic commands only after validating their intended behavior, keeping modern AI tactics separate.
 5. Reconcile the table above with actual test results and mark each rule **verified**, **discrepant**, or **unresolved**; never equate a passing internal test with historical parity.
 
-**Sources:** [Classic Rules Specification v0.1](Empirata_Classic_Rules_Specification_v0.1.md), especially §4, §12, and its source provenance section; [DOS call-site audit](DOS_CALL_SITE_AUDIT_2026-10-23.md) (RNG unresolved).
+**Sources:** [Classic Rules Specification v0.1](Empirata_Classic_Rules_Specification_v0.1.md), especially §4, §12, and its source provenance section; [DOS algorithm ruleset](DOS_ALGORITHM_RULESET.md) (ALG-001–013: Q-01…Q-09 and Q-11 resolved — HP combat `%200`, animation `6366`, assault `6368`, production, detection+cities, overload survivors, turn/repair); [DOS call-site audit](DOS_CALL_SITE_AUDIT_2026-10-23.md) (historical).
