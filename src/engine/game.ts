@@ -396,6 +396,7 @@ function executeStandingOrders(game:Game):Game {
   return g;
 }
 export function runMoveToOrders(game:Game):Game {return executeStandingOrders(clone(game));}
+export const DOS_UNIT_SLOT_LIMIT = 1000;
 function beginTurn(g:Game):void {
   for(const unit of g.units.filter(u=>u.owner===g.active)){
     unit.spent=0;
@@ -407,17 +408,25 @@ function beginTurn(g:Game):void {
       log(g,g.active,'repair',`${unitLabel(unit)} repaired one damage point in port.`);
     }
   }
+  let productionBlockedBySlots=false;
   for(const city of g.cities.filter(c=>c.owner===g.active&&c.production!==null)){
     const kind=city.production!;
     const required=requiredProductionTurns(kind,city.firstCycle,g.players.find(p=>p.id===g.active)!.productionEfficiency);
     city.progress++;
     if(city.progress>=required){
+      // ALG-007: embarked cargo occupies a full unit slot as well.
+      if(g.units.length>=DOS_UNIT_SLOT_LIMIT){
+        productionBlockedBySlots=true;
+        continue;
+      }
       city.progress=0; city.firstCycle=false;
       const unit=newUnit(g,g.active,kind,city.position);
       g.units.push(unit);
       log(g,g.active,'production',`${city.id} completed ${STATS[kind].name}: ${unitLabel(unit)}.`);
     }
   }
+  if(productionBlockedBySlots)
+    log(g,g.active,'production','The world is overpopulated. Production is temporarily halted.');
   // A ship on Load Ship continues accepting friendly adjacent units at each turn
   // start. It wakes automatically when full.
   for(const ship of g.units.filter(u=>u.owner===g.active&&u.order.kind==='load-ship'))
