@@ -52,52 +52,38 @@ function shoreSprite(mask:number):HTMLCanvasElement {
   const c=canvas.getContext('2d')!;
   const n=!!(mask&1),e=!!(mask&2),s=!!(mask&4),w=!!(mask&8);
   const sea='#247d9b',shallows='#40a5b4',sand='#c9b57a',highlight='#e3d49c';
-  // Blocky stepped coastline, with the ocean cut into land on exposed edges.
-  // No gradients or antialiasing: 32x32 source pixels scale as exact blocks.
-  const top=[5,5,4,4,3,3,4,4,5,5,4,4,3,3,4,4,5,5,4,4,3,3,4,4,5,5,4,4,3,3,4,4];
-  function edge(horizontal:boolean,reverse:boolean){
-    for(let i=0;i<32;i++){
-      const depth=top[i]!;
-      if(horizontal){
-        const y=reverse?32-depth:0;
-        c.fillStyle=sea;c.fillRect(i,y,1,depth);
-        c.fillStyle=shallows;c.fillRect(i,reverse?y-1:depth,1,1);
-        c.fillStyle=sand;c.fillRect(i,reverse?y-3:depth+1,1,2);
-        if(i%9===0){c.fillStyle=highlight;c.fillRect(i,reverse?y-3:depth+1,1,1);}
-      }else{
-        const x=reverse?32-depth:0;
-        c.fillStyle=sea;c.fillRect(x,i,depth,1);
-        c.fillStyle=shallows;c.fillRect(reverse?x-1:depth,i,1,1);
-        c.fillStyle=sand;c.fillRect(reverse?x-3:depth+1,i,2,1);
-        if(i%9===0){c.fillStyle=highlight;c.fillRect(reverse?x-3:depth+1,i,1,1);}
-      }
-    }
-  }
-  if(n)edge(true,false);
-  if(s)edge(true,true);
-  if(w)edge(false,false);
-  if(e)edge(false,true);
-  // Join two exposed edges using the same stepped bands. The previous corner
-  // patch drew one-sided horizontal strips, leaving seams at east/south joins.
-  // Build a symmetric quarter-corner instead, clipped entirely to this tile.
-  for(const [corner,active] of [
-    [0,n&&w],[1,n&&e],[2,s&&e],[3,s&&w],
-  ] as const){
-    if(!active)continue;
-    const right=corner===1||corner===2,bottom=corner>=2;
-    for(let yy=0;yy<9;yy++)for(let xx=0;xx<9;xx++){
-      const x=right?31-xx:xx,y=bottom?31-yy:yy;
-      // Rounded stair-step transition from sea at the outside to beach inland.
-      const distance=Math.hypot(xx,yy);
-      if(distance>=9)continue;
-      c.fillStyle=distance<6?sea:distance<7?shallows:sand;
-      c.fillRect(x,y,1,1);
-    }
+  // Compose each pixel once. Round inward-facing joins where two exposed
+  // edges meet, without extending shoreline into diagonal-only sea contacts.
+  // A symmetric smooth minimum preserves each straight edge away from joins.
+  const depth=[5,5,4,4,3,3,4,4,5,5,4,4,3,3,4,4,5,5,4,4,3,3,4,4,5,5,4,4,3,3,4,4];
+  for(let y=0;y<32;y++)for(let x=0;x<32;x++){
+    const distances:number[]=[];
+    if(n)distances.push(y-depth[x]!);
+    if(s)distances.push(31-y-depth[x]!);
+    if(w)distances.push(x-depth[y]!);
+    if(e)distances.push(31-x-depth[y]!);
+    if(!distances.length)continue;
+    let d=Math.min(...distances);
+    // Round the inland corner of each pair of adjacent exposed edges.
+    // The blend vanishes outside a four-pixel join, preserving straight coasts.
+    const roundedJoin=(a:number,b:number):number=>{
+      const radius=4,blend=Math.max(radius-Math.abs(a-b),0);
+      return Math.min(a,b)-blend*blend/(4*radius);
+    };
+    if(n&&w)d=Math.min(d,roundedJoin(y-depth[x]!,x-depth[y]!));
+    if(n&&e)d=Math.min(d,roundedJoin(y-depth[x]!,31-x-depth[y]!));
+    if(s&&w)d=Math.min(d,roundedJoin(31-y-depth[x]!,x-depth[y]!));
+    if(s&&e)d=Math.min(d,roundedJoin(31-y-depth[x]!,31-x-depth[y]!));
+    // Fractional join distances are quantized consistently across corners.
+    const band=Math.floor(d);
+    if(band>=3)continue;
+    c.fillStyle=band<0?sea:band===0?shallows:band===1?highlight:sand;
+    c.fillRect(x,y,1,1);
   }
   shoreCache.set(mask,canvas);
   return canvas;
 }
-export function drawCoast(ctx:CanvasRenderingContext2D,x:number,y:number,size:number,north:boolean,east:boolean,south:boolean,west:boolean):void {
+export function drawCoast(ctx:CanvasRenderingContext2D,x:number,y:number,size:number,north:boolean,east:boolean,south:boolean,west:boolean,northEast=false,southEast=false,southWest=false,northWest=false):void {
   const mask=(north?1:0)|(east?2:0)|(south?4:0)|(west?8:0);
   if(!mask)return;
   ctx.save();
