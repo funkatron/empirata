@@ -52,9 +52,9 @@ function shoreSprite(mask:number):HTMLCanvasElement {
   const c=canvas.getContext('2d')!;
   const n=!!(mask&1),e=!!(mask&2),s=!!(mask&4),w=!!(mask&8);
   const sea='#247d9b',shallows='#40a5b4',sand='#c9b57a',highlight='#e3d49c';
-  // Compose each pixel exactly once. A nearest-edge distance field keeps
-  // the four shoreline bands continuous without order-dependent corner patches.
-  // Opposing/adjacent edges share the same geometry under rotation.
+  // Compose each pixel once. Round inward-facing joins where two exposed
+  // edges meet, without extending shoreline into diagonal-only sea contacts.
+  // A symmetric smooth minimum preserves each straight edge away from joins.
   const depth=[5,5,4,4,3,3,4,4,5,5,4,4,3,3,4,4,5,5,4,4,3,3,4,4,5,5,4,4,3,3,4,4];
   for(let y=0;y<32;y++)for(let x=0;x<32;x++){
     const distances:number[]=[];
@@ -63,11 +63,21 @@ function shoreSprite(mask:number):HTMLCanvasElement {
     if(w)distances.push(x-depth[y]!);
     if(e)distances.push(31-x-depth[y]!);
     if(!distances.length)continue;
-    const d=Math.min(...distances);
-    // Negative distance is water, followed by a single surf pixel and
-    // two sand pixels. The sea/surf/sand precedence is independent of edge order.
-    if(d>=3)continue;
-    c.fillStyle=d<0?sea:d===0?shallows:d===1?highlight:sand;
+    let d=Math.min(...distances);
+    // Round the inland corner of each pair of adjacent exposed edges.
+    // The blend vanishes outside a four-pixel join, preserving straight coasts.
+    const roundedJoin=(a:number,b:number):number=>{
+      const radius=4,blend=Math.max(radius-Math.abs(a-b),0);
+      return Math.min(a,b)-blend*blend/(4*radius);
+    };
+    if(n&&w)d=Math.min(d,roundedJoin(y-depth[x]!,x-depth[y]!));
+    if(n&&e)d=Math.min(d,roundedJoin(y-depth[x]!,31-x-depth[y]!));
+    if(s&&w)d=Math.min(d,roundedJoin(31-y-depth[x]!,x-depth[y]!));
+    if(s&&e)d=Math.min(d,roundedJoin(31-y-depth[x]!,31-x-depth[y]!));
+    // Fractional join distances are quantized consistently across corners.
+    const band=Math.floor(d);
+    if(band>=3)continue;
+    c.fillStyle=band<0?sea:band===0?shallows:band===1?highlight:sand;
     c.fillRect(x,y,1,1);
   }
   shoreCache.set(mask,canvas);
