@@ -5,6 +5,7 @@ import {MAX_FIGHTER_FUEL, movementAllowance, requiredProductionTurns, STATS, cap
 import {MAP_HEIGHT,MAP_WIDTH, makeTestTerrain, playable, index, terrainAt, cityAt, equal, isCoastal, directions } from './world.js';
 import {emptyKnowledge,updateAllKnowledge,getPlayerView} from './knowledge.js';
 import {resolveCombat,resolveCityAssault} from './combat.js';
+import {resolveCargoOverload} from './cargo-overload.js';
 
 export class RuleNotImplemented extends Error {
   constructor(public readonly code:string,message:string){super(message);this.name='RuleNotImplemented';}
@@ -256,9 +257,9 @@ export function moveUnit(game:Game,id:string,to:Coord,protectedCargo:ReadonlySet
   }
   if(enemy)return resolveCombat(game,id,enemy.id);
   if(occupants.some(u=>u.owner===unit.owner)&&!city) throw new RuleNotImplemented('CARGO','Loading and same-cell stacking require verified original mechanics.');
-  if((unit.kind==='transport'||unit.kind==='carrier')&&
-    g.units.filter(u=>u.aboard===unit.id).length>(capacity(unit)??0))
-    throw new Error('Ship is overloaded. Unload excess cargo before moving.');
+  // ALG-011: overload destroys surplus cargo instead of blocking ship movement.
+  for(const cargoId of resolveCargoOverload(g,unit))
+    log(g,unit.owner,'movement',`Cargo ${cargoId} was lost when ${unitLabel(unit)} exceeded capacity.`);
   // Ships leaving a friendly port pick up eligible co-located troops automatically.
   const departurePort=cityAt(g,unit.position);
   if((unit.kind==='transport'||unit.kind==='carrier')&&departurePort?.owner===unit.owner)
