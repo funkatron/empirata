@@ -1292,6 +1292,14 @@ export function playAiOpponent(game:Game,faction:FactionId):Game {
     const desiredTransports=Math.max(1,Math.ceil(totalArmies/6),
       hostileKnown&&totalArmies>=6?2:0,hostileKnown&&neutralKnown&&totalArmies>=12?3:0);
     const assignedTransports=transportCount+view.ownCities.filter(c=>c.id!==city.id&&c.production==='transport').length;
+    // Keep local troop production ahead of optional naval support when a
+    // transport is waiting at this port with no army available to embark.
+    // City garrisons and assigned beachhead troops are not expendable cargo.
+    const waitingForCargo=ownUnits.some(ship=>ship.kind==='transport'&&!ship.aboard&&
+      Math.max(Math.abs(ship.position.x-city.position.x),Math.abs(ship.position.y-city.position.y))<=1&&
+      !ownUnits.some(cargo=>cargo.aboard===ship.id)&&
+      !ownUnits.some(army=>army.kind==='army'&&!army.aboard&&!boardingProtected.has(army.id)&&
+        Math.max(Math.abs(army.position.x-ship.position.x),Math.abs(army.position.y-ship.position.y))<=1));
     const fighterCount=ownUnits.filter(u=>u.kind==='fighter').length;
     const carrierCount=ownUnits.filter(u=>u.kind==='carrier').length;
     const fighterTarget=Math.max(transportCount>0?2:1,Math.ceil(view.ownCities.length/2))+carrierCount*4;
@@ -1304,7 +1312,7 @@ export function playAiOpponent(game:Game,faction:FactionId):Game {
       (city.production==='destroyer'&&!scoutingAssigned||
        city.production==='transport'&&assignedTransports<desiredTransports||
        city.production==='fighter'&&fightersAssigned<fighterTarget||city.production==='carrier'&&fighterCount>=2&&carrierCount<Math.ceil(transportCount/2));
-    const pick=!defenders.has(city.id)?'army':committedShip?city.production!:
+    const pick=!defenders.has(city.id)||waitingForCargo?'army':committedShip?city.production!:
       armyCount>=3&&assignedTransports<desiredTransports&&isCoastal(g,city.position)?'transport':fighterCount===0&&fighterNeeded?'fighter':scoutNeeded?'destroyer':
       carrierNeeded?'carrier':fighterNeeded?'fighter':'army';
     // Production time cannot be recovered: keep every factory active.
