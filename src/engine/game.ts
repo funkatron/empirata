@@ -408,7 +408,7 @@ function beginTurn(g:Game):void {
   }
   for(const city of g.cities.filter(c=>c.owner===g.active&&c.production!==null)){
     const kind=city.production!;
-    const required=requiredProductionTurns(kind,city.firstCycle,50);
+    const required=requiredProductionTurns(kind,city.firstCycle,g.players.find(p=>p.id===g.active)!.productionEfficiency);
     city.progress++;
     if(city.progress>=required){
       city.progress=0; city.firstCycle=false;
