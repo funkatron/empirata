@@ -1,0 +1,12 @@
+---
+description: Use feature branches and pull requests; do not push commits directly to main
+alwaysApply: true
+---
+
+# Git branch and PR workflow
+
+- Never commit or push straight to `main`/`master` for project work.
+- Create a descriptive feature branch from up-to-date `main` before implementation commits.
+- Push the feature branch with `-u`, then open a PR with `gh pr create`.
+- Return the PR URL when done. Merge only when the user asks.
+- If work was accidentally committed on `main` locally and not yet pushed, move it onto a feature branch before opening the PR (no force-push to `main`).

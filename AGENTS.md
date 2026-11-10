@@ -4,3 +4,4 @@
 - Edit application source under `src/` and `public/`. Keep generated build changes out of source patches.
 - Run `npm run build` with Node 24. Run `npm test` for engine changes and check relevant interactions in a browser for UI changes.
 - Check GitHub CI and Copilot reviews before merging. Keep extended agent documentation under `agents/`.
+- Do not push commits straight to `main`. Use a feature branch and open a PR (`gh pr create`); merge only when asked.
