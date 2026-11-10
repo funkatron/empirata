@@ -9,6 +9,7 @@ import { unitLabel } from './unit-names.js';
  */
 import type { City, Coord, FactionId, Game, Unit } from './types.js';
 import {STATS, movementAllowance, capacity} from './units.js';
+import {resolveCargoOverload} from './cargo-overload.js';
 import {playable, terrainAt, cityAt, equal, isCoastal} from './world.js';
 import {updateAllKnowledge} from './knowledge.js';
 
@@ -87,14 +88,9 @@ export function adjudicateCombat(game:Game, record:CombatRecord):Game {
   const winner=defeated===attacker?defender:attacker;
   const lostOwner=defeated.owner,winningOwner=winner.owner;
   removeUnitAndCargo(g,defeated.id);
-  // A damaged carrier immediately loses fighters exceeding its reduced capacity.
-  // Cargo selection is deterministic (last-added first); exact DOS priority is unresolved.
-  if(winner.kind==='carrier'){
-    const excess=g.units.filter(u=>u.aboard===winner.id).slice(capacity(winner)??0);
-    for(const fighter of excess){
-      removeUnitAndCargo(g,fighter.id);
-      log(g,fighter.owner,`${unitLabel(fighter)} was lost when ${unitLabel(winner)} exceeded carrier capacity.`);
-    }
+  // ALG-011: damaged transport/carrier retains highest-slot cargo first.
+  for(const id of resolveCargoOverload(g,winner)){
+    log(g,winner.owner,`Cargo ${id} was lost when ${unitLabel(winner)} exceeded capacity.`);
   }
   if(winner.id===attacker.id){
     attacker.spent++;
