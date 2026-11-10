@@ -157,6 +157,6 @@ test('seeded random generator is deterministic and version-local',()=>{
   const a=nextRandom({seed:12,draws:0}),b=nextRandom({seed:12,draws:0});
   assert.deepEqual(a,b);assert.notEqual(a.value,nextRandom(a.next).value);
 });
-test('non-50% production remains unimplemented pending historical rounding verification',()=>{
-  assert.throws(()=>requiredProductionTurns('army',true,75),/not verified/);
+test('ALG-006 production efficiency follows recovered DOS integer division',()=>{
+  assert.equal(requiredProductionTurns('army',true,75),4);
 });
