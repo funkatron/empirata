@@ -13,7 +13,7 @@ for(const faction of ['blue','red']){
     const ship={...structuredClone(guard),id:`${faction}-waiting-transport`,kind:'transport',
       fuel:null,aboard:null,spent:0,damage:0,order:{kind:'none'}};
     g.units.push(ship);
-    city.production='destroyer';city.progress=10;city.firstCycle=false;
+    city.production='destroyer';city.progress=0;city.firstCycle=false;
     g.active=faction;
     updateAllKnowledge(g);
 
