@@ -31,6 +31,23 @@ for(const size of [16,32,64])for(const [name,...edges] of cases){
  caption.textContent=name+' / '+size+'px';figure.append(caption);
  document.querySelector('#samples').append(figure);
 }
+// Connected shoreline fixture: irregular island, diagonal sea contacts and bays.
+const map=['~~~~~~~~~~','~~LLLLL~~~','~LLLLLLL~~','~LLL~LLL~~','~LLLLLLL~~','~~LLLLL~~~','~~~LLL~~~~','~~~~~~~~~~'];
+const heading=document.createElement('h2');heading.textContent='Connected multi-tile coastline';document.body.append(heading);
+for(const size of [16,32,64]){
+ const figure=document.createElement('figure');const canvas=document.createElement('canvas');
+ canvas.width=map[0].length*size;canvas.height=map.length*size;
+ const ctx=canvas.getContext('2d');
+ const seaAt=(x,y)=>map[y]?.[x]==='~';
+ for(let y=0;y<map.length;y++)for(let x=0;x<map[y].length;x++){
+   const land=map[y][x]==='L';
+   drawTerrain(ctx,land?'land':'sea',x*size,y*size,size,x,y);
+   if(land)drawCoast(ctx,x*size,y*size,size,
+     seaAt(x,y-1),seaAt(x+1,y),seaAt(x,y+1),seaAt(x-1,y),
+     seaAt(x+1,y-1),seaAt(x+1,y+1),seaAt(x-1,y+1),seaAt(x-1,y-1));
+ }
+ figure.append(canvas);const caption=document.createElement('figcaption');caption.textContent='connected map / '+size+'px';figure.append(caption);document.body.append(figure);
+}
 document.body.dataset.ready='true';
 </script></body></html>`;
 const server=createServer(async(req,res)=>{
