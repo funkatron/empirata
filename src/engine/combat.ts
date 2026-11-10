@@ -12,7 +12,7 @@
  * are deterministic for an Empirata seed, but DOS turn-for-turn parity is not claimed.
  */
 import type {Game} from './types.js';
-import {nextRandom} from './rng.js';
+import {nextRandom, nextRandom15} from './rng.js';
 import {STATS} from './units.js';
 import {adjudicateCombat,adjudicateCityCapture,type HitBy} from './adjudication.js';
 
@@ -24,23 +24,34 @@ function combatEfficiency(game:Game, owner:string):number {
   return p.combatEfficiency;
 }
 
-/** Resolve a one-against-one fight using the manual's weighted hit allocation. */
+/** DOS ALG-002: per-hit effective combat efficiencies, including integer SAR half-factors. */
+export function combatHitThreshold(
+  attackerKind: keyof typeof STATS, defenderKind: keyof typeof STATS,
+  attackerEfficiency: number, defenderEfficiency: number
+): number {
+  let atk = attackerEfficiency, def = defenderEfficiency;
+  if (STATS[attackerKind].domain === 'sea' && defenderKind === 'army') def >>= 1;
+  if (attackerKind === 'transport' || attackerKind === 'carrier') atk >>= 1;
+  if (defenderKind === 'transport' || defenderKind === 'submarine') def >>= 1;
+  return atk - def + 100;
+}
+
+/** Resolve a one-against-one fight using the recovered DOS %200 hit threshold. */
 export function resolveCombat(game:Game, attackerId:string, defenderId:string):Game {
   const attacker=game.units.find(u=>u.id===attackerId);
   const defender=game.units.find(u=>u.id===defenderId);
   if(!attacker||!defender)throw new Error('Both combatants must exist.');
   const attackRating=combatEfficiency(game,attacker.owner);
   const defendRating=combatEfficiency(game,defender.owner);
-  if(attackRating+defendRating<=0)throw new Error('At least one side must have a positive combat efficiency.');
-  const attackChance=attackRating/(attackRating+defendRating);
+  const threshold=combatHitThreshold(attacker.kind,defender.kind,attackRating,defendRating);
   let attackDamage=attacker.damage,defendDamage=defender.damage;
   let random=game.rng;
   const hits:HitBy[]=[];
   // Every hit inflicts >=1 damage, so a legal fight should finish in <=24 hits;
   // this is a safety bound against corrupt saves, not a gameplay limitation.
   for(let i=0;i<100;i++){
-    const {next,value}=nextRandom(random);random=next;
-    const by:HitBy=value<attackChance?'attacker':'defender';
+    const {next,value}=nextRandom15(random);random=next;
+    const by:HitBy=threshold>value%200?'attacker':'defender';
     hits.push(by);
     if(by==='attacker')defendDamage+=STATS[attacker.kind].hitDamage;
     else attackDamage+=STATS[defender.kind].hitDamage;
