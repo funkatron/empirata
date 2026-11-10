@@ -221,6 +221,27 @@ export function launchFighter(game:Game,fighterId:string,to:Coord):Game {
   }else log(g,fighter.owner,'movement',`${unitLabel(fighter)} launched from ${unitLabel(carrier)}.`);
   updateAllKnowledge(g);return g;
 }
+/** ALG-013: docking occurs on a movement-phase stay or arrival, not at turn start. */
+function dockShip(g:Game,unit:Unit):void {
+  if(STATS[unit.kind].domain!=='sea')return;
+  const city=cityAt(g,unit.position);
+  if(city?.owner!==unit.owner||!isCoastal(g,city.position))return;
+  if(unit.damage>0){
+    unit.damage--;
+    log(g,unit.owner,'repair',`${unitLabel(unit)} repaired one damage point in port.`);
+  }
+  unit.spent=movementAllowance(unit);
+}
+/** Explicit stay action: consume remaining movement and apply one dock repair tick. */
+export function stayUnit(game:Game,id:string):Game {
+  const g=clone(game),unit=g.units.find(u=>u.id===id);
+  if(!unit||unit.owner!==g.active||unit.aboard)throw new Error('Active unembarked unit required.');
+  if(unit.spent>=movementAllowance(unit))throw new Error('No movement remaining this turn.');
+  dockShip(g,unit);
+  unit.spent=movementAllowance(unit);
+  updateAllKnowledge(g);
+  return g;
+}
 export function moveUnit(game:Game,id:string,to:Coord,protectedCargo:ReadonlySet<string>=new Set()):Game {
   const g=clone(game),unit=g.units.find(u=>u.id===id);
   if(!unit||unit.owner!==g.active) throw new Error('That unit cannot be moved this turn.');
@@ -265,6 +286,7 @@ export function moveUnit(game:Game,id:string,to:Coord,protectedCargo:ReadonlySet
   if((unit.kind==='transport'||unit.kind==='carrier')&&departurePort?.owner===unit.owner)
     fillShip(g,unit,true,protectedCargo);
   unit.position={...to}; unit.spent++;
+  if(city?.owner===unit.owner)dockShip(g,unit);
   // Embarked units physically travel with the ship, but spend no movement themselves.
   for(const cargo of g.units.filter(u=>u.aboard===unit.id))cargo.position={...to};
   if((unit.kind==='transport'||unit.kind==='carrier')&&city?.owner===unit.owner){
@@ -402,11 +424,7 @@ function beginTurn(g:Game):void {
     unit.spent=0;
     if(unit.kind==='fighter'&&unit.aboard)unit.fuel=MAX_FIGHTER_FUEL;
     if(unit.order.kind==='skip')unit.order={kind:'none'};
-    const city=cityAt(g,unit.position);
-    if(STATS[unit.kind].domain==='sea'&&unit.damage>0&&city?.owner===g.active&&isCoastal(g,city.position)){
-      unit.damage--;
-      log(g,g.active,'repair',`${unitLabel(unit)} repaired one damage point in port.`);
-    }
+
   }
   let productionBlockedBySlots=false;
   for(const city of g.cities.filter(c=>c.owner===g.active&&c.production!==null)){
