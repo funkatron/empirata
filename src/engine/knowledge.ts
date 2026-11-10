@@ -1,6 +1,6 @@
 import { unitLabel } from './unit-names.js';
 import type { CityIntel, FactionId, Game, Knowledge, PlayerCell, PlayerView, Unit } from './types.js';
-import { directions, index, inMap, terrainAt, cityAt } from './world.js';
+import { directions, index, inMap, cityAt } from './world.js';
 
 /** ALG-012: recovered DOS 8x8 observer/target detection matrix. */
 export function canDetect(observer:Unit['kind']|'city', target:Unit['kind']):boolean {
