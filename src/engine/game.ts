@@ -1312,7 +1312,7 @@ export function playAiOpponent(game:Game,faction:FactionId):Game {
       (city.production==='destroyer'&&!scoutingAssigned||
        city.production==='transport'&&assignedTransports<desiredTransports||
        city.production==='fighter'&&fightersAssigned<fighterTarget||city.production==='carrier'&&fighterCount>=2&&carrierCount<Math.ceil(transportCount/2));
-    const pick=!defenders.has(city.id)||waitingForCargo?'army':committedShip?city.production!:
+    const pick=!defenders.has(city.id)?'army':committedShip?city.production!:waitingForCargo?'army':
       armyCount>=3&&assignedTransports<desiredTransports&&isCoastal(g,city.position)?'transport':fighterCount===0&&fighterNeeded?'fighter':scoutNeeded?'destroyer':
       carrierNeeded?'carrier':fighterNeeded?'fighter':'army';
     // Production time cannot be recovered: keep every factory active.
