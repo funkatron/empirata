@@ -16,3 +16,11 @@ test('diagonal-only sea neighbors never paint shoreline spurs',()=>{
   assert.doesNotMatch(art,/if\(!\(mask&bit\)\)continue/);
   assert.match(art,/imageSmoothingEnabled=false/);
 });
+
+test('shoreline pixels are composed once from cardinal edge distances',()=>{
+  assert.match(art,/for\(let y=0;y<32;y\+\+\)for\(let x=0;x<32;x\+\+\)/);
+  assert.match(art,/const d=Math\.min\(\.\.\.distances\)/);
+  assert.match(art,/if\(d>=3\)continue/);
+  assert.doesNotMatch(art,/function edge\(/);
+  assert.doesNotMatch(art,/for\(const \[corner,active\]/);
+});
