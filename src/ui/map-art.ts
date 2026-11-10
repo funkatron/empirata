@@ -94,26 +94,15 @@ function shoreSprite(mask:number):HTMLCanvasElement {
       c.fillRect(x,y,1,1);
     }
   }
-  // Concave bays: diagonal sea without either adjacent cardinal sea.
-  // These are invisible to a four-direction mask and cause square land corners.
-  for(const [bit,cx,cy,dx,dy] of [
-    [16,31,31,-1,-1],[32,0,31,1,-1],[64,0,0,1,1],[128,31,0,-1,1],
-  ] as const){
-    if(!(mask&bit))continue;
-    for(let y=0;y<9;y++)for(let x=0;x<9;x++){
-      const distance=Math.hypot(x,y);
-      if(distance>=9)continue;
-      c.fillStyle=distance<5?sea:distance<7?shallows:sand;
-      c.fillRect(cx+dx*x,cy+dy*y,1,1);
-    }
-  }
+  // A diagonally adjacent sea tile does not share an edge with this land tile.
+  // Never paint sea or surf into the land corner: that creates a shoreline
+  // spur protruding into open water when adjacent tiles are composed.
+  // Cardinal neighbors alone define the visible shoreline overlay.
   shoreCache.set(mask,canvas);
   return canvas;
 }
 export function drawCoast(ctx:CanvasRenderingContext2D,x:number,y:number,size:number,north:boolean,east:boolean,south:boolean,west:boolean,northEast=false,southEast=false,southWest=false,northWest=false):void {
-  const mask=(north?1:0)|(east?2:0)|(south?4:0)|(west?8:0)|
-    (southEast&&!south&&!east?16:0)|(southWest&&!south&&!west?32:0)|
-    (northWest&&!north&&!west?64:0)|(northEast&&!north&&!east?128:0);
+  const mask=(north?1:0)|(east?2:0)|(south?4:0)|(west?8:0);
   if(!mask)return;
   ctx.save();
   ctx.imageSmoothingEnabled=false;
