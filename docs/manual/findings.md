@@ -62,9 +62,11 @@ See also the binary extraction log in [DOS_ALGORITHM_RULESET.md](../DOS_ALGORITH
 - Production tables + `(50*base)/efficiency` — ALG-006 (cruiser first **36**).
 - Detection 8×8 + city type `-1` bypass + Chebyshev-1 wake — ALG-012.
 - Turn order prod→move→end; dock repair +1 on stay — ALG-013.
-- Captured-factory UI timing and AI policy remain outside this extraction pass.
-- Original AI objective scoring, production policy, difficulty heuristics and
-  surrender threshold. Human strategy guidance is not the computer source code.
+- Computer AI gates on `ES:63C0==0`: direction/order tick `0x3BFC`, end-turn production chooser `0x3490` — ALG-AI-001…002.
+- Setup grades: human (`63C0=1`) vs computer `840∈{1,2}`; grade 2 fills `62E8[0…11]` (includes `62F0`) — ALG-AI-003.
+- Pathing: order-driven `1A9E:014A` with budget `min(125, 2*dist+25)` over 34-byte terrain/ownership passability masks; Move-To often falls back to Random — ALG-AI-001.
+- Computer resign when sole human, two sides left, turn>100, cities < total/4 — ALG-AI-004.
+- Captured-factory UI timing remains a separate concern.
 
 ## Adversarial testing and wargaming questions
 

@@ -2,7 +2,7 @@
 
 **Status:** Living research document. Algorithms are tagged by evidence; unresolved items stay explicit.  
 **Target:** *Empire: Wargame of the Century*, Interstel IBM PC **v2.05C**.  
-**Prepared:** 2026-11-09; last extraction pass 2026-11-10  
+**Prepared:** 2026-11-09; last extraction pass 2026-11-10 (Q-10 AI skeleton)  
 **Does not claim** full runtime parity with every DOS playthrough.
 
 > Commercial `EMPIRE.EXE`, unpacked images, maps, and the manual PDF stay **outside** this repository. Analysis used a private working copy only.
@@ -372,6 +372,182 @@ So **idle docked repair is real [D]**: a ship already on a friendly city that is
 
 ---
 
+### ALG-AI-001 — Computer unit direction / order tick **[D]**
+
+**Human vs computer gate [D]:** per-player word `ES:63C0[player]`. At unit activation `0x18600`:
+
+- `63C0 ≠ 0` → human direction path `110E:011F`.
+- `63C0 == 0` → computer AI `3BF:000C` → image **`0x3BFC`**.
+
+Computer movement-phase pass limit is **1** (ALG-013); humans get **100**.
+
+**Scratch locals** (DS temps loaded at `0x3BFC`):
+
+| Temp | Source | Meaning |
+|---|---|---|
+| `8AD2` | arg | unit index |
+| `8AD0` | `1AB2[unit]` | unit type |
+| `8ACE` | `163C[unit]` | remaining HP / fuel |
+| `8ADA` | `14E6[unit]` | current order byte |
+| `8AD6` | `24A[unit]` | current direction 0…7 |
+| `8AD8` | `84E[unit]` | map location |
+| `8AD4` | `12C2:0DAD` | transport cargo count (also re-fetched) |
+| `8ADC` / `8ADE` | unit-index parity | `±1` / `±3` rotation bias |
+
+**Pipeline [D]** (`0x3BFC` → `0x3D10` → optional `0x4462` → `0x44EA` → `0x47E0`):
+
+1. **Half-HP “go home” for ships** (`0x3D10`): if `type >= 2` and `HP <= DS:63B8[type]/2`, order ≠ `8` (Load), and (if transport) cargo == 0, call `1D09:07B2` (nearest friendly city search, best distance init `0x2710`). On success, reload order/direction from the unit (the helper mutates unit state).
+2. **Transport / carrier order cleanup** (`0x3D76`): empty transport with order ∉ `{8, 0xE}` clears order to `0`. Type-6 path also clears order under `ES:62EA` / negative location checks.
+3. **Order dispatch** jump table at image `0x3E54` (orders `0…0x11`):
+
+| Order | Name (string table) | Handler |
+|---|---|---|
+| 0 | None | return direction **1** |
+| 1 | Sentry | `0x3E7C` — wake/engage checks vs adjacent enemies |
+| 2 | Random | `0x3F0C` — with probability `rand()%16 == 0`, rotate dir by `8ADC` |
+| 3 | Move To | `0x3F64` |
+| 4/5/7 | Land on / Escort / Move | shared `0x3E18` → `0x400E` |
+| 6 | Patrol from | `0x3F9A` |
+| 8 | Load | `0x4086` |
+| 9…0xB | (further tactical) | `0x40E4` / `0x4152` / `0x41C0` |
+| 0xC | Wait | `0x421E` |
+| 0xD…0xF | | `0x424A` / `0x42BC` / `0x4418` |
+| 0x10–0x11 | | same as None |
+
+4. If step 3 returns nonzero, **`0x4462`** re-issues type-specific far helpers (army/fighter/ship families) that can rewrite order/direction.
+5. **`0x44EA`** picks a legal direction from the (possibly updated) order via another jump table (`0x451C`).
+6. **`0x47E0`** type-specializes the chosen direction pointer: army `1F23:0146`, fighter `1F23:0C26`, ships `1D09:047E`.
+
+**Random wander detail [D]:** `0x3F0C` first rejects the step if neighbor probe `1E46:0C7F` fails; else `rand()%16` gate, then `dir = (dir + 8ADC) & 7`.
+
+**`ES:24A` / `8AD6` overload [D]:** for compass orders the word is direction `0…7`; for Escort / path-follow it is a **target unit index** (Sentry engage writes the observer location into the target’s `24A`). Direction picker `0x45E4` pushes `84E[8AD6]` as the path goal for `0x4714`.
+
+**Path / Move-To mechanics [D]:**
+
+| Piece | Behavior |
+|---|---|
+| Move-To order `0x3F64` | Fighter low-fuel gate: if `180C[fighter] >= 0` use thresh **14**, else **10**; if fuel `<=` thresh return `1` (force `0x4462` reissue). Otherwise fall through to **Random** `0x3F0C`. |
+| Land/Escort/Move `0x400E` | If already at goal loc, or fighter cannot reach before fuel (`dist > fuel`), return `1`. Escort also aborts if target tile owner byte ≠ current player. Else `1A9E:006C` reachability → boolean. |
+| Goal step `0x4714` | If `goal == unit_loc` return **`-1`** (stay). Else call pathfinder `1A9E:014A` with the unit’s **passability mask** (below). On failure clear order to `0` and call `1E46:09C4`. Returns chosen direction in out-param. |
+| Pathfinder budget `1A9E:014A` | Cap search radius at `min(0x7D, 2*chebyshev(goal,start)+0x19)`. Recurses with depth budget; tie-break uses `rand()%2`. |
+| Passability test [D] | Map glyph `t = ES:234[loc]` (knowledge layer; cities store `10*owner − 6`). Mask byte at `DS:(base + player*0x22 + t)` must be **nonzero** or the tile is blocked (`0x1ACE0`, `0x1AE87`). |
+| Legalize dir `0x4C52` | From current dir, try up to **8** rotations by `±1` (unit-index parity); accept first that passes `12C2:099C` and tile probe `0x4B52`. Else write direction **`-1`**. |
+| Escort close-range `0x4600` | If dist to target `< 4`, switch on target’s order; may call `0x4714` or `1D09:03C2` for a stationing tile. |
+
+**Passability masks (`0x22` = 34 bytes) [D]:**
+
+| Unit class | `base` | Selected when |
+|---|---|---|
+| Army | `0x618` | type 0 |
+| Fighter | `0x67E` | type 1 |
+| Ship set A | `0x6E4` | type ≥ 2 and `ES:62FA == 0` |
+| Ship set B | `0x74A` | type ≥ 2 and `ES:62FA != 0` |
+
+`ES:62FA` is `ES:62E8[9]` — filled with the other mode words in `0xF40F` when `840 == 2` (ALG-AI-003). Ship set B is the stricter sea mask.
+
+Land/sea class for the same glyph uses `DS:6CD6[t]`: **0 = land-class**, **nonzero = sea-class** (matches coast probes). Glyph bands in the unpacked masks:
+
+| Band | Land-class indices (`6CD6==0`) | Sea-class indices (`6CD6!=0`) |
+|---|---|---|
+| Unowned / base | `0,1,3` | `2` |
+| Player `p` | `10p−6 … 10p−4` (city write is `10p−6`) | `10p−3 … 10p+3` |
+
+Observed player-1 template behavior (nonzero = passable):
+
+- **Army:** all land-class except often blocks own city code `4`; **no** sea-class.
+- **Ship A:** all sea-class + index `0`; almost no other land.
+- **Ship B:** sea-class minus the `7…13` band (stricter).
+- **Fighter:** mixed land/sea (air); not a superset of either ground mask.
+
+Address `0x618 + 0*0x22` statically overlaps the “Please wait…” string; real turns use `ES:6CB4 ≥ 1`, so army masks start at `0x63A+`. Masks are **booleans**, not multi-level terrain costs.
+
+So computer movement is **order-driven pathing toward a stored goal** over these passability masks, with Random as the idle/filler stepper — not a global utility AI.
+
+**Empirata:** modern AI is intentionally distinct (IMP-091/092). Use this only when claiming classic computer parity.
+
+---
+
+### ALG-AI-002 — Computer city production policy **[D]**
+
+**When it runs [D]:** end-of-turn bookkeeping `0xE818`: if `ES:63C0[player] == 0`, far-call `2FB:04E0` → image **`0x3490`** *before* city recount / `6D8E++`. Humans skip this call.
+
+**Production loop interaction [D]:** at `0xE9E0`, a city with unset production (`+0xE06 < 0`) prompts humans via `0xF40F` UI helpers; computers **`jmp 0xECF5`** (skip prompt). So computer cities must already have a type from `0x3490` (or remain unset and produce nothing that turn).
+
+**Per-city pass [D]** (`0x3490`…`0x383A`): walk cities high→low (`ES:6384` count). For each city owned by `ES:6CB4`:
+
+1. `1E46:0D1F` → coastal neighbor counts into `DS:8AC4` / `DS:8AC6` (8-neighbor land vs sea via `6CD6[terrain]`).
+2. Load current production type `+0xE06` → `8ACA`.
+3. `0x38F0` → `8AC8`: **0** if any Chebyshev-1 neighbor cell holds unit type **3** (transport), else **1**.
+4. Heuristic tree writes a new type into `+0xE06` (types match ALG-003 / ALG-006: `0` army … `7` battleship). If the type changes, recompute city deadline `+0x18F4 = 6D8E + cost` via `0xDE3:259D` and call `0x30EB` to refresh the per-player inventory block at `ES:1810`.
+
+**Inventory block [D]:** `ES:1810[player*16 + type*2]` = living count for that type. Helper `0x30EB` zeroes then recounts all eight types for the current player.
+
+**Core selection behaviors [D]** (priority sketch; flags `ES:62E8` / `ES:62F0` gate several branches — see ALG-AI-003):
+
+| Condition | Sets `+0xE06` to |
+|---|---|
+| Progress incomplete / force-clear paths (`0x356A`, `0x3740`) | `0` (army) |
+| Inland / no-sea path needing sealift (`0x37CE`) | `3` (transport) |
+| `0x39A9` ship-mix pass: default | `7` (battleship) |
+| …then for type `T = 6…2`, if `count[T] < count[T+1]` | `T` |
+| no battleships (`181E==0`) and `62F0≠0` | `7` |
+| no carriers (`181C==0`) | `6` |
+| transports `< 2` | `3` |
+| has transports, no destroyers, `62F0≠0` | `2` (destroyer) |
+| `0x3ADC`: any of ~20 tracked enemy locs path-reachable | `0` (army) — “threat / invasion” |
+| `0x3B45`: fighter pressure — if `3*fighters < armies` or transport-adjacent (`8AC8==0`), else army; coastal branches compare fighter count vs `cityCount/2` | `1` (fighter) or `0` |
+| `0x393A` early game: if `cityCount <= 1` and no fighters at `15E0` | `3` else `0`; if more cities, may call `0x39A9` |
+
+Nearby-enemy scout `0x383D` counts owned units within distance `<= 6` of the city (with terrain/type filters); production uses thresholds `> 5` and `> 2` as gates.
+
+**Empirata:** experimental AI production is separate; do not treat current Empirata build orders as DOS-accurate.
+
+---
+
+### ALG-AI-003 — Player setup grades + production mode flags **[D]**
+
+**New-game setup** (`0x7D2F`…): first clear players `1…4` to computer (`63C0=0`, `840=0`). Each slot’s menu value then:
+
+| Setup value | Effect |
+|---|---|
+| `0` | **Human**: `ES:63C0[p]=1`, bump human-count `ES:646C`, assign id byte at `6DA6+p` |
+| `1` | **Computer grade A**: `ES:840[p]=1` (`63C0` stays 0) |
+| `2` | **Computer grade B**: `ES:840[p]=2` (`63C0` stays 0) |
+
+No `Standard` / `Expert` string literals exist in the image; the two nonzero `840` grades are the binary’s computer difficulty knobs. Results-table header `Difficulty` at `0x317B0` is unrelated (Wins/Losses columns).
+
+**`0xF40F` mode pack [D]:** if current `840 == 0`, skip. Else for `i = 0…11` write `ES:62E8[i] = (840 == 2) ? 1 : 0`. Therefore **`ES:62F0` is `62E8[4]`** — same grade-B flag, not a separate writer. Production AI reads `62E8` / `62F0` as those gates (ALG-AI-002).
+
+**Other `840` effects [D]:** combat helper `0xDE40` uses factor **4** when `840==1`, else **5**, inside `(combat_eff * prod_eff / 5 * factor) / 50`. Combat path `0x199C5` sets per-player word `ES:504 = (840==2)`.
+
+Combat/production **efficiency** words (`6368`, `6CB6`) stay independent; defaults **50**.
+
+---
+
+### ALG-AI-004 — Computer resign offer **[D]**
+
+**Anchor:** city-recount / elimination spine `0xDF58` (called from end-turn `0xE818` via `0xDF58`). After counting cities per owner into locals and scanning for surviving armies:
+
+**Crush (eliminated) [D]:** if a still-active player (`638E==0`) has **zero** owned armies (type 0) with valid location, set `638E=1`, `dec ES:6C7C` (living sides), show “Player #%d has been CRUSHED!”.
+
+**Resign offer [D]** — only when all of:
+
+```text
+player is computer          // ES:63C0[p] == 0
+ES:646C == 1                // exactly one human in the game
+ES:6C7C == 2                // exactly two sides still alive
+ES:6D8E[p] > 100            // that computer's turn counter > 100
+ES:4F8[p] == 0              // has not offered yet
+cities[p] < ES:6384 / 4     // holds fewer than 25% of all cities
+```
+
+Then set `4F8[p]=1`, dialog “The computer wishes|to resign!|Do you accept?”. On accept (`ax==1`), zero that player’s city-count local and continue elimination bookkeeping (`bp-10 = 0xD8F1` sentinel). Decline leaves the computer in play (flag stays set so it will not re-ask).
+
+**Empirata:** no classic resign-offer parity yet.
+
+---
+
+
 ## 2. Empirata mapping snapshot
 
 | ALG | Empirata symbol | Status |
@@ -389,6 +565,10 @@ So **idle docked repair is real [D]**: a ship already on a friendly city that is
 | ALG-011 transport overload | `moveUnit` | **differs** (reject vs destroy) |
 | ALG-012 detection matrix | `knowledge.ts` | **partial** (sub↔sub; wake set) |
 | ALG-013 turn + dock repair/refuel | `beginTurn` / dock repair | **partial** (schedule) |
+| ALG-AI-001 computer move/order | modern AI (intentional) | **differs** by design |
+| ALG-AI-002 computer production | modern AI production | **differs** by design |
+| ALG-AI-003 setup grades `840` | setup / efficiency presets | **partial** (two computer grades; names **[M]** only) |
+| ALG-AI-004 computer resign | — | **unimplemented** |
 
 ---
 
@@ -405,7 +585,7 @@ So **idle docked repair is real [D]**: a ship already on a friendly city that is
 | Q-07 | Detection matrix + sentry wake + city observers | **resolved [D]** — ALG-012 |
 | Q-08 | Repair phase; main turn driver order | **resolved [D]** — ALG-013 |
 | Q-09 | Startup seed from clock | **resolved [D]** — ALG-001 |
-| Q-10 | Original AI policy | out of scope |
+| Q-10 | Original AI policy | **resolved [D]** — ALG-AI-001…004 (passability masks, path budget, `840` grades, `62F0`/`62FA` in `62E8[]`, resign) |
 | Q-11 | Overload survivor selection | **resolved [D]** — ALG-011 (high→low index; first `capacity` live) |
 
 ---
