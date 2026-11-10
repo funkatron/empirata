@@ -428,12 +428,40 @@ Computer movement-phase pass limit is **1** (ALG-013); humans get **100**.
 |---|---|
 | Move-To order `0x3F64` | Fighter low-fuel gate: if `180C[fighter] >= 0` use thresh **14**, else **10**; if fuel `<=` thresh return `1` (force `0x4462` reissue). Otherwise fall through to **Random** `0x3F0C`. |
 | Land/Escort/Move `0x400E` | If already at goal loc, or fighter cannot reach before fuel (`dist > fuel`), return `1`. Escort also aborts if target tile owner byte ≠ current player. Else `1A9E:006C` reachability → boolean. |
-| Goal step `0x4714` | If `goal == unit_loc` return **`-1`** (stay). Else call pathfinder `1A9E:014A` with a **type-specific `0x22`-byte parameter block** at `DS:(player*0x22 + base)` where `base ∈ {0x618 army, 0x67E fighter, 0x6E4 / 0x74A ships}` (`ES:62FA` picks ship base). On failure clear order to `0` and call `1E46:09C4`. Returns chosen direction in out-param. |
-| Pathfinder budget `1A9E:014A` | Cap search radius at `min(0x7D, 2*chebyshev(goal,start)+0x19)`. |
+| Goal step `0x4714` | If `goal == unit_loc` return **`-1`** (stay). Else call pathfinder `1A9E:014A` with the unit’s **passability mask** (below). On failure clear order to `0` and call `1E46:09C4`. Returns chosen direction in out-param. |
+| Pathfinder budget `1A9E:014A` | Cap search radius at `min(0x7D, 2*chebyshev(goal,start)+0x19)`. Recurses with depth budget; tie-break uses `rand()%2`. |
+| Passability test [D] | Map glyph `t = ES:234[loc]` (knowledge layer; cities store `10*owner − 6`). Mask byte at `DS:(base + player*0x22 + t)` must be **nonzero** or the tile is blocked (`0x1ACE0`, `0x1AE87`). |
 | Legalize dir `0x4C52` | From current dir, try up to **8** rotations by `±1` (unit-index parity); accept first that passes `12C2:099C` and tile probe `0x4B52`. Else write direction **`-1`**. |
 | Escort close-range `0x4600` | If dist to target `< 4`, switch on target’s order; may call `0x4714` or `1D09:03C2` for a stationing tile. |
 
-So computer movement is **order-driven pathing toward a stored goal**, with Random as the idle/filler stepper — not a global utility AI. Cell meanings inside the `0x22`-byte blocks are still **[?]** (army base `0x618` statically overlaps the “Please wait…” string in the unpacked image; fighter/ship bases look like 0/1 masks — confirm under DOSBox before treating as terrain costs).
+**Passability masks (`0x22` = 34 bytes) [D]:**
+
+| Unit class | `base` | Selected when |
+|---|---|---|
+| Army | `0x618` | type 0 |
+| Fighter | `0x67E` | type 1 |
+| Ship set A | `0x6E4` | type ≥ 2 and `ES:62FA == 0` |
+| Ship set B | `0x74A` | type ≥ 2 and `ES:62FA != 0` |
+
+`ES:62FA` is `ES:62E8[9]` — filled with the other mode words in `0xF40F` when `840 == 2` (ALG-AI-003). Ship set B is the stricter sea mask.
+
+Land/sea class for the same glyph uses `DS:6CD6[t]`: **0 = land-class**, **nonzero = sea-class** (matches coast probes). Glyph bands in the unpacked masks:
+
+| Band | Land-class indices (`6CD6==0`) | Sea-class indices (`6CD6!=0`) |
+|---|---|---|
+| Unowned / base | `0,1,3` | `2` |
+| Player `p` | `10p−6 … 10p−4` (city write is `10p−6`) | `10p−3 … 10p+3` |
+
+Observed player-1 template behavior (nonzero = passable):
+
+- **Army:** all land-class except often blocks own city code `4`; **no** sea-class.
+- **Ship A:** all sea-class + index `0`; almost no other land.
+- **Ship B:** sea-class minus the `7…13` band (stricter).
+- **Fighter:** mixed land/sea (air); not a superset of either ground mask.
+
+Address `0x618 + 0*0x22` statically overlaps the “Please wait…” string; real turns use `ES:6CB4 ≥ 1`, so army masks start at `0x63A+`. Masks are **booleans**, not multi-level terrain costs.
+
+So computer movement is **order-driven pathing toward a stored goal** over these passability masks, with Random as the idle/filler stepper — not a global utility AI.
 
 **Empirata:** modern AI is intentionally distinct (IMP-091/092). Use this only when claiming classic computer parity.
 
@@ -557,7 +585,7 @@ Then set `4F8[p]=1`, dialog “The computer wishes|to resign!|Do you accept?”.
 | Q-07 | Detection matrix + sentry wake + city observers | **resolved [D]** — ALG-012 |
 | Q-08 | Repair phase; main turn driver order | **resolved [D]** — ALG-013 |
 | Q-09 | Startup seed from clock | **resolved [D]** — ALG-001 |
-| Q-10 | Original AI policy | **resolved [D]** — ALG-AI-001…004 (path budget/order pipeline, `840` grades, `62F0=62E8[4]`, resign); path param-block cell meanings still **[?]** |
+| Q-10 | Original AI policy | **resolved [D]** — ALG-AI-001…004 (passability masks, path budget, `840` grades, `62F0`/`62FA` in `62E8[]`, resign) |
 | Q-11 | Overload survivor selection | **resolved [D]** — ALG-011 (high→low index; first `capacity` live) |
 
 ---
@@ -566,9 +594,8 @@ Then set `4F8[p]=1`, dialog “The computer wishes|to resign!|Do you accept?”.
 
 1. Prefer HP / ownership / production-counter writes → backtrace over linear dumps.
 2. Instrument DOSBox-X on a saved fight: log `25E6:0F64` returns and the `% 2` / `% 100` / `% 200` sites.
-3. AI optional dump: extract the `0x22`-byte per-type path cost tables at `DS:618` / `67E` / `6E4` / `74A`.
-4. Keep shareable fixtures as seed vectors and state deltas only — never commit binaries.
-5. Engine changes require a separate approved PR after evidence lands here.
+3. Keep shareable fixtures as seed vectors and state deltas only — never commit binaries.
+4. Engine changes require a separate approved PR after evidence lands here.
 
 ---
 

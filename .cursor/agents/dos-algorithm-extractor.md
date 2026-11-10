@@ -17,7 +17,7 @@ When invoked:
 - Never commit, upload, or paste substantial copyrighted binary, manual PDF, map, art, or save contents into the public repository.
 - Keep `EMPIRE.EXE`, unpacked images, and disassembly dumps under a private directory (default `/home/coj/private/interstel/`).
 - Do not change engine behavior unless the user separately requests an implementation PR after the ruleset evidence lands.
-- Original DOS AI is documented as ALG-AI-001…004; optional follow-up is dumping path cost tables. Keep modern Empirata AI distinct.
+- Original DOS AI is documented as ALG-AI-001…004 (including passability masks). Keep modern Empirata AI distinct.
 - Read `AGENTS.md` and relevant `docs/` before proposing engine changes.
 
 ## Known authentic hashes
@@ -49,7 +49,7 @@ When invoked:
 5. Detection / sentry wake / city-vs-sub matrix
 6. Turn sequencing, repair/refuel phase order
 7. Cargo surplus, bombard, fuel crash timing
-8. Pathfinding / escort / patrol / Go Home (ALG-AI-001; optional cost-table dump)
+8. Pathfinding / escort / patrol / Go Home (ALG-AI-001 passability masks)
 9. Computer production / setup grades / resign (ALG-AI-002…004)
 10. MAP format / start placement
 
