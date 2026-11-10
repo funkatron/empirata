@@ -134,6 +134,17 @@ test('Autonomous match tracks production, embarkation and real sea travel within
   // checks its longer crossing and capture end to end.
   const initial=new Set(g.units.map(u=>u.id));
   const firstRound={blue:null,red:null};
+  // Preserve bounded campaign diagnostics when seeded behavior changes.
+  const checkpoints=[];
+  const snapshot=()=>{
+    const redCities=g.cities.filter(c=>c.owner==='red').map(c=>({id:c.id,position:c.position,production:c.production,progress:c.progress}));
+    const redUnits=g.units.filter(u=>u.owner==='red');
+    return {round:g.round,redCities,
+      redUnitsByType:Object.fromEntries([...new Set(redUnits.map(u=>u.kind))].map(kind=>[kind,redUnits.filter(u=>u.kind===kind).length])),
+      redTransports:redUnits.filter(u=>u.kind==='transport').map(u=>({id:u.id,position:u.position,damage:u.damage,spent:u.spent,order:u.order,aboard:redUnits.filter(c=>c.aboard===u.id).length})),
+      redArmies:redUnits.filter(u=>u.kind==='army'&&!u.aboard).map(u=>({id:u.id,position:u.position,spent:u.spent})).slice(0,12),
+      producedRed:produced.red.size,loadedRed:loaded.red};
+  };
   // Fuel losses change production timing; retain a bounded voyage requirement.
   for(let i=0;i<150;i++){
     const departure=new Map(g.units.filter(u=>u.kind==='transport'&&u.order.kind==='none').map(u=>[u.id,{...u.position}]));
@@ -160,11 +171,12 @@ test('Autonomous match tracks production, embarkation and real sea travel within
       assert.ok(ship,'No orphan cargo at round '+g.round);
       assert.deepEqual(cargo.position,ship.position);
     }
+    if(i%25===24)checkpoints.push(snapshot());
   }
   assert.ok(produced.red.size>0,'Red must produce units during an autonomous match');
   assert.ok(produced.blue.size>0,'Blue must produce units during an autonomous match');
   for(const side of ['blue','red']){
-    assert.ok(loaded[side],side+' must load at least one transport');
+    assert.ok(loaded[side],side+' must load at least one transport; checkpoints '+JSON.stringify(checkpoints));
     assert.ok(firstRound[side]!==null,
       side+' must change sea position while loaded; observed '+JSON.stringify({
         round:g.round,ships:[...voyages[side]].map(([id,cells])=>({id,visited:cells.size})),
