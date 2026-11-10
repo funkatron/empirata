@@ -3,14 +3,14 @@ export type UnitStats = {
   name: string; movement: number; hitPoints: number; hitDamage: number;
   first: number; repeat: number; domain: 'land' | 'air' | 'sea';
 };
-/** Standard efficiency (50%): verified table from specification v0.1, section 4. */
+/** First/repeat production tables recovered from DOS 2.05C (ALG-006). */
 export const STATS: Readonly<Record<UnitType, Readonly<UnitStats>>> = Object.freeze({
   army: {name:'Army',movement:1,hitPoints:1,hitDamage:1,first:6,repeat:5,domain:'land'},
   fighter: {name:'Fighter',movement:5,hitPoints:1,hitDamage:1,first:12,repeat:10,domain:'air'},
   destroyer: {name:'Destroyer',movement:3,hitPoints:3,hitDamage:1,first:24,repeat:20,domain:'sea'},
   transport: {name:'Transport',movement:2,hitPoints:3,hitDamage:1,first:30,repeat:25,domain:'sea'},
   submarine: {name:'Submarine',movement:2,hitPoints:2,hitDamage:3,first:24,repeat:20,domain:'sea'},
-  cruiser: {name:'Cruiser',movement:2,hitPoints:8,hitDamage:2,first:35,repeat:30,domain:'sea'},
+  cruiser: {name:'Cruiser',movement:2,hitPoints:8,hitDamage:2,first:36,repeat:30,domain:'sea'},
   carrier: {name:'Carrier',movement:2,hitPoints:8,hitDamage:1,first:48,repeat:40,domain:'sea'},
   battleship: {name:'Battleship',movement:2,hitPoints:12,hitDamage:3,first:60,repeat:50,domain:'sea'}
 });
@@ -26,6 +26,10 @@ export function capacity(unit: Unit): number | null {
   return null;
 }
 export function requiredProductionTurns(kind: UnitType, firstCycle: boolean, efficiency=50): number {
-  if(efficiency!==50) throw new Error('Production efficiency rounding is not verified; only 50% is enabled.');
-  return firstCycle ? STATS[kind].first : STATS[kind].repeat;
+  if (!Number.isInteger(efficiency) || efficiency < 0 || efficiency > 100) {
+    throw new RangeError('Production efficiency must be an integer between 0 and 100.');
+  }
+  if (efficiency === 0) return 999;
+  const base = firstCycle ? STATS[kind].first : STATS[kind].repeat;
+  return Math.min(999, Math.trunc((50 * base) / efficiency));
 }
