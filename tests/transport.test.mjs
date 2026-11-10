@@ -41,13 +41,17 @@ test('Disembark rejects non-land squares and hostile landing cells',()=>{
  g.units.push(enemy);
  assert.throws(()=>disembarkArmy(g,'u1',{x:8,y:24}),/occupied/);
 });
-test('Damaged overloaded transport cannot move until cargo is unloaded',()=>{
+test('ALG-011 overloaded transport destroys surplus cargo and may move',()=>{
  let g=setup();
  g.units.push({...structuredClone(unit(g,'u1')),id:'u4',position:{x:8,y:24}});
  g=embarkArmy(g,'u1','u2');
  g=embarkArmy(g,'u4','u2');
  g.units.find(u=>u.id==='u2').damage=3;
- assert.throws(()=>moveUnit(g,'u2',{x:6,y:25}),/overloaded/);
+ const moved=moveUnit(g,'u2',{x:6,y:25});
+ assert.deepEqual(unit(moved,'u2').position,{x:6,y:25});
+ assert.equal(unit(moved,'u1'),undefined);
+ assert.equal(unit(moved,'u4'),undefined);
+ assert.deepEqual(moved.rng,g.rng);
 });
 test('Cargo position and type are checked on save import',()=>{
  const g=embarkArmy(setup(),'u1','u2');
