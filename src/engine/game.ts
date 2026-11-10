@@ -286,7 +286,9 @@ export function moveUnit(game:Game,id:string,to:Coord,protectedCargo:ReadonlySet
   if((unit.kind==='transport'||unit.kind==='carrier')&&departurePort?.owner===unit.owner)
     fillShip(g,unit,true,protectedCargo);
   unit.position={...to}; unit.spent++;
-  if(city?.owner===unit.owner)dockShip(g,unit);
+  // ALG-013 dock repair is an explicit docking action; simply passing through
+  // a friendly canal city must not consume a naval interceptor's remaining moves.
+  if(city?.owner===unit.owner&&unit.damage>0)dockShip(g,unit);
   // Embarked units physically travel with the ship, but spend no movement themselves.
   for(const cargo of g.units.filter(u=>u.aboard===unit.id))cargo.position={...to};
   if((unit.kind==='transport'||unit.kind==='carrier')&&city?.owner===unit.owner){
