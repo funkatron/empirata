@@ -63,9 +63,11 @@ See also the binary extraction log in [DOS_ALGORITHM_RULESET.md](../DOS_ALGORITH
 - Detection 8×8 + city type `-1` bypass + Chebyshev-1 wake — ALG-012.
 - Turn order prod→move→end; dock repair +1 on stay — ALG-013.
 - Computer AI gates on `ES:63C0==0`: direction/order tick `0x3BFC`, end-turn production chooser `0x3490` — ALG-AI-001…002.
-- Mode word `ES:840` / flag `ES:62E8` gate several production heuristics; no Standard/Expert strings in EXE — ALG-AI-003.
+- Setup grades: human (`63C0=1`) vs computer `840∈{1,2}`; grade 2 fills `62E8[0…11]` (includes `62F0`) — ALG-AI-003.
+- Pathing: order-driven `1A9E:014A` with budget `min(125, 2*dist+25)`; Move-To often falls back to Random — ALG-AI-001.
+- Computer resign when sole human, two sides left, turn>100, cities < total/4 — ALG-AI-004.
 - Captured-factory UI timing remains a separate concern.
-- Still open inside AI: deep Move-To/Escort scoring, `62F0` origin, surrender threshold.
+- Optional AI follow-up: runtime-trace pathfinder param blocks (`0x22` bytes at `618`/`67E`/`6E4`/`74A`).
 
 ## Adversarial testing and wargaming questions
 

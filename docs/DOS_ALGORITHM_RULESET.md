@@ -420,7 +420,20 @@ Computer movement-phase pass limit is **1** (ALG-013); humans get **100**.
 
 **Random wander detail [D]:** `0x3F0C` first rejects the step if neighbor probe `1E46:0C7F` fails; else `rand()%16` gate, then `dir = (dir + 8ADC) & 7`.
 
-**Not yet fully decoded [?]:** objective scoring inside Move-To / Escort / Patrol path helpers (`0x3F64+`, `0x4714`, `0x4C52`) — treat as “order-driven path toward stored target,” not a free-form utility AI. No separate Standard/Expert string table in the EXE; see ALG-AI-003.
+**`ES:24A` / `8AD6` overload [D]:** for compass orders the word is direction `0…7`; for Escort / path-follow it is a **target unit index** (Sentry engage writes the observer location into the target’s `24A`). Direction picker `0x45E4` pushes `84E[8AD6]` as the path goal for `0x4714`.
+
+**Path / Move-To mechanics [D]:**
+
+| Piece | Behavior |
+|---|---|
+| Move-To order `0x3F64` | Fighter low-fuel gate: if `180C[fighter] >= 0` use thresh **14**, else **10**; if fuel `<=` thresh return `1` (force `0x4462` reissue). Otherwise fall through to **Random** `0x3F0C`. |
+| Land/Escort/Move `0x400E` | If already at goal loc, or fighter cannot reach before fuel (`dist > fuel`), return `1`. Escort also aborts if target tile owner byte ≠ current player. Else `1A9E:006C` reachability → boolean. |
+| Goal step `0x4714` | If `goal == unit_loc` return **`-1`** (stay). Else call pathfinder `1A9E:014A` with a **type-specific `0x22`-byte parameter block** at `DS:(player*0x22 + base)` where `base ∈ {0x618 army, 0x67E fighter, 0x6E4 / 0x74A ships}` (`ES:62FA` picks ship base). On failure clear order to `0` and call `1E46:09C4`. Returns chosen direction in out-param. |
+| Pathfinder budget `1A9E:014A` | Cap search radius at `min(0x7D, 2*chebyshev(goal,start)+0x19)`. |
+| Legalize dir `0x4C52` | From current dir, try up to **8** rotations by `±1` (unit-index parity); accept first that passes `12C2:099C` and tile probe `0x4B52`. Else write direction **`-1`**. |
+| Escort close-range `0x4600` | If dist to target `< 4`, switch on target’s order; may call `0x4714` or `1D09:03C2` for a stationing tile. |
+
+So computer movement is **order-driven pathing toward a stored goal**, with Random as the idle/filler stepper — not a global utility AI. Cell meanings inside the `0x22`-byte blocks are still **[?]** (army base `0x618` statically overlaps the “Please wait…” string in the unpacked image; fighter/ship bases look like 0/1 masks — confirm under DOSBox before treating as terrain costs).
 
 **Empirata:** modern AI is intentionally distinct (IMP-091/092). Use this only when claiming classic computer parity.
 
@@ -463,16 +476,49 @@ Nearby-enemy scout `0x383D` counts owned units within distance `<= 6` of the cit
 
 ---
 
-### ALG-AI-003 — Difficulty / mode flags touching AI **[D]+[?]**
+### ALG-AI-003 — Player setup grades + production mode flags **[D]**
 
-- String `Difficulty` at image `0x317B0` is the **Wins/Losses** results-table header, not an AI level enum.
-- No `Standard` / `Expert` literals in the unpacked image.
-- Player control word `ES:840[player]`: `0` skips a setup loop in `0xF40F`; nonzero runs it. When `840 == 2`, that loop writes **1** into `ES:62E8[0…11]`; otherwise writes **0**. Production AI reads **`ES:62E8`** (word 0) as a mode gate for army/transport/fighter balance.
-- **`ES:62F0`** gates battleship/destroyer preference inside `0x39A9`. Absolute stores not yet pinned **[?]**.
-- Combat/production **efficiency** words (`6368`, `6CB6`) are independent of this production chooser; defaults remain **50** (ALG-002 / ALG-006).
-- Computer surrender / “please wait while processing” UI (`0x2E934`) are presentation; surrender threshold not extracted here **[?]**.
+**New-game setup** (`0x7D2F`…): first clear players `1…4` to computer (`63C0=0`, `840=0`). Each slot’s menu value then:
+
+| Setup value | Effect |
+|---|---|
+| `0` | **Human**: `ES:63C0[p]=1`, bump human-count `ES:646C`, assign id byte at `6DA6+p` |
+| `1` | **Computer grade A**: `ES:840[p]=1` (`63C0` stays 0) |
+| `2` | **Computer grade B**: `ES:840[p]=2` (`63C0` stays 0) |
+
+No `Standard` / `Expert` string literals exist in the image; the two nonzero `840` grades are the binary’s computer difficulty knobs. Results-table header `Difficulty` at `0x317B0` is unrelated (Wins/Losses columns).
+
+**`0xF40F` mode pack [D]:** if current `840 == 0`, skip. Else for `i = 0…11` write `ES:62E8[i] = (840 == 2) ? 1 : 0`. Therefore **`ES:62F0` is `62E8[4]`** — same grade-B flag, not a separate writer. Production AI reads `62E8` / `62F0` as those gates (ALG-AI-002).
+
+**Other `840` effects [D]:** combat helper `0xDE40` uses factor **4** when `840==1`, else **5**, inside `(combat_eff * prod_eff / 5 * factor) / 50`. Combat path `0x199C5` sets per-player word `ES:504 = (840==2)`.
+
+Combat/production **efficiency** words (`6368`, `6CB6`) stay independent; defaults **50**.
 
 ---
+
+### ALG-AI-004 — Computer resign offer **[D]**
+
+**Anchor:** city-recount / elimination spine `0xDF58` (called from end-turn `0xE818` via `0xDF58`). After counting cities per owner into locals and scanning for surviving armies:
+
+**Crush (eliminated) [D]:** if a still-active player (`638E==0`) has **zero** owned armies (type 0) with valid location, set `638E=1`, `dec ES:6C7C` (living sides), show “Player #%d has been CRUSHED!”.
+
+**Resign offer [D]** — only when all of:
+
+```text
+player is computer          // ES:63C0[p] == 0
+ES:646C == 1                // exactly one human in the game
+ES:6C7C == 2                // exactly two sides still alive
+ES:6D8E[p] > 100            // that computer's turn counter > 100
+ES:4F8[p] == 0              // has not offered yet
+cities[p] < ES:6384 / 4     // holds fewer than 25% of all cities
+```
+
+Then set `4F8[p]=1`, dialog “The computer wishes|to resign!|Do you accept?”. On accept (`ax==1`), zero that player’s city-count local and continue elimination bookkeeping (`bp-10 = 0xD8F1` sentinel). Decline leaves the computer in play (flag stays set so it will not re-ask).
+
+**Empirata:** no classic resign-offer parity yet.
+
+---
+
 
 ## 2. Empirata mapping snapshot
 
@@ -493,7 +539,8 @@ Nearby-enemy scout `0x383D` counts owned units within distance `<= 6` of the cit
 | ALG-013 turn + dock repair/refuel | `beginTurn` / dock repair | **partial** (schedule) |
 | ALG-AI-001 computer move/order | modern AI (intentional) | **differs** by design |
 | ALG-AI-002 computer production | modern AI production | **differs** by design |
-| ALG-AI-003 mode/difficulty flags | setup / efficiency presets | **partial** (`62E8`/`840`; Expert naming **[?]** ) |
+| ALG-AI-003 setup grades `840` | setup / efficiency presets | **partial** (two computer grades; names **[M]** only) |
+| ALG-AI-004 computer resign | — | **unimplemented** |
 
 ---
 
@@ -510,7 +557,7 @@ Nearby-enemy scout `0x383D` counts owned units within distance `<= 6` of the cit
 | Q-07 | Detection matrix + sentry wake + city observers | **resolved [D]** — ALG-012 |
 | Q-08 | Repair phase; main turn driver order | **resolved [D]** — ALG-013 |
 | Q-09 | Startup seed from clock | **resolved [D]** — ALG-001 |
-| Q-10 | Original AI policy | **resolved [D] skeleton** — ALG-AI-001…003; deep Move-To scoring + surrender + `62F0` origin still **[?]** |
+| Q-10 | Original AI policy | **resolved [D]** — ALG-AI-001…004 (path budget/order pipeline, `840` grades, `62F0=62E8[4]`, resign); path param-block cell meanings still **[?]** |
 | Q-11 | Overload survivor selection | **resolved [D]** — ALG-011 (high→low index; first `capacity` live) |
 
 ---
@@ -519,7 +566,7 @@ Nearby-enemy scout `0x383D` counts owned units within distance `<= 6` of the cit
 
 1. Prefer HP / ownership / production-counter writes → backtrace over linear dumps.
 2. Instrument DOSBox-X on a saved fight: log `25E6:0F64` returns and the `% 2` / `% 100` / `% 200` sites.
-3. AI follow-ups: decode Move-To target scoring (`0x3F64` / `0x4714` / `0x4C52`), pin `ES:62F0` writers, extract surrender threshold.
+3. AI optional dump: extract the `0x22`-byte per-type path cost tables at `DS:618` / `67E` / `6E4` / `74A`.
 4. Keep shareable fixtures as seed vectors and state deltas only — never commit binaries.
 5. Engine changes require a separate approved PR after evidence lands here.
 
