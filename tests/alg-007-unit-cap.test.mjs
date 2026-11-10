@@ -7,7 +7,7 @@ function saturatedGame(count) {
   const template=structuredClone(game.units[0]);
   while(game.units.length<count){
     const id='slot-'+game.units.length;
-    game.units.push({...template,id,owner:'blue',position:{x:8,y:25},aboard:'u2',spent:1});
+    game.units.push({...template,id,owner:'blue',position:{x:8,y:25},aboard:null,spent:1});
   }
   const city=game.cities.find(c=>c.id==='c-red');
   city.production='army';city.firstCycle=false;city.progress=4;
