@@ -20,6 +20,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.target_ref }}
+      # The target PR may predate this visual-review script.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: .visual-review-tools
+      - name: Supply screenshot harness from main
+        run: cp .visual-review-tools/scripts/coastline-screenshots.mjs scripts/coastline-screenshots.mjs
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
