@@ -17,3 +17,9 @@ test('City stack selector dialog is present for U1 inspection flows',()=>{
   assert.match(html,/id="stackTitle"/);
   assert.match(html,/Choose a unit or the city to inspect/);
 });
+
+test('CvC observer has a checked-by-default full-map fog toggle',()=>{
+  assert.match(html,/<input type="checkbox" id="spectatorTerrain" checked\/>/);
+  assert.match(html,/Show entire map beneath fog \(60%\)/);
+  assert.match(html,/Undiscovered city locations appear without ownership/);
+});
