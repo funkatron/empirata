@@ -4,15 +4,15 @@ import {STATS,UNIT_TYPES,MAX_FIGHTER_FUEL,movementAllowance,capacity,requiredPro
   from '../dist/engine/index.js';
 
 // Baseline: docs/Empirata_Classic_Rules_Specification_v0.1.md §4,
-// which cites the Interstel 2.05 manual pp. 20–25. This checks internal
-// conformance to the research transcription, not executable parity.
+// which cites the Interstel 2.05 manual pp. 20–25. ALG-006 overrides the
+// manual's cruiser typo with the recovered DOS binary first-build table.
 const canonical={
   army:      [1,1,1,6,5,'land'],
   fighter:   [5,1,1,12,10,'air'],
   destroyer: [3,3,1,24,20,'sea'],
   transport: [2,3,1,30,25,'sea'],
   submarine: [2,2,3,24,20,'sea'],
-  cruiser:   [2,8,2,35,30,'sea'],
+  cruiser:   [2,8,2,36,30,'sea'],
   carrier:   [2,8,1,48,40,'sea'],
   battleship:[2,12,3,60,50,'sea']
 };
@@ -48,7 +48,7 @@ test('Manual transport and carrier capacity decreases with hull damage',()=>{
   assert.equal(capacity({kind:'army',damage:0}),null);
 });
 
-test('Nonstandard production efficiency remains explicitly unverified',()=>{
-  assert.throws(()=>requiredProductionTurns('army',true,25),/not verified/);
-  assert.throws(()=>requiredProductionTurns('army',true,100),/not verified/);
+test('ALG-006 production efficiency matches recovered DOS scaling',()=>{
+  assert.equal(requiredProductionTurns('army',true,25),12);
+  assert.equal(requiredProductionTurns('army',true,100),3);
 });

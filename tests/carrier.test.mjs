@@ -37,13 +37,15 @@ test('Fighter cannot launch during same turn if movement is exhausted',()=>{
   g.units.find(u=>u.id==='u1').spent=5;
   assert.throws(()=>launchFighter(g,'u1',{x:6,y:25}),/movement/);
 });
-test('Damaged carrier capacity limits boarding and movement when overloaded',()=>{
+test('ALG-011 damaged carrier limits boarding and destroys overload on movement',()=>{
   const initial=setup();initial.units[1].damage=8;
   assert.equal(capacity(initial.units[1]),0);
   assert.throws(()=>boardFighter(initial,'u1','u2'),/full/);
   const g=boardFighter(setup(),'u1','u2');
   get(g,'u2').damage=8;
-  assert.throws(()=>moveUnit(g,'u2',{x:6,y:25}),/overloaded/);
+  const moved=moveUnit(g,'u2',{x:6,y:25});
+  assert.equal(get(moved,'u1'),undefined);
+  assert.deepEqual(get(moved,'u2').position,{x:6,y:25});
 });
 test('Fighter cannot board an enemy or nonexistent carrier',()=>{
   const g=setup();

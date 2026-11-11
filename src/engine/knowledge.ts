@@ -1,6 +1,15 @@
 import { unitLabel } from './unit-names.js';
 import type { CityIntel, FactionId, Game, Knowledge, PlayerCell, PlayerView, Unit } from './types.js';
-import { directions, index, inMap, terrainAt, cityAt } from './world.js';
+import { directions, index, inMap, cityAt } from './world.js';
+
+/** ALG-012: recovered DOS 8x8 observer/target detection matrix. */
+export function canDetect(observer:Unit['kind']|'city', target:Unit['kind']):boolean {
+  if(observer==='city')return true;
+  if(target==='submarine')return observer==='destroyer'||observer==='submarine'||observer==='cruiser';
+  if(observer==='submarine')return target!=='army'&&target!=='fighter';
+  return true;
+}
+
 
 export function emptyKnowledge(game:Game): Knowledge {
   return {terrain:Array.from({length:game.tiles.length},()=>null),visible:[], sightings:[],freshEnemies:[],cities:{}};
@@ -12,21 +21,22 @@ export function updateKnowledge(game:Game, faction:FactionId): void {
   // Terrain sight and target detection differ: submarines do not detect armies
   // or adjacent fighters. Cities, destroyers and cruisers detect submarines
   // (Interstel manual pp. 22–24, 26). Index coverage once per knowledge update.
-  const surfaceObservers=new Set<number>(),submarineDetectors=new Set<number>();
-  const origins=[...game.cities.filter(c=>c.owner===faction)
-      .map(c=>({position:c.position,surface:true,submarines:true})),
+  const observers=[...game.cities.filter(c=>c.owner===faction)
+      .map(c=>({position:c.position,kind:'city' as const})),
     ...game.units.filter(u=>u.owner===faction&&!u.aboard)
-      .map(u=>({position:u.position,surface:u.kind!=='submarine',
-        submarines:u.kind==='cruiser'||u.kind==='destroyer'}))];
-  for(const origin of origins)for(const d of [{x:0,y:0},...directions]){
+      .map(u=>({position:u.position,kind:u.kind}))];
+  const detection=new Map<Unit['kind'],Set<number>>();
+  for(const origin of observers)for(const d of [{x:0,y:0},...directions]){
     const q={x:origin.position.x+d.x,y:origin.position.y+d.y};
     if(!inMap(game,q))continue;
     const cell=index(game,q);visible.add(cell);
-    if(origin.surface)surfaceObservers.add(cell);
-    if(origin.submarines)submarineDetectors.add(cell);
+    for(const target of ['army','fighter','destroyer','transport','submarine','cruiser','carrier','battleship'] as const){
+      if(!canDetect(origin.kind,target))continue;
+      if(!detection.has(target))detection.set(target,new Set());
+      detection.get(target)!.add(cell);
+    }
   }
-  const detected=(kind:Unit['kind'],cell:number)=>kind==='submarine'?submarineDetectors.has(cell):
-    kind==='army'||kind==='fighter'?surfaceObservers.has(cell):visible.has(cell);
+  const detected=(kind:Unit['kind'],cell:number)=>detection.get(kind)?.has(cell)??false;
   const freshEnemies=new Set<string>();
   const previousSightings=new Map(k.sightings.map(s=>[s.id,s]));
   for(const i of visible) {

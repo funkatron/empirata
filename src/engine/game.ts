@@ -5,6 +5,7 @@ import {MAX_FIGHTER_FUEL, movementAllowance, requiredProductionTurns, STATS, cap
 import {MAP_HEIGHT,MAP_WIDTH, makeTestTerrain, playable, index, terrainAt, cityAt, equal, isCoastal, directions } from './world.js';
 import {emptyKnowledge,updateAllKnowledge,getPlayerView} from './knowledge.js';
 import {resolveCombat,resolveCityAssault} from './combat.js';
+import {resolveCargoOverload} from './cargo-overload.js';
 
 export class RuleNotImplemented extends Error {
   constructor(public readonly code:string,message:string){super(message);this.name='RuleNotImplemented';}
@@ -220,6 +221,27 @@ export function launchFighter(game:Game,fighterId:string,to:Coord):Game {
   }else log(g,fighter.owner,'movement',`${unitLabel(fighter)} launched from ${unitLabel(carrier)}.`);
   updateAllKnowledge(g);return g;
 }
+/** ALG-013: docking occurs on a movement-phase stay or arrival, not at turn start. */
+function dockShip(g:Game,unit:Unit):void {
+  if(STATS[unit.kind].domain!=='sea')return;
+  const city=cityAt(g,unit.position);
+  if(city?.owner!==unit.owner||!isCoastal(g,city.position))return;
+  if(unit.damage>0){
+    unit.damage--;
+    log(g,unit.owner,'repair',`${unitLabel(unit)} repaired one damage point in port.`);
+  }
+  unit.spent=movementAllowance(unit);
+}
+/** Explicit stay action: consume remaining movement and apply one dock repair tick. */
+export function stayUnit(game:Game,id:string):Game {
+  const g=clone(game),unit=g.units.find(u=>u.id===id);
+  if(!unit||unit.owner!==g.active||unit.aboard)throw new Error('Active unembarked unit required.');
+  if(unit.spent>=movementAllowance(unit))throw new Error('No movement remaining this turn.');
+  dockShip(g,unit);
+  unit.spent=movementAllowance(unit);
+  updateAllKnowledge(g);
+  return g;
+}
 export function moveUnit(game:Game,id:string,to:Coord,protectedCargo:ReadonlySet<string>=new Set()):Game {
   const g=clone(game),unit=g.units.find(u=>u.id===id);
   if(!unit||unit.owner!==g.active) throw new Error('That unit cannot be moved this turn.');
@@ -256,14 +278,17 @@ export function moveUnit(game:Game,id:string,to:Coord,protectedCargo:ReadonlySet
   }
   if(enemy)return resolveCombat(game,id,enemy.id);
   if(occupants.some(u=>u.owner===unit.owner)&&!city) throw new RuleNotImplemented('CARGO','Loading and same-cell stacking require verified original mechanics.');
-  if((unit.kind==='transport'||unit.kind==='carrier')&&
-    g.units.filter(u=>u.aboard===unit.id).length>(capacity(unit)??0))
-    throw new Error('Ship is overloaded. Unload excess cargo before moving.');
+  // ALG-011: overload destroys surplus cargo instead of blocking ship movement.
+  for(const cargoId of resolveCargoOverload(g,unit))
+    log(g,unit.owner,'movement',`Cargo ${cargoId} was lost when ${unitLabel(unit)} exceeded capacity.`);
   // Ships leaving a friendly port pick up eligible co-located troops automatically.
   const departurePort=cityAt(g,unit.position);
   if((unit.kind==='transport'||unit.kind==='carrier')&&departurePort?.owner===unit.owner)
     fillShip(g,unit,true,protectedCargo);
   unit.position={...to}; unit.spent++;
+  // ALG-013 dock repair is an explicit docking action; simply passing through
+  // a friendly canal city must not consume a naval interceptor's remaining moves.
+  if(city?.owner===unit.owner&&unit.damage>0)dockShip(g,unit);
   // Embarked units physically travel with the ship, but spend no movement themselves.
   for(const cargo of g.units.filter(u=>u.aboard===unit.id))cargo.position={...to};
   if((unit.kind==='transport'||unit.kind==='carrier')&&city?.owner===unit.owner){
@@ -395,28 +420,33 @@ function executeStandingOrders(game:Game):Game {
   return g;
 }
 export function runMoveToOrders(game:Game):Game {return executeStandingOrders(clone(game));}
+export const DOS_UNIT_SLOT_LIMIT = 1000;
 function beginTurn(g:Game):void {
   for(const unit of g.units.filter(u=>u.owner===g.active)){
     unit.spent=0;
     if(unit.kind==='fighter'&&unit.aboard)unit.fuel=MAX_FIGHTER_FUEL;
     if(unit.order.kind==='skip')unit.order={kind:'none'};
-    const city=cityAt(g,unit.position);
-    if(STATS[unit.kind].domain==='sea'&&unit.damage>0&&city?.owner===g.active&&isCoastal(g,city.position)){
-      unit.damage--;
-      log(g,g.active,'repair',`${unitLabel(unit)} repaired one damage point in port.`);
-    }
+
   }
+  let productionBlockedBySlots=false;
   for(const city of g.cities.filter(c=>c.owner===g.active&&c.production!==null)){
     const kind=city.production!;
-    const required=requiredProductionTurns(kind,city.firstCycle,50);
+    const required=requiredProductionTurns(kind,city.firstCycle,g.players.find(p=>p.id===g.active)!.productionEfficiency);
     city.progress++;
     if(city.progress>=required){
+      // ALG-007: embarked cargo occupies a full unit slot as well.
+      if(g.units.length>=DOS_UNIT_SLOT_LIMIT){
+        productionBlockedBySlots=true;
+        continue;
+      }
       city.progress=0; city.firstCycle=false;
       const unit=newUnit(g,g.active,kind,city.position);
       g.units.push(unit);
       log(g,g.active,'production',`${city.id} completed ${STATS[kind].name}: ${unitLabel(unit)}.`);
     }
   }
+  if(productionBlockedBySlots)
+    log(g,g.active,'production','The world is overpopulated. Production is temporarily halted.');
   // A ship on Load Ship continues accepting friendly adjacent units at each turn
   // start. It wakes automatically when full.
   for(const ship of g.units.filter(u=>u.owner===g.active&&u.order.kind==='load-ship'))
@@ -1262,6 +1292,14 @@ export function playAiOpponent(game:Game,faction:FactionId):Game {
     const desiredTransports=Math.max(1,Math.ceil(totalArmies/6),
       hostileKnown&&totalArmies>=6?2:0,hostileKnown&&neutralKnown&&totalArmies>=12?3:0);
     const assignedTransports=transportCount+view.ownCities.filter(c=>c.id!==city.id&&c.production==='transport').length;
+    // Keep local troop production ahead of optional naval support when a
+    // transport is waiting at this port with no army available to embark.
+    // City garrisons and assigned beachhead troops are not expendable cargo.
+    const waitingForCargo=ownUnits.some(ship=>ship.kind==='transport'&&!ship.aboard&&
+      Math.max(Math.abs(ship.position.x-city.position.x),Math.abs(ship.position.y-city.position.y))<=1&&
+      !ownUnits.some(cargo=>cargo.aboard===ship.id)&&
+      !ownUnits.some(army=>army.kind==='army'&&!army.aboard&&!boardingProtected.has(army.id)&&
+        Math.max(Math.abs(army.position.x-ship.position.x),Math.abs(army.position.y-ship.position.y))<=1));
     const fighterCount=ownUnits.filter(u=>u.kind==='fighter').length;
     const carrierCount=ownUnits.filter(u=>u.kind==='carrier').length;
     const fighterTarget=Math.max(transportCount>0?2:1,Math.ceil(view.ownCities.length/2))+carrierCount*4;
@@ -1274,7 +1312,7 @@ export function playAiOpponent(game:Game,faction:FactionId):Game {
       (city.production==='destroyer'&&!scoutingAssigned||
        city.production==='transport'&&assignedTransports<desiredTransports||
        city.production==='fighter'&&fightersAssigned<fighterTarget||city.production==='carrier'&&fighterCount>=2&&carrierCount<Math.ceil(transportCount/2));
-    const pick=!defenders.has(city.id)?'army':committedShip?city.production!:
+    const pick=!defenders.has(city.id)?'army':committedShip?city.production!:waitingForCargo?'army':
       armyCount>=3&&assignedTransports<desiredTransports&&isCoastal(g,city.position)?'transport':fighterCount===0&&fighterNeeded?'fighter':scoutNeeded?'destroyer':
       carrierNeeded?'carrier':fighterNeeded?'fighter':'army';
     // Production time cannot be recovered: keep every factory active.

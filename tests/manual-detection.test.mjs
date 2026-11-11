@@ -14,7 +14,7 @@ function fixture(observer,target){
 test('Manual adjacent detection matrix separates observer capabilities from terrain sight',()=>{
  for(const observer of kinds)for(const target of kinds){
   const g=fixture(observer,target);updateAllKnowledge(g);
-  const expected=target==='submarine'?['destroyer','cruiser'].includes(observer):
+  const expected=target==='submarine'?['destroyer','submarine','cruiser'].includes(observer):
    observer==='submarine'?!['army','fighter'].includes(target):true;
   const v=getPlayerView(g,'blue');
   assert.equal(v.enemies.some(e=>e.id==='target'),expected,`${observer} observing ${target}`);

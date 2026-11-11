@@ -3,7 +3,7 @@ export type Terrain = 'land' | 'sea';
 export type UnitType = 'army' | 'fighter' | 'destroyer' | 'transport' | 'submarine' | 'cruiser' | 'carrier' | 'battleship';
 export type Coord = { x: number; y: number };
 export type UnitOrder = { kind: 'none' | 'sentry' | 'skip' | 'load-ship' | 'unload-ship' } | {kind:'move-to'; destination:Coord} | {kind:'go-direction'; direction:Coord} | {kind:'patrol'; from:Coord; to:Coord; outbound:boolean} | {kind:'go-home'} | {kind:'escort'; targetId:string};
-export type Player = { id: FactionId; label: string; productionEfficiency: 50; combatEfficiency: 50 };
+export type Player = { id: FactionId; label: string; productionEfficiency: number; combatEfficiency: 50 };
 export type City = {
   id: string; position: Coord; owner: FactionId | null;
   production: UnitType | null; progress: number; firstCycle: boolean;

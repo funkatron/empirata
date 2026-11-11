@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {makeRulesLab,MAP_WIDTH,MAP_HEIGHT,playable,inMap,terrainAt,STATS,UNIT_TYPES,requiredProductionTurns,
-  isCoastal,selectProduction,advanceLabRound,moveUnit,movementAllowance,capacity,setOrder,
+  isCoastal,selectProduction,advanceLabRound,moveUnit,stayUnit,movementAllowance,capacity,setOrder,
   getPlayerView,exportSave,importSave,nextRandom,updateAllKnowledge,RuleNotImplemented} from '../dist/engine/index.js';
 const initial=()=>makeRulesLab();
 function errCode(fn,code){assert.throws(fn,e=>e instanceof RuleNotImplemented&&e.code===code);}
@@ -65,13 +65,15 @@ test('T-009 T-010 damaged ship capacities',()=>{
   assert.equal(capacity({...template,kind:'transport',damage:1}),4);
   assert.equal(capacity({...template,kind:'transport',damage:3}),0);
 });
-test('T-011 T-012 damaged ships have speed 1 and repair docked at start of turn',()=>{
+test('ALG-013 damaged ships repair on explicit dock stay, not turn start',()=>{
   const g=initial();const ship=g.units[1];
   assert.equal(movementAllowance({...ship,kind:'cruiser',damage:3}),2);
   assert.equal(movementAllowance({...ship,kind:'cruiser',damage:4}),1);
   ship.position={x:8,y:25};ship.kind='battleship';ship.damage=3;
   const next=advanceLabRound(g);
-  assert.equal(next.units.find(u=>u.id===ship.id).damage,2);
+  assert.equal(next.units.find(u=>u.id===ship.id).damage,3);
+  const docked=stayUnit(next,ship.id);
+  assert.equal(docked.units.find(u=>u.id===ship.id).damage,2);
 });
 test('T-013 capture attempts resolve a documented normal-efficiency conquest roll',()=>{
   let g=initial();g.cities.push({id:'neutral',position:{x:10,y:25},owner:null,production:null,progress:0,firstCycle:true});
@@ -157,6 +159,6 @@ test('seeded random generator is deterministic and version-local',()=>{
   const a=nextRandom({seed:12,draws:0}),b=nextRandom({seed:12,draws:0});
   assert.deepEqual(a,b);assert.notEqual(a.value,nextRandom(a.next).value);
 });
-test('non-50% production remains unimplemented pending historical rounding verification',()=>{
-  assert.throws(()=>requiredProductionTurns('army',true,75),/not verified/);
+test('ALG-006 production efficiency follows recovered DOS integer division',()=>{
+  assert.equal(requiredProductionTurns('army',true,75),4);
 });

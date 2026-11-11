@@ -24,6 +24,6 @@ test('Surviving damaged carrier immediately loses fighters over reduced capacity
  assert.equal(get(result,'u2'),undefined);
  assert.equal(get(result,'enemy-carrier').damage,7);
  assert.equal(result.units.filter(u=>u.aboard==='enemy-carrier').length,1);
- assert.ok(get(result,'fighter-1'));
- assert.equal(get(result,'fighter-2'),undefined);
+ assert.ok(get(result,'fighter-2'));
+ assert.equal(get(result,'fighter-1'),undefined);
 });
