@@ -1,7 +1,8 @@
 import type {Game,PlayerView,Terrain} from '../engine/index.js';
 
 /** Presentation-only visibility. Never feed these cells back into AI PlayerView. */
-export const SPECTATOR_FOG_OPACITY=0.6;
+export const SPECTATOR_FOG_OPACITY=0.75;
+export const EXPLORED_FOG_OPACITY=0.52;
 const revealsTerrain=(game:Pick<Game,'scenario'>,enabled:boolean)=>
   enabled&&game.scenario==='ai-vs-ai';
 
@@ -12,12 +13,12 @@ export function observerTerrain(
   return revealsTerrain(game,reveal)?game.tiles[index]??null:view.cells[index]?.terrain??null;
 }
 
-/** Outside CvC revelation, preserve the existing 52% dimming for explored but unseen tiles. */
+/** Visible = clear; explored but out of sight = 52%; undiscovered CvC terrain = 75%. */
 export function observerFogOpacity(
   game:Pick<Game,'scenario'>,view:Pick<PlayerView,'cells'>,index:number,reveal:boolean
 ):number {
   const cell=view.cells[index];
   if(!cell||cell.visible)return 0;
-  if(revealsTerrain(game,reveal))return SPECTATOR_FOG_OPACITY;
-  return cell.terrain!==null?0.52:0;
+  if(cell.terrain!==null)return EXPLORED_FOG_OPACITY;
+  return revealsTerrain(game,reveal)?SPECTATOR_FOG_OPACITY:0;
 }
