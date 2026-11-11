@@ -1,5 +1,6 @@
 import {clampTileSize,fitTileSize} from './camera.js';
 import {drawCity,drawCoast,drawTerrain,drawUnit} from './map-art.js';
+import {observerFogOpacity,observerTerrain,SPECTATOR_FOG_OPACITY} from './observer-map.js';
 import {endgameModal} from './endgame.js';
 import {advanceLabRound,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,makeCampaignMap,
   moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
@@ -15,6 +16,8 @@ const resultModal=endgameModal(el('endgameDialog') as HTMLDialogElement,el('endg
 let game:Game=makeCloseQuartersLab();
 let observer:'blue'|'red'='blue';
 let spectatorMode:'alternate'|'blue'|'red'='alternate';
+// Observer-only preference; not part of game state or either AI's knowledge.
+let revealSpectatorTerrain=true;
 let playback:ReturnType<typeof setTimeout>|null=null;
 let playbackGeneration=0,roundsPerAdvance=1;
 let observerRefreshPending=false;
@@ -145,15 +148,24 @@ function paint():void {
   }
   const neighbors=[[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]] as const;
   const cellAt=(x:number,y:number)=>x>=0&&x<view.width&&y>=0&&y<view.height?view.cells[y*view.width+x]:undefined;
+  const revealMap=game.scenario==='ai-vs-ai'&&revealSpectatorTerrain;
+  const displayTerrain=(x:number,y:number)=>x>=0&&x<view.width&&y>=0&&y<view.height?
+    observerTerrain(game,view,y*view.width+x,revealSpectatorTerrain):null;
+  // Map landmarks are shown as neutral silhouettes until the observed faction
+  // discovers them. Never disclose their real ownership or production.
+  const concealedCityCells=new Set(revealMap?game.cities.filter(c=>
+    !cellAt(c.position.x,c.position.y)?.city).map(c=>c.position.y*view.width+c.position.x):[]);
   const fitSize=Math.min(w/view.width,h/view.height);
   const fitWeight=Math.max(0,Math.min(1,(Math.max(30,fitSize+8)-tileSize)/(Math.max(30,fitSize+8)-fitSize)));
   for(let y=sy;y<ey;y++)for(let x=sx;x<ex;x++){
-    const c=view.cells[y*view.width+x]!;
+    const i=y*view.width+x,terrain=displayTerrain(x,y);
     const px=x*tileSize-cameraX,py=y*tileSize-cameraY;
-    const seaAt=(dx:number,dy:number)=>cellAt(x+dx,y+dy)?.terrain==='sea';
-    drawTerrain(ctx,c.terrain,px,py,tileSize,x,y);
-    if(c.terrain==='land')drawCoast(ctx,px,py,tileSize,seaAt(0,-1),seaAt(1,0),seaAt(0,1),seaAt(-1,0));
-    if(c.terrain!==null&&!c.visible){ctx.fillStyle='rgba(3,13,22,.52)';ctx.fillRect(px,py,tileSize,tileSize);}
+    const seaAt=(dx:number,dy:number)=>displayTerrain(x+dx,y+dy)==='sea';
+    drawTerrain(ctx,terrain,px,py,tileSize,x,y);
+    if(terrain==='land')drawCoast(ctx,px,py,tileSize,seaAt(0,-1),seaAt(1,0),seaAt(0,1),seaAt(-1,0));
+    if(!revealMap&&observerFogOpacity(game,view,i,false)>0){
+      ctx.fillStyle='rgba(3,13,22,.52)';ctx.fillRect(px,py,tileSize,tileSize);
+    }
     if(tileSize>=9){ctx.strokeStyle='rgba(120,159,166,.12)';ctx.lineWidth=.65;ctx.strokeRect(px+.3,py+.3,tileSize-.6,tileSize-.6);}
   }
   // Paint symbols after terrain so a large icon can cross its tile edge.
@@ -161,8 +173,12 @@ function paint():void {
     const i=y*view.width+x,c=view.cells[i]!;
     const px=x*tileSize-cameraX,py=y*tileSize-cameraY;
     const stack=unitsByCell.get(i);
+    if(concealedCityCells.has(i)){
+      const coastal=neighbors.some(([dx,dy])=>displayTerrain(x+dx,y+dy)==='sea');
+      drawCity(ctx,coastal,px+tileSize*.13,py+tileSize*.13,tileSize*.74,colors.neutral);
+    }
     if(c.city){
-      const coastal=neighbors.some(([dx,dy])=>cellAt(x+dx,y+dy)?.terrain==='sea');
+      const coastal=neighbors.some(([dx,dy])=>displayTerrain(x+dx,y+dy)==='sea');
       const size=tileSize*(stack ? .44 : .74);
       const offset=tileSize*(stack ? .04 : .13);
       drawCity(ctx,coastal,px+offset,py+offset,size,colors[c.city.owner??'neutral']);
@@ -191,6 +207,15 @@ function paint():void {
       ctx.fillText(String(count),px+tileSize-2,py+2);
     }
     if(u.id===selectedUnit||u.id===spectatorContact){ctx.strokeStyle='#fff0a4';ctx.lineWidth=2.3;ctx.strokeRect(px+1,py+1,Math.max(1,tileSize-2),Math.max(1,tileSize-2));}
+  }
+  // Draw fog on top of terrain *and* symbols so the 60% setting is literal.
+  // Unseen units never enter displayUnits; this is purely a spectator overlay.
+  if(revealMap){
+    ctx.fillStyle=`rgba(3,13,22,${SPECTATOR_FOG_OPACITY})`;
+    for(let y=sy;y<ey;y++)for(let x=sx;x<ex;x++){
+      if(observerFogOpacity(game,view,y*view.width+x,true)===0)continue;
+      ctx.fillRect(x*tileSize-cameraX,y*tileSize-cameraY,tileSize,tileSize);
+    }
   }
 }
 function cellFromPointer(ev:PointerEvent):Coord {
@@ -372,6 +397,7 @@ function refresh():void {
   el('spectatorCard').hidden=game.scenario!=='ai-vs-ai';
   el('viewFaction').textContent=observer==='blue'?'Blue':'Red';
   (el('spectatorSide') as HTMLSelectElement).value=spectatorMode;
+  (el('spectatorTerrain') as HTMLInputElement).checked=revealSpectatorTerrain;
   if(game.scenario==='ai-vs-ai'){
     el('spectatorNow').textContent=`Currently viewing ${observer.toUpperCase()} intelligence · Round ${game.round}`;
     const blue=getPlayerView(game,'blue'),red=getPlayerView(game,'red');
@@ -571,6 +597,11 @@ el('classicGame').addEventListener('click',()=>startScenario('classic-lab'));
 el('invasionGame').addEventListener('click',()=>startScenario('ai-invasion'));
 el('aiSkirmishGame').addEventListener('click',()=>startScenario('ai-skirmish'));
 el('aiVsAiGame').addEventListener('click',()=>startScenario('ai-vs-ai'));
+el('spectatorTerrain').addEventListener('change',()=>{
+  revealSpectatorTerrain=(el('spectatorTerrain') as HTMLInputElement).checked;
+  paint();
+  uiMessage(revealSpectatorTerrain?'Spectator terrain and city locations visible beneath 60% fog. AI intelligence is unchanged.':'Spectator map now shows only the selected faction’s discovered terrain.');
+});
 el('spectatorSide').addEventListener('change',()=>{
   spectatorMode=(el('spectatorSide') as HTMLSelectElement).value as 'alternate'|'blue'|'red';
   observer=spectatorMode==='alternate'?((game.round-1)%2===0?'blue':'red'):spectatorMode;

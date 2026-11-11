@@ -38,3 +38,7 @@
 .stack-dialog{max-height:80vh;overflow:auto}
 #stackChoices{display:grid;gap:.4rem;margin:.8rem 0}
 #stackChoices button{min-height:44px;text-align:left;white-space:normal}
+
+.ai-spectator .spectator-fog-toggle{display:flex;align-items:center;gap:9px;margin:12px 0 5px;color:#e6d59d;line-height:1.5;cursor:pointer}
+.ai-spectator .spectator-fog-toggle input{width:18px;height:18px;flex:none;margin:0;accent-color:#d8bd78;cursor:pointer}
+.ai-spectator .spectator-fog-note{margin:0 0 8px;color:#aac2d1;font-size:10px;line-height:1.55}
