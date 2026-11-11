@@ -1,6 +1,6 @@
 import {clampTileSize,fitTileSize} from './camera.js';
 import {drawCity,drawCoast,drawTerrain,drawUnit} from './map-art.js';
-import {observerFogOpacity,observerTerrain,SPECTATOR_FOG_OPACITY} from './observer-map.js';
+import {observerFogOpacity,observerTerrain} from './observer-map.js';
 import {endgameModal} from './endgame.js';
 import {advanceLabRound,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,makeCampaignMap,
   moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
@@ -163,8 +163,9 @@ function paint():void {
     const seaAt=(dx:number,dy:number)=>displayTerrain(x+dx,y+dy)==='sea';
     drawTerrain(ctx,terrain,px,py,tileSize,x,y);
     if(terrain==='land')drawCoast(ctx,px,py,tileSize,seaAt(0,-1),seaAt(1,0),seaAt(0,1),seaAt(-1,0));
-    if(!revealMap&&observerFogOpacity(game,view,i,false)>0){
-      ctx.fillStyle='rgba(3,13,22,.52)';ctx.fillRect(px,py,tileSize,tileSize);
+    if(!revealMap){
+      const fog=observerFogOpacity(game,view,i,false);
+      if(fog>0){ctx.fillStyle=`rgba(3,13,22,${fog})`;ctx.fillRect(px,py,tileSize,tileSize);}
     }
     if(tileSize>=9){ctx.strokeStyle='rgba(120,159,166,.12)';ctx.lineWidth=.65;ctx.strokeRect(px+.3,py+.3,tileSize-.6,tileSize-.6);}
   }
@@ -208,12 +209,13 @@ function paint():void {
     }
     if(u.id===selectedUnit||u.id===spectatorContact){ctx.strokeStyle='#fff0a4';ctx.lineWidth=2.3;ctx.strokeRect(px+1,py+1,Math.max(1,tileSize-2),Math.max(1,tileSize-2));}
   }
-  // Draw fog on top of terrain *and* symbols so the 60% setting is literal.
-  // Unseen units never enter displayUnits; this is purely a spectator overlay.
+  // Shroud unexplored tiles at 75% and previously explored but unseen at 52%.
+  // Draw over both terrain and symbols; only faction-known units are present.
   if(revealMap){
-    ctx.fillStyle=`rgba(3,13,22,${SPECTATOR_FOG_OPACITY})`;
     for(let y=sy;y<ey;y++)for(let x=sx;x<ex;x++){
-      if(observerFogOpacity(game,view,y*view.width+x,true)===0)continue;
+      const fog=observerFogOpacity(game,view,y*view.width+x,true);
+      if(fog===0)continue;
+      ctx.fillStyle=`rgba(3,13,22,${fog})`;
       ctx.fillRect(x*tileSize-cameraX,y*tileSize-cameraY,tileSize,tileSize);
     }
   }
@@ -600,7 +602,7 @@ el('aiVsAiGame').addEventListener('click',()=>startScenario('ai-vs-ai'));
 el('spectatorTerrain').addEventListener('change',()=>{
   revealSpectatorTerrain=(el('spectatorTerrain') as HTMLInputElement).checked;
   paint();
-  uiMessage(revealSpectatorTerrain?'Spectator terrain and city locations visible beneath 60% fog. AI intelligence is unchanged.':'Spectator map now shows only the selected faction’s discovered terrain.');
+  uiMessage(revealSpectatorTerrain?'Unexplored terrain is shaded 75%; explored but unseen is shaded 52%. AI intelligence is unchanged.':'Spectator map now shows only the selected faction’s discovered terrain.');
 });
 el('spectatorSide').addEventListener('change',()=>{
   spectatorMode=(el('spectatorSide') as HTMLSelectElement).value as 'alternate'|'blue'|'red';
