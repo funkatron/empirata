@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   adjudicateCityCapture,endTurn,exportSave,getPlayerView,importSave,
-  makeRulesLab,playAiOpponent,requiredProductionTurns,updateAllKnowledge
+  makeRulesLab,nextRandom,playAiOpponent,requiredProductionTurns,updateAllKnowledge
 } from '../dist/engine/index.js';
 
 /** Small, faction-swapped capture with a surviving enemy home.
@@ -74,5 +74,36 @@ for(const attacker of ['blue','red']){
     assert.equal(state.knowledge[defender].cities[targetId].productionKnown,false);
     assert.equal(state.knowledge[defender].cities[targetId].production,null);
     assert.deepEqual(importSave(exportSave(state)),state);
+  });
+}
+
+for(const attacker of ['blue','red']){
+  test(`AI ${attacker} starts production in a city it captures during its own turn`,()=>{
+    const defender=attacker==='blue'?'red':'blue';
+    const g=makeRulesLab();
+    g.scenario='ai-vs-ai';g.active=attacker;g.rng={seed:1,draws:0};
+    assert.ok(nextRandom(g.rng).value<0.5,'Seed must cause the one-roll assault to succeed');
+    const target=g.cities.find(c=>c.owner===defender);
+    const secondHome=g.cities.find(c=>c.id==='c8');
+    const army=g.units.find(u=>u.owner===attacker&&u.kind==='army');
+    assert.ok(target&&secondHome&&army);
+    secondHome.owner=defender;
+    g.units=g.units.filter(u=>u.owner===attacker);
+    army.position={x:target.position.x+(attacker==='blue'?-1:1),y:target.position.y};
+    assert.equal(g.tiles[army.position.y*g.width+army.position.x],'land');
+    army.spent=0;
+    updateAllKnowledge(g);
+    const before=structuredClone(g);
+    const next=playAiOpponent(g,attacker);
+    assert.deepEqual(g,before,'AI does not mutate the source fixture');
+    const captured=next.cities.find(c=>c.id===target.id);
+    assert.equal(captured.owner,attacker,'The AI must attempt and win the adjacent capture');
+    assert.equal(captured.production,'army','The newly captured factory is assigned before the AI turn ends');
+    assert.equal(captured.progress,0);
+    assert.equal(captured.firstCycle,true);
+    assert.equal(next.rng.draws,1,'Exactly one city capture roll is needed');
+    assert.equal(next.knowledge[defender].cities[target.id].owner,attacker);
+    assert.equal(next.knowledge[defender].cities[target.id].productionKnown,false);
+    assert.deepEqual(importSave(exportSave(next)),next);
   });
 }
