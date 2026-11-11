@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {getPlayerView,makeAiVsAiLab,makeRulesLab} from '../dist/engine/index.js';
-import {observerTerrain,observerFogOpacity,SPECTATOR_FOG_OPACITY} from '../dist/ui/observer-map.js';
+import {observerTerrain,observerFogOpacity,SPECTATOR_FOG_OPACITY,EXPLORED_FOG_OPACITY} from '../dist/ui/observer-map.js';
 
-test('CvC spectator sees undiscovered geography through exactly 60% fog',()=>{
+test('CvC spectator sees undiscovered geography through exactly 75% fog',()=>{
   const game=makeAiVsAiLab(),view=getPlayerView(game,'blue');
   const beforeGame=structuredClone(game),beforeView=structuredClone(view);
   const undiscovered=game.tiles.findIndex((t,i)=>t==='land'&&view.cells[i].terrain===null);
@@ -12,7 +12,8 @@ test('CvC spectator sees undiscovered geography through exactly 60% fog',()=>{
   assert.equal(observerTerrain(game,view,undiscovered,true),'land');
   assert.equal(observerFogOpacity(game,view,undiscovered,false),0);
   assert.equal(observerFogOpacity(game,view,undiscovered,true),SPECTATOR_FOG_OPACITY);
-  assert.equal(SPECTATOR_FOG_OPACITY,0.6);
+  assert.equal(SPECTATOR_FOG_OPACITY,0.75);
+  assert.ok(SPECTATOR_FOG_OPACITY>EXPLORED_FOG_OPACITY,'Unexplored territory should be visibly darker');
   assert.deepEqual(game,beforeGame,'Presentation must not mutate gameplay state');
   assert.deepEqual(view,beforeView,'Presentation must not mutate private intelligence');
 });
@@ -27,8 +28,9 @@ test('Visible territory remains clear; explored territory still has fog',()=>{
   assert.equal(observerTerrain(game,view,index,true),'land');
   const remembered=structuredClone(view);
   remembered.cells[index].visible=false;
-  assert.equal(observerFogOpacity(game,remembered,index,true),0.6);
+  assert.equal(observerFogOpacity(game,remembered,index,true),0.52);
   assert.equal(observerFogOpacity(game,remembered,index,false),0.52);
+  assert.equal(EXPLORED_FOG_OPACITY,0.52);
 });
 
 test('Revealed spectator geography does not disclose undiscovered city ownership',()=>{
@@ -39,6 +41,7 @@ test('Revealed spectator geography does not disclose undiscovered city ownership
   assert.equal(blue.cells[index].city,null,'The faction has not discovered the rival city');
   assert.equal(blue.cells[index].terrain,null);
   assert.equal(observerTerrain(game,blue,index,true),game.tiles[index]);
+  assert.equal(observerFogOpacity(game,blue,index,true),0.75,'Unknown cities remain in full unexplored fog');
   assert.equal(blue.cells[index].city,null,'The spectator overlay does not change city intelligence');
   assert.equal(blue.enemies.length,0,'Enemy units do not become visible to the AI');
 });
