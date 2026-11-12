@@ -20,8 +20,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
@@ -40,7 +40,7 @@ jobs:
           EMPIRATA_CAPTURE_PROFILES: ${{ github.event_name == 'workflow_dispatch' && inputs.profiles || 'desktop,ipad-portrait' }}
       - name: Preserve screenshots and manifest
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: captured-city-inspector-${{ github.sha }}
           path: artifacts/capture-production/
