@@ -224,6 +224,18 @@ function cellFromPointer(ev:PointerEvent):Coord {
   const rect=canvas.getBoundingClientRect();
   return {x:Math.floor((ev.clientX-rect.left+cameraX)/tileSize),y:Math.floor((ev.clientY-rect.top+cameraY)/tileSize)};
 }
+/** Keep a tapped spectator selection visible in the sidebar on iPad and desktop.
+ * Only user-initiated selection scrolls; background turns never move the panel.
+ */
+function revealSpectatorInspector():void {
+  const inspector=el('inspector').closest('.card') as HTMLElement|null;
+  const sidebar=el('inspector').closest('.sidebar') as HTMLElement|null;
+  if(!inspector||!sidebar)return;
+  const item=inspector.getBoundingClientRect(),region=sidebar.getBoundingClientRect();
+  // If the inspector header is already visible, avoid a disruptive jump.
+  if(item.top>=region.top&&item.top<region.bottom-44)return;
+  sidebar.scrollTop+=item.top-region.top-8;
+}
 function showCityStack(pos:Coord):boolean {
   if(pos.x<0||pos.y<0||pos.x>=view.width||pos.y>=view.height)return false;
   const atTile=(unit:{position:Coord})=>unit.position.x===pos.x&&unit.position.y===pos.y;
@@ -250,6 +262,7 @@ function showCityStack(pos:Coord):boolean {
     selectedCity=view.ownCities.some(c=>c.id===cityId)?cityId:null;
     spectatorCity=selectedCity?null:cityId;
     refresh();
+    if(game.scenario==='ai-vs-ai')revealSpectatorInspector();
   };
   addChoice(`Inspect ${cityName(city.id)} · ${city.owner??'neutral'} city`,()=>select(null,null,city.id));
   for(const unit of own) addChoice(`${unitName(unit)} · ${STATS[unit.kind].name}`,()=>select(unit.id,null,null));
@@ -280,7 +293,9 @@ function tapTile(pos:Coord,allowPicker=true):void {
     selectedCity=chosen?.kind==='city'&&view.ownCities.some(c=>c.id===chosen.id)?chosen.id:null;
     spectatorContact=chosen?.kind==='contact'?chosen.id:null;
     spectatorCity=chosen?.kind==='city'?chosen.id:null;
-    refresh();return;
+    refresh();
+    if(chosen)revealSpectatorInspector();
+    return;
   }
   if(choosingDestination&&selectedUnit){
     choosingDestination=false;
