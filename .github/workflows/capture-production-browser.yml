@@ -1,0 +1,48 @@
+name: Captured-city browser inspection (optional)
+
+on:
+  pull_request:
+    paths:
+      - 'smoke/capture-production.mjs'
+      - '.github/workflows/capture-production-browser.yml'
+  workflow_dispatch:
+    inputs:
+      profiles:
+        description: 'Browser viewport profiles: desktop,ipad-portrait'
+        type: string
+        default: 'desktop,ipad-portrait'
+
+permissions:
+  contents: read
+
+jobs:
+  webkit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install project dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install browser test dependencies
+        run: |
+          npm install --no-save --package-lock=false playwright@1.65.0
+          npx playwright install --with-deps webkit
+      - name: Build browser sources
+        run: npm run build
+      - name: Inspect captured city factories in WebKit
+        run: node smoke/capture-production.mjs
+        env:
+          EMPIRATA_CAPTURE_DIR: artifacts/capture-production
+          EMPIRATA_CAPTURE_PROFILES: ${{ github.event_name == 'workflow_dispatch' && inputs.profiles || 'desktop,ipad-portrait' }}
+      - name: Preserve screenshots and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: captured-city-inspector-${{ github.sha }}
+          path: artifacts/capture-production/
+          if-no-files-found: warn
+          retention-days: 14
