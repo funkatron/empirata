@@ -10,8 +10,8 @@ export function cityName(id:string):string {
   let n=0;
   if(match)n=Number(match[1])-1;
   else for(const ch of id)n=(Math.imul(n,31)+ch.charCodeAt(0))>>>0;
-  const base=ROOTS[n%16]!+ENDS[Math.floor(n/16)%16]!;
-  return n<256?base:`${base} ${Math.floor(n/256)+1}`;
+  // 16×16 stems cover common maps; never append disambiguating numerals.
+  return ROOTS[n%16]!+ENDS[Math.floor(n/16)%16]!;
 }
 
 export type GameOutcome = {state:'ongoing'} | {state:'finished';winner:FactionId|null;eliminated:FactionId[]};
