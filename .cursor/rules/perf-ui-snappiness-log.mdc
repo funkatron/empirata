@@ -1,0 +1,33 @@
+---
+description: Log of 2026-11-12 UI snappiness performance work on perf/ui-snappiness
+alwaysApply: false
+---
+
+# UI snappiness performance log (2026-11-12)
+
+## Baseline (Node, main before changes)
+
+| Scenario | p50 | p95 | max |
+|---|---:|---:|---:|
+| ai-vs-ai-lab ×100 | 268 ms | 505 ms | 651 ms |
+| ai-vs-ai-skirmish ×100 | 744 ms | 1292 ms | 1709 ms |
+| continents CvC ×60 | 252 ms | 365 ms | 391 ms |
+
+Skirmish mid-game (~18 units): ~670 ms/round with ~1545 `structuredClone` calls.
+
+## After PR1+PR2 engine/UI work
+
+| Scenario | p50 | p95 | max |
+|---|---:|---:|---:|
+| ai-vs-ai-lab ×100 | 127 ms | 231 ms | 300 ms |
+| ai-vs-ai-skirmish ×100 | 391 ms | 616 ms | 764 ms |
+| continents CvC ×60 | 119 ms | 153 ms | 169 ms |
+
+Roughly **2×** faster AI rounds. Skirmish p95 still above a soft 400 ms goal.
+
+## Changes shipped on `perf/ui-snappiness`
+
+1. **UI:** rAF-coalesced pan/zoom paint; world terrain+fog layer cache; cheap CvC scorecards; skip inspector/events rebuild when unchanged.
+2. **Engine:** one private clone per AI turn (`mutable` ops); reused `PlayerView` + unit/hostile-city indexes in `playAiOpponent`.
+3. **Save/playback:** compact IndexedDB autosave with latest-wins coalescing; `labRoundPhases` yields between AI/endTurn phases; Pause finishes the open round onto a blue turn.
+4. **Harness:** `scripts/bench-rounds.mjs`; tests `ai-mutable-turn`, `autosave-compact`.
