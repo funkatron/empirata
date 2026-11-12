@@ -550,25 +550,27 @@ Then set `4F8[p]=1`, dialog “The computer wishes|to resign!|Do you accept?”.
 
 ## 2. Empirata mapping snapshot
 
-| ALG | Empirata symbol | Status |
+**Reconciled 2026-11-12 against current `main` source and named regression tests.** These are implementation/test-presence findings, **not** a claim of DOSBox trace equivalence. Older prose in §1 describes pre-integration behavior and should be read as historical until individually refreshed.
+
+| ALG | Empirata implementation evidence | Status / remaining validation |
 |---|---|---|
-| ALG-001 RNG recurrence | `nextRandom` / `nextRandom15` | **matches** math; seed/schedule **partial** |
-| ALG-002 HP combat `%200` | `resolveCombat` | **differs** (threshold vs weighted) |
-| ALG-002b animation `%2` | — | presentation only |
-| ALG-003 hit-damage table `2964` | `STATS.*.hitDamage` | **partial** (compare rows) |
-| ALG-004 city assault | `resolveCityAssault` | **matches** family (`eff >= rand%100`) |
-| ALG-006 production tables + efficiency | `STATS` / `requiredProductionTurns` | **differs** (cruiser 35 vs 36; no efficiency scale) |
-| ALG-007 unit cap 1000 + embarked | — | **unimplemented** |
-| ALG-008 city production loop | `beginTurn` / production | **partial** (see ALG-006) |
-| ALG-009 capture production reset | capture + `selectProduction` | **unknown** (likely close) |
-| ALG-010 fighter fuel/crash | `moveUnit` fuel | **matches** high level |
-| ALG-011 transport overload | `moveUnit` | **differs** (reject vs destroy) |
-| ALG-012 detection matrix | `knowledge.ts` | **partial** (sub↔sub; wake set) |
-| ALG-013 turn + dock repair/refuel | `beginTurn` / dock repair | **partial** (schedule) |
-| ALG-AI-001 computer move/order | modern AI (intentional) | **differs** by design |
-| ALG-AI-002 computer production | modern AI production | **differs** by design |
-| ALG-AI-003 setup grades `840` | setup / efficiency presets | **partial** (two computer grades; names **[M]** only) |
-| ALG-AI-004 computer resign | — | **unimplemented** |
+| ALG-001 RNG recurrence | `src/engine/rng.ts` | recurrence implemented; startup seed/draw schedule need trace parity |
+| ALG-002 HP combat | `src/engine/combat.ts`, `tests/alg-002-combat.test.mjs` | threshold, modifiers, seeded fight tested; DOS runtime trace pending |
+| ALG-002b animation | — | presentation-only; not a rules blocker |
+| ALG-003 damage table | `src/engine/units.ts` | table-level verification remains |
+| ALG-004 city assault | `resolveCityAssault` | seeded boundary parity needs verification |
+| ALG-006 production | `src/engine/units.ts`, `tests/alg-006-production.test.mjs` | cruiser first=36 and efficiency scaling implemented/tested |
+| ALG-007 unit cap | `DOS_UNIT_SLOT_LIMIT`, `tests/alg-007-unit-cap.test.mjs` | 1000-slot cap including embarked tested |
+| ALG-008 production phase | `beginTurn` | phase timing still needs DOS trace comparison |
+| ALG-009 capture reset | capture / production code | capture timing and reset need dedicated DOS fixture |
+| ALG-010 fighter fuel | movement code | high-level behavior aligned; edge traces pending |
+| ALG-011 overload | `src/engine/cargo-overload.ts`, `tests/alg-011-overload.test.mjs` | deterministic survivor policy tested |
+| ALG-012 detection | `src/engine/knowledge.ts`, `tests/alg-012-detection.test.mjs` | matrix tested; sentry/patrol/wait wake needs separate audit |
+| ALG-013 docking | `stayUnit`, `dockShip`, `tests/alg-013-docking.test.mjs` | explicit stay/arrival repair tested; turn-phase trace pending |
+| ALG-AI-001 move/order | `playAiOpponent` is modern policy | classic DOS implementation not yet present |
+| ALG-AI-002 production | modern AI production | classic DOS implementation not yet present |
+| ALG-AI-003 setup grades | executable `840=1/2` documented | game-level selector and grade plumbing not yet present |
+| ALG-AI-004 resign offer | — | not implemented |
 
 ---
 

@@ -1,5 +1,14 @@
 # Empirata development roadmap
 
+## Primary AI direction (2026-11-12)
+
+**Target:** Faithful Interstel DOS v2.05C computer behavior is the primary development track and intended default opponent. The original executable exposes two computer grades (internal `840=1` and `840=2`); do not assert their player-facing names without manual/UI confirmation. Preserve the existing modern AI as a selectable **Modern (experimental)** difficulty, not a second actively developed strategy track. No claim that modern is stronger is warranted.
+
+**Architecture:** one authoritative game engine for legal actions, combat, production, fog, turn progression, and performance; separate computer decision policies. Preserve the merged mutable-turn, player-view indexing, rendering, autosave and benchmark optimizations. Do not duplicate game rules or expose hidden map knowledge to either policy. Keep modern AI code, regression tests, and research baselines in the repo; fix it only when shared changes cause regressions.
+
+**Migration:** (1) reconcile recovered ALG claims with actual engine/tests, since the ruleset mapping table contains stale pre-implementation statuses; (2) add a game-level policy/difficulty setting and original grade parameters with save/replay coverage; (3) implement classic production and movement in bounded deterministic steps; (4) make Classic DOS the default once the minimum classic policy is usable and visibly distinguish incomplete features until then. Keep both factions symmetrical and verify CI/Copilot before merge. No merge or deployment without authorization.
+
+
 This is the working roadmap for the browser-based Empire rules laboratory. Items are proposals until marked implemented and verified. Historical rule fidelity, reproducibility, and accessibility remain core constraints.
 
 Strategic priorities: [capture and sustain cities](AI_CAPTURE_STRATEGY.md).

@@ -50,7 +50,7 @@ Do **engine rules** before **classic AI**. AI that calls wrong combat/production
 |---|---|---|
 | A — correctness | ALG-006, ALG-002, ALG-011, ALG-007 | Production efficiency + cruiser 36; combat `%200` + half-factors; overload destroy survivors; unit cap 1000 |
 | B — timing / knowledge | ALG-013, ALG-012, ALG-009 | Dock repair during move/stay; wake set + sub matrix; capture production clear fixture |
-| C — classic AI scaffold | ALG-AI-003 | `aiPolicy` / computer grade (`840`∈{1,2}) fields; wire without changing modern default |
+| C — classic AI scaffold | ALG-AI-003 | `aiPolicy` / computer grade (`840`∈{1,2}) fields; wire as a staged classic-default migration without silently activating incomplete behavior |
 | D — classic AI behavior | ALG-AI-002, ALG-AI-001, ALG-AI-004 | Production chooser; order/direction tick + passability; resign offer |
 | E — polish | ALG-001 seed schedule, ALG-010 edges | Only if claiming bit-identical campaigns |
 
@@ -95,7 +95,7 @@ Do **engine rules** before **classic AI**. AI that calls wrong combat/production
 
 **Scaffold**
 - [ ] New module preferred: e.g. `src/engine/classic-ai.ts` (name flexible)
-- [ ] `aiPolicy: 'modern' | 'classic-dos'` (or equivalent); default **modern**
+- [ ] `aiPolicy: 'modern' | 'classic-dos'` (or equivalent); intended default **classic-dos** once implemented and verified; until then explicitly label the incomplete classic implementation
 - [ ] Computer grade 1 vs 2 maps to ALG-AI-003 mask / production gates (`62E8`/`62FA` behavior)
 - [ ] `playRedOpponent` (modern) unchanged when policy is modern
 
@@ -161,7 +161,7 @@ Optional later: DOSBox seed→action traces as JSON fixtures (no binaries in rep
 ## 8. Done criteria for a classic-AI PR
 
 - [ ] Default gameplay still uses **modern** AI  
-- [ ] Classic mode opt-in only  
+- [ ] Modern mode remains selectable as an experimental difficulty  
 - [ ] ALG doc parity row updated if behavior landed  
 - [ ] Tests cover the ALG acceptance bullets  
 - [ ] PR description cites ALG ids and what was **not** attempted  
