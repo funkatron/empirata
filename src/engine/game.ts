@@ -245,7 +245,9 @@ export function stayUnit(game:Game,id:string):Game {
 export function moveUnit(game:Game,id:string,to:Coord,protectedCargo:ReadonlySet<string>=new Set()):Game {
   const g=clone(game),unit=g.units.find(u=>u.id===id);
   if(!unit||unit.owner!==g.active) throw new Error('That unit cannot be moved this turn.');
-  if(unit.aboard) throw new RuleNotImplemented('CARGO','Transport unloading is not yet implemented.');
+  if(unit.aboard) throw new Error(unit.kind==='army'?
+    'Embarked armies must disembark with disembarkArmy, not moveUnit.':
+    'Embarked fighters must launch with launchFighter, not moveUnit.');
   if(unit.order.kind==='sentry'||unit.order.kind==='load-ship') throw new Error('Clear sentry or loading orders before moving.');
   if(unit.spent>=movementAllowance(unit)) throw new Error('No movement remaining this turn.');
   if(!playable(g,to)) throw new Error('The outer map border is impassable.');
