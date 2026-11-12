@@ -129,7 +129,10 @@ async function testHuman(page,profile){
     return {cityId:city.id,position:city.position};
   });
   await page.reload();
-  await page.waitForFunction(()=>document.querySelector('#scenarioName')?.textContent?.includes('USER vs COMPUTER'));
+  // This seeded fixture is not an ordinary generated campaign map, so the
+  // scenario title is intentionally not a reliable readiness assertion.
+  await page.waitForFunction(()=>document.querySelector('#spectatorCard')?.hidden===true &&
+    document.querySelector('#round')?.textContent==='ROUND 1');
   let inspector=await inspectCity(page,fixture.position);
   assert.match(inspector,/Factory progress\s+0\s*\/\s*—/i);
   assert.equal(await page.locator('#productionSelect').inputValue(),'','New human capture needs a production choice');
