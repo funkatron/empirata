@@ -17,17 +17,17 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.target_ref }}
       # The target PR may predate this visual-review script.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           path: .visual-review-tools
       - name: Supply screenshot harness from main
         run: cp .visual-review-tools/scripts/coastline-screenshots.mjs scripts/coastline-screenshots.mjs
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
       - run: npm ci --no-audit --no-fund
@@ -37,7 +37,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Capture deterministic browser screenshots
         run: node scripts/coastline-screenshots.mjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: coastline-visual-review-${{ github.sha }}
           path: coastline-screenshots/
