@@ -190,7 +190,8 @@ function ensureTerrainLayer(revealMap:boolean):HTMLCanvasElement {
     const px=x*tileSize,py=y*tileSize;
     const seaAt=(dx:number,dy:number)=>displayTerrain(x+dx,y+dy)==='sea';
     drawTerrain(layer,terrain,px,py,tileSize,x,y);
-    if(terrain==='land')drawCoast(layer,px,py,tileSize,seaAt(0,-1),seaAt(1,0),seaAt(0,1),seaAt(-1,0));
+    if(terrain==='land')drawCoast(layer,px,py,tileSize,seaAt(0,-1),seaAt(1,0),seaAt(0,1),seaAt(-1,0),
+      seaAt(1,-1),seaAt(1,1),seaAt(-1,1),seaAt(-1,-1));
     if(!revealMap){
       const fog=observerFogOpacity(game,view,i,false);
       if(fog>0){layer.fillStyle=`rgba(3,13,22,${fog})`;layer.fillRect(px,py,tileSize,tileSize);}
