@@ -22,8 +22,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
       - run: npm ci --no-audit --no-fund
@@ -40,10 +40,10 @@ jobs:
       matrix:
         include: ${{ fromJSON(inputs.mode == 'full' && '[{"layout":"continents","seed":104729},{"layout":"islands","seed":104729},{"layout":"archipelago","seed":104729},{"layout":"continents","seed":130363},{"layout":"islands","seed":130363},{"layout":"archipelago","seed":130363}]' || '[{"layout":"continents","seed":104729}]') }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
       - name: Build pinned revisions
@@ -62,7 +62,7 @@ jobs:
           MAP_SEED: ${{ matrix.seed }}
           EVALUATION_MODE: ${{ inputs.mode }}
         run: node scripts/run-held-out.mjs /tmp/empirata-baseline /tmp/empirata-candidate
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: held-out-${{ matrix.layout }}-${{ matrix.seed }}-${{ github.sha }}
