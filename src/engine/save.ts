@@ -7,6 +7,10 @@ const STORE='saves';
 export function exportSave(game:Game):string {
   return JSON.stringify(game,null,2);
 }
+/** Compact serialization for IndexedDB autosaves; Export JSON stays pretty. */
+export function exportAutosave(game:Game):string {
+  return JSON.stringify(game);
+}
 export function importSave(json:string):Game {
   const data:unknown=JSON.parse(json);
   if(typeof data!=='object'||data===null)throw new Error('Invalid save file.');
@@ -128,12 +132,28 @@ function openDB():Promise<IDBDatabase>{
     req.onerror=()=>reject(req.error);
   });
 }
+let autosaveWriting=false;
+let autosavePending:Game|undefined;
+let autosaveTail:Promise<void>=Promise.resolve();
+/** Latest-wins coalesced writer: a slow earlier put never overwrites a newer snapshot. */
 export async function saveLocally(game:Game):Promise<void>{
-  const db=await openDB();
-  try{await new Promise<void>((resolve,reject)=>{
-    const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(exportSave(game),'autosave');
-    tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);
-  });}finally{db.close();}
+  autosavePending=game;
+  if(autosaveWriting)return autosaveTail;
+  autosaveWriting=true;
+  autosaveTail=(async()=>{
+    try{
+      while(autosavePending){
+        const next=autosavePending;
+        autosavePending=undefined;
+        const db=await openDB();
+        try{await new Promise<void>((resolve,reject)=>{
+          const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(exportAutosave(next),'autosave');
+          tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);
+        });}finally{db.close();}
+      }
+    }finally{autosaveWriting=false;}
+  })();
+  return autosaveTail;
 }
 export async function loadLocal():Promise<Game|null>{
   const db=await openDB();

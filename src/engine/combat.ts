@@ -37,7 +37,7 @@ export function combatHitThreshold(
 }
 
 /** Resolve a one-against-one fight using the recovered DOS %200 hit threshold. */
-export function resolveCombat(game:Game, attackerId:string, defenderId:string):Game {
+export function resolveCombat(game:Game, attackerId:string, defenderId:string,mutable=false):Game {
   const attacker=game.units.find(u=>u.id===attackerId);
   const defender=game.units.find(u=>u.id===defenderId);
   if(!attacker||!defender)throw new Error('Both combatants must exist.');
@@ -60,18 +60,18 @@ export function resolveCombat(game:Game, attackerId:string, defenderId:string):G
   if(attackDamage<STATS[attacker.kind].hitPoints&&defendDamage<STATS[defender.kind].hitPoints){
     throw new Error('Combat exceeded the safety limit.');
   }
-  const result=adjudicateCombat(game,{attackerId,defenderId,hits});
+  const result=adjudicateCombat(game,{attackerId,defenderId,hits},mutable);
   result.rng=random;
   return result;
 }
 
 /** One city conquest roll per army assault. A defeated army is lost. */
-export function resolveCityAssault(game:Game, armyId:string, cityId:string):Game {
+export function resolveCityAssault(game:Game, armyId:string, cityId:string,mutable=false):Game {
   const army=game.units.find(u=>u.id===armyId);
   if(!army)throw new Error('Attacking army does not exist.');
   const chance=combatEfficiency(game,army.owner)/100;
   const {next,value}=nextRandom(game.rng);
-  const result=adjudicateCityCapture(game,{armyId,cityId,outcome:value<chance?'captured':'repelled'});
+  const result=adjudicateCityCapture(game,{armyId,cityId,outcome:value<chance?'captured':'repelled'},mutable);
   result.rng=next;
   return result;
 }

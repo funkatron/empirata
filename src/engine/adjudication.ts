@@ -65,9 +65,9 @@ function legalAttack(g:Game,attacker:Unit,defender:Unit):{advances:boolean} {
   return {advances:true};
 }
 /** Replays a supplied FINISHED hit sequence; does not make chance decisions. */
-export function adjudicateCombat(game:Game, record:CombatRecord):Game {
+export function adjudicateCombat(game:Game, record:CombatRecord,mutable=false):Game {
   if(!record.hits.length||record.hits.length>1000)throw new Error('Supply a bounded, nonempty hit sequence.');
-  const g=structuredClone(game);
+  const g=mutable?game:structuredClone(game);
   const attacker=ready(g,record.attackerId), defender=g.units.find(u=>u.id===record.defenderId);
   if(!defender)throw new Error('Target does not exist.');
   const {advances}=legalAttack(g,attacker,defender);
@@ -108,9 +108,9 @@ export function adjudicateCombat(game:Game, record:CombatRecord):Game {
   return g;
 }
 /** City outcome supplied by a manual reference test; no invented capture odds. */
-export function adjudicateCityCapture(game:Game, record:CaptureRecord):Game {
+export function adjudicateCityCapture(game:Game, record:CaptureRecord,mutable=false):Game {
   if(!['captured','repelled'].includes(record.outcome))throw new Error('Invalid city resolution.');
-  const g=structuredClone(game),army=ready(g,record.armyId,'army');
+  const g=mutable?game:structuredClone(game),army=ready(g,record.armyId,'army');
   const city=g.cities.find(c=>c.id===record.cityId);
   if(!city)throw new Error('Unknown city.');
   if(city.owner===army.owner)throw new Error('City is already friendly.');

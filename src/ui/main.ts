@@ -2,7 +2,7 @@ import {clampTileSize,fitTileSize} from './camera.js';
 import {drawCity,drawCoast,drawTerrain,drawUnit} from './map-art.js';
 import {observerFogOpacity,observerTerrain} from './observer-map.js';
 import {endgameModal} from './endgame.js';
-import {advanceLabRound,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,makeCampaignMap,
+import {advanceLabRound,labRoundPhases,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,makeCampaignMap,
   moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
   STATS,UNIT_TYPES,isCoastal,unitName,cityName,gameOutcome,readableReport} from '../engine/index.js';
 import type {CampaignLayout,CampaignMode,City,Coord,Game,Unit,UnitType,PlayerView} from '../engine/index.js';
@@ -21,10 +21,21 @@ let revealSpectatorTerrain=true;
 let playback:ReturnType<typeof setTimeout>|null=null;
 let playbackGeneration=0,roundsPerAdvance=1;
 let observerRefreshPending=false;
+let openRoundPhases:Array<(state:Game)=>Game>=[];
+let openRoundPhaseIndex=0;
 function flushObserverBatch():void {
   if(!observerRefreshPending)return;
   observerRefreshPending=false;refresh();
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; use Export JSON.'));
+}
+/** Finish any in-flight cooperative round so Pause always lands on a blue turn. */
+function finishOpenLabRound():void {
+  while(openRoundPhaseIndex<openRoundPhases.length){
+    const phase=openRoundPhases[openRoundPhaseIndex]!;
+    if(!dispatch(()=>phase(game),true))break;
+    openRoundPhaseIndex++;
+  }
+  openRoundPhases=[];openRoundPhaseIndex=0;
 }
 let view:PlayerView=getPlayerView(game,observer);
 let selectedUnit:string|null='u1',selectedCity:string|null=null;
@@ -37,19 +48,40 @@ let suppressTap=false;
 let hydrated=false;
 let choosingDestination=false;
 let choosingOrder:'move-to'|'patrol'|'go-direction'|'escort'='move-to';
+let paintRaf:number|null=null;
+let mapLayerGeneration=0;
+let terrainLayer:HTMLCanvasElement|null=null;
+let terrainLayerKey='';
+let lastInspectorKey='';
+let lastEventsKey='';
 const stackDialog=el('stackDialog') as HTMLDialogElement;
 const colors={blue:'#68c4f1',red:'#f47c73',green:'#a4dc8b',neutral:'#e2c37c'};
 function uiMessage(message:string):void {el('toast').textContent=message;}
+function invalidateMapLayer():void {
+  mapLayerGeneration++;
+  terrainLayerKey='';
+}
+/** Coalesce continuous camera updates to one paint per animation frame. */
+function schedulePaint():void {
+  if(paintRaf!==null)return;
+  paintRaf=requestAnimationFrame(()=>{paintRaf=null;paintFrame();});
+}
+/** Flush any pending rAF and paint immediately (selection, resize, refresh). */
+function paint():void {
+  if(paintRaf!==null){cancelAnimationFrame(paintRaf);paintRaf=null;}
+  paintFrame();
+}
 function pausePlayback():void {
   playbackGeneration++;
   if(playback!==null){clearTimeout(playback);playback=null;}
+  finishOpenLabRound();
   const button=document.getElementById('autoPlay');if(button)button.textContent='▶ Play';
   (el('advanceRounds') as HTMLButtonElement).disabled=gameOutcome(game).state==='finished';
   (el('nextRound') as HTMLButtonElement).disabled=gameOutcome(game).state==='finished';
   el('roundProgress').hidden=true;
   flushObserverBatch();
 }
-/** Yield between individual rounds so painting, Pause and scenario changes
+/** Yield between AI phases and rounds so painting, Pause and scenario changes
  * can interrupt even a 100-round advance. Never run overlapping timers.
  */
 function startRoundPlayback(repeat:boolean):void {
@@ -66,9 +98,18 @@ function startRoundPlayback(repeat:boolean):void {
   progress();
   const tick=()=>{
     if(generation!==playbackGeneration)return;
-    if(completed===0){target=roundsPerAdvance;progress();}
-    if(game.scenario!=='ai-vs-ai'||!dispatch(()=>advanceLabRound(game),true)){pausePlayback();return;}
-    completed++;progress();
+    if(completed===0&&openRoundPhaseIndex===0){target=roundsPerAdvance;progress();}
+    if(game.scenario!=='ai-vs-ai'){pausePlayback();return;}
+    if(openRoundPhaseIndex===0){
+      try{openRoundPhases=labRoundPhases(game);}
+      catch{pausePlayback();return;}
+      if(!openRoundPhases.length){pausePlayback();return;}
+    }
+    const phase=openRoundPhases[openRoundPhaseIndex]!;
+    if(!dispatch(()=>phase(game),true)){pausePlayback();return;}
+    openRoundPhaseIndex++;
+    if(openRoundPhaseIndex<openRoundPhases.length){playback=setTimeout(tick,0);return;}
+    openRoundPhases=[];openRoundPhaseIndex=0;completed++;progress();
     if(gameOutcome(game).state==='finished'){pausePlayback();return;}
     if(completed===target){
       flushObserverBatch();
@@ -121,7 +162,7 @@ function zoom(change:number):void {
   tileSize=clampTileSize(tileSize+change,w,h,game.width,game.height);
   cameraX=(cameraX+w/2)*(tileSize/old)-w/2;
   cameraY=(cameraY+h/2)*(tileSize/old)-h/2;
-  clamp();paint();
+  clamp();schedulePaint();
 }
 function fitWorld():void {
   tileSize=fitTileSize(canvas.clientWidth,canvas.clientHeight,game.width,game.height);
@@ -129,8 +170,37 @@ function fitWorld():void {
   cameraY=(game.height*tileSize-canvas.clientHeight)/2;
   clamp();paint();
 }
-window.addEventListener('empirata-terrain-ready',()=>paint());
-function paint():void {
+window.addEventListener('empirata-terrain-ready',()=>{invalidateMapLayer();paint();});
+function ensureTerrainLayer(revealMap:boolean):HTMLCanvasElement {
+  const key=`${mapLayerGeneration}|${tileSize}|${revealMap}|${revealSpectatorTerrain}`;
+  if(terrainLayer&&terrainLayerKey===key)return terrainLayer;
+  const width=Math.max(1,Math.ceil(game.width*tileSize));
+  const height=Math.max(1,Math.ceil(game.height*tileSize));
+  if(!terrainLayer)terrainLayer=document.createElement('canvas');
+  if(terrainLayer.width!==width)terrainLayer.width=width;
+  if(terrainLayer.height!==height)terrainLayer.height=height;
+  const layer=terrainLayer.getContext('2d')!;
+  layer.setTransform(1,0,0,1,0,0);
+  layer.clearRect(0,0,width,height);
+  layer.fillStyle='#08131b';layer.fillRect(0,0,width,height);
+  const displayTerrain=(x:number,y:number)=>x>=0&&x<view.width&&y>=0&&y<view.height?
+    observerTerrain(game,view,y*view.width+x,revealSpectatorTerrain):null;
+  for(let y=0;y<view.height;y++)for(let x=0;x<view.width;x++){
+    const i=y*view.width+x,terrain=displayTerrain(x,y);
+    const px=x*tileSize,py=y*tileSize;
+    const seaAt=(dx:number,dy:number)=>displayTerrain(x+dx,y+dy)==='sea';
+    drawTerrain(layer,terrain,px,py,tileSize,x,y);
+    if(terrain==='land')drawCoast(layer,px,py,tileSize,seaAt(0,-1),seaAt(1,0),seaAt(0,1),seaAt(-1,0));
+    if(!revealMap){
+      const fog=observerFogOpacity(game,view,i,false);
+      if(fog>0){layer.fillStyle=`rgba(3,13,22,${fog})`;layer.fillRect(px,py,tileSize,tileSize);}
+    }
+    if(tileSize>=9){layer.strokeStyle='rgba(120,159,166,.12)';layer.lineWidth=.65;layer.strokeRect(px+.3,py+.3,tileSize-.6,tileSize-.6);}
+  }
+  terrainLayerKey=key;
+  return terrainLayer;
+}
+function paintFrame():void {
   const w=canvas.clientWidth,h=canvas.clientHeight;
   ctx.clearRect(0,0,w,h);
   ctx.fillStyle='#08131b';ctx.fillRect(0,0,w,h);
@@ -157,18 +227,8 @@ function paint():void {
     !cellAt(c.position.x,c.position.y)?.city).map(c=>c.position.y*view.width+c.position.x):[]);
   const fitSize=Math.min(w/view.width,h/view.height);
   const fitWeight=Math.max(0,Math.min(1,(Math.max(30,fitSize+8)-tileSize)/(Math.max(30,fitSize+8)-fitSize)));
-  for(let y=sy;y<ey;y++)for(let x=sx;x<ex;x++){
-    const i=y*view.width+x,terrain=displayTerrain(x,y);
-    const px=x*tileSize-cameraX,py=y*tileSize-cameraY;
-    const seaAt=(dx:number,dy:number)=>displayTerrain(x+dx,y+dy)==='sea';
-    drawTerrain(ctx,terrain,px,py,tileSize,x,y);
-    if(terrain==='land')drawCoast(ctx,px,py,tileSize,seaAt(0,-1),seaAt(1,0),seaAt(0,1),seaAt(-1,0));
-    if(!revealMap){
-      const fog=observerFogOpacity(game,view,i,false);
-      if(fog>0){ctx.fillStyle=`rgba(3,13,22,${fog})`;ctx.fillRect(px,py,tileSize,tileSize);}
-    }
-    if(tileSize>=9){ctx.strokeStyle='rgba(120,159,166,.12)';ctx.lineWidth=.65;ctx.strokeRect(px+.3,py+.3,tileSize-.6,tileSize-.6);}
-  }
+  const layer=ensureTerrainLayer(revealMap);
+  ctx.drawImage(layer,-cameraX,-cameraY);
   // Paint symbols after terrain so a large icon can cross its tile edge.
   for(let y=sy;y<ey;y++)for(let x=sx;x<ex;x++){
     const i=y*view.width+x,c=view.cells[i]!;
@@ -406,48 +466,14 @@ function spectatorCityBlock(city:City):string {
     <div class="datum"><small>Progress</small><strong>${city.progress} / ${turns??'—'}</strong></div></div>
     <p class="stat-note">Spectator inspection only. No production changes allowed.</p>`;
 }
-function refresh():void {
-  view=getPlayerView(game,observer);
-  if(spectatorContact&&!view.enemies.some(u=>u.id===spectatorContact&&!u.stale))spectatorContact=null;
-  if(spectatorCity&&!view.cells.some(c=>c.city?.id===spectatorCity))spectatorCity=null;
-  el('aiSpectator').hidden=game.scenario!=='ai-vs-ai';
-  el('spectatorCard').hidden=game.scenario!=='ai-vs-ai';
-  el('viewFaction').textContent=observer==='blue'?'Blue':'Red';
-  (el('spectatorSide') as HTMLSelectElement).value=spectatorMode;
-  (el('spectatorTerrain') as HTMLInputElement).checked=revealSpectatorTerrain;
-  if(game.scenario==='ai-vs-ai'){
-    el('spectatorNow').textContent=`Currently viewing ${observer.toUpperCase()} intelligence · Round ${game.round}`;
-    const blue=getPlayerView(game,'blue'),red=getPlayerView(game,'red');
-    el('spectatorBlue').textContent=`${blue.ownCities.length} cities · ${blue.ownUnits.length} units`;
-    el('spectatorRed').textContent=`${red.ownCities.length} cities · ${red.ownUnits.length} units`;
-  }
-  el('round').textContent=`ROUND ${game.round}`;
-  el('cityCount').textContent=String(view.ownCities.length);
-  el('unitCount').textContent=String(view.ownUnits.length);
-  el('scenarioName').textContent=game.campaignMap?`${game.scenario==='ai-vs-ai'?'COMPUTER vs COMPUTER':'USER vs COMPUTER'} · ${game.campaignMap.layout.toUpperCase()} · SEED ${game.campaignMap.seed}`:game.scenario==='ai-vs-ai'?'COMPUTER vs COMPUTER · EXPERIMENTAL':game.scenario==='ai-invasion'?'AI INVASION · DEMONSTRATION':game.scenario==='close-quarters'?'CLOSE QUARTERS · PLAYABLE':'CLASSIC RULES LAB';
-  el('threatCount').textContent=String(view.enemies.filter(u=>!u.stale).length);
-  const unit=view.ownUnits.find(u=>u.id===selectedUnit);
-  const city=view.ownCities.find(c=>c.id===selectedCity);
+function factionTotals(faction:'blue'|'red'):{cities:number;units:number} {
+  let cities=0,units=0;
+  for(const city of game.cities)if(city.owner===faction)cities++;
+  for(const unit of game.units)if(unit.owner===faction)units++;
+  return {cities,units};
+}
+function bindInspectorControls(unit:Unit|undefined,city:City|undefined):void {
   const inspector=el('inspector');
-  if(unit)inspector.innerHTML=game.scenario==='ai-vs-ai'?spectatorUnitBlock(unit):selectedUnitBlock(unit);
-  else if(city)inspector.innerHTML=game.scenario==='ai-vs-ai'?spectatorCityBlock(city):selectedCityBlock(city);
-  else if(spectatorContact){
-    const enemy=view.enemies.find(u=>u.id===spectatorContact&&!u.stale);
-    inspector.innerHTML=enemy?
-      `<div class="selection-title">${text(unitName(enemy))}</div><div class="subtle">${text(STATS[enemy.kind].name)}</div>
-      <div class="subtle">${text(enemy.owner)} · ${enemy.position.x}, ${enemy.position.y}</div>
-      <p class="stat-note">Visible enemy contact. Additional details are not available to this faction.</p>`:
-      '<p>Enemy contact no longer visible.</p>';
-  }
-  else if(spectatorCity){
-    const intel=view.cells.find(c=>c.city?.id===spectatorCity)?.city;
-    inspector.innerHTML=intel?
-      `<div class="selection-title">${text(cityName(intel.id))}</div>
-      <div class="subtle">Known owner: ${text(intel.owner??'Neutral')}</div>
-      <p class="stat-note">Remembered city intelligence. Production is not visible.</p>`:
-      '<p>City intelligence unavailable.</p>';
-  }
-  else inspector.innerHTML=game.scenario==='ai-vs-ai'?'<p>Both factions are computer-controlled. Alternate the map viewpoint each round or choose a fixed side. The scorecards show both players’ own totals.</p>':'<p>Select a blue unit, then tap an adjacent enemy to attack. Select a city to assign production. Red will respond on the next round using a preliminary rules-bound AI.</p>';
   inspector.querySelectorAll<HTMLButtonElement>('.cargoButton').forEach(button=>button.addEventListener('click',()=>{
     selectedUnit=button.dataset.cargo??null;selectedCity=null;refresh();
     uiMessage('Tap adjacent land to disembark an army, or a free adjacent square to launch a fighter.');
@@ -483,7 +509,65 @@ function refresh():void {
     const target=document.getElementById(button);
     if(target&&unit)target.addEventListener('click',()=>dispatch(()=>setOrder(game,unit.id,{kind})));
   }
-  el('events').innerHTML=[...view.events].reverse().slice(0,8).map(e=>`<div class="report"><span>ROUND ${e.round} / ${e.kind.toUpperCase()}</span>${text(readableReport(e.message,[...view.ownUnits,...view.enemies],Object.values(view.cells.flatMap(c=>c.city?[c.city]:[]))))}</div>`).join('')||'<p>No reports.</p>';
+}
+function refresh():void {
+  view=getPlayerView(game,observer);
+  invalidateMapLayer();
+  if(spectatorContact&&!view.enemies.some(u=>u.id===spectatorContact&&!u.stale))spectatorContact=null;
+  if(spectatorCity&&!view.cells.some(c=>c.city?.id===spectatorCity))spectatorCity=null;
+  el('aiSpectator').hidden=game.scenario!=='ai-vs-ai';
+  el('spectatorCard').hidden=game.scenario!=='ai-vs-ai';
+  el('viewFaction').textContent=observer==='blue'?'Blue':'Red';
+  (el('spectatorSide') as HTMLSelectElement).value=spectatorMode;
+  (el('spectatorTerrain') as HTMLInputElement).checked=revealSpectatorTerrain;
+  if(game.scenario==='ai-vs-ai'){
+    el('spectatorNow').textContent=`Currently viewing ${observer.toUpperCase()} intelligence · Round ${game.round}`;
+    // Own totals only; never build full PlayerViews just for scorecards.
+    const blue=factionTotals('blue'),red=factionTotals('red');
+    el('spectatorBlue').textContent=`${blue.cities} cities · ${blue.units} units`;
+    el('spectatorRed').textContent=`${red.cities} cities · ${red.units} units`;
+  }
+  el('round').textContent=`ROUND ${game.round}`;
+  el('cityCount').textContent=String(view.ownCities.length);
+  el('unitCount').textContent=String(view.ownUnits.length);
+  el('scenarioName').textContent=game.campaignMap?`${game.scenario==='ai-vs-ai'?'COMPUTER vs COMPUTER':'USER vs COMPUTER'} · ${game.campaignMap.layout.toUpperCase()} · SEED ${game.campaignMap.seed}`:game.scenario==='ai-vs-ai'?'COMPUTER vs COMPUTER · EXPERIMENTAL':game.scenario==='ai-invasion'?'AI INVASION · DEMONSTRATION':game.scenario==='close-quarters'?'CLOSE QUARTERS · PLAYABLE':'CLASSIC RULES LAB';
+  el('threatCount').textContent=String(view.enemies.filter(u=>!u.stale).length);
+  const unit=view.ownUnits.find(u=>u.id===selectedUnit);
+  const city=view.ownCities.find(c=>c.id===selectedCity);
+  const inspector=el('inspector');
+  const inspectorKey=[
+    game.scenario,game.round,selectedUnit,selectedCity,spectatorContact,spectatorCity,
+    unit?`${unit.spent}|${unit.damage}|${unit.fuel}|${unit.order.kind}|${unit.position.x},${unit.position.y}`:'',
+    city?`${city.production}|${city.progress}|${city.firstCycle}`:'',
+  ].join('|');
+  if(inspectorKey!==lastInspectorKey){
+    lastInspectorKey=inspectorKey;
+    if(unit)inspector.innerHTML=game.scenario==='ai-vs-ai'?spectatorUnitBlock(unit):selectedUnitBlock(unit);
+    else if(city)inspector.innerHTML=game.scenario==='ai-vs-ai'?spectatorCityBlock(city):selectedCityBlock(city);
+    else if(spectatorContact){
+      const enemy=view.enemies.find(u=>u.id===spectatorContact&&!u.stale);
+      inspector.innerHTML=enemy?
+        `<div class="selection-title">${text(unitName(enemy))}</div><div class="subtle">${text(STATS[enemy.kind].name)}</div>
+        <div class="subtle">${text(enemy.owner)} · ${enemy.position.x}, ${enemy.position.y}</div>
+        <p class="stat-note">Visible enemy contact. Additional details are not available to this faction.</p>`:
+        '<p>Enemy contact no longer visible.</p>';
+    }
+    else if(spectatorCity){
+      const intel=view.cells.find(c=>c.city?.id===spectatorCity)?.city;
+      inspector.innerHTML=intel?
+        `<div class="selection-title">${text(cityName(intel.id))}</div>
+        <div class="subtle">Known owner: ${text(intel.owner??'Neutral')}</div>
+        <p class="stat-note">Remembered city intelligence. Production is not visible.</p>`:
+        '<p>City intelligence unavailable.</p>';
+    }
+    else inspector.innerHTML=game.scenario==='ai-vs-ai'?'<p>Both factions are computer-controlled. Alternate the map viewpoint each round or choose a fixed side. The scorecards show both players’ own totals.</p>':'<p>Select a blue unit, then tap an adjacent enemy to attack. Select a city to assign production. Red will respond on the next round using a preliminary rules-bound AI.</p>';
+    bindInspectorControls(unit,city);
+  }
+  const eventsKey=view.events.map(e=>e.id).join(',');
+  if(eventsKey!==lastEventsKey){
+    lastEventsKey=eventsKey;
+    el('events').innerHTML=[...view.events].reverse().slice(0,8).map(e=>`<div class="report"><span>ROUND ${e.round} / ${e.kind.toUpperCase()}</span>${text(readableReport(e.message,[...view.ownUnits,...view.enemies],Object.values(view.cells.flatMap(c=>c.city?[c.city]:[]))))}</div>`).join('')||'<p>No reports.</p>';
+  }
   const outcome=gameOutcome(game),finished=outcome.state==='finished';
   el('gameResult').hidden=!finished;
   if(finished){
@@ -528,12 +612,12 @@ canvas.addEventListener('pointermove',ev=>{
     tileSize=clampTileSize(pinch.scale*p.distance/pinch.distance,w,h,game.width,game.height);
     cameraX=pinch.worldX*tileSize-(p.x-rect.left);
     cameraY=pinch.worldY*tileSize-(p.y-rect.top);
-    clamp();paint();return;
+    clamp();schedulePaint();return;
   }
   if(!down||down.id!==ev.pointerId)return;
   const dx=ev.clientX-down.x,dy=ev.clientY-down.y;
   if(Math.abs(dx)+Math.abs(dy)>6)down.moved=true;
-  if(down.moved){cameraX=down.cameraX-dx;cameraY=down.cameraY-dy;clamp();paint();}
+  if(down.moved){cameraX=down.cameraX-dx;cameraY=down.cameraY-dy;clamp();schedulePaint();}
 });
 function finishPointer(ev:PointerEvent,cancelled:boolean):void {
   if(!touches.has(ev.pointerId))return;
@@ -616,6 +700,7 @@ el('aiSkirmishGame').addEventListener('click',()=>startScenario('ai-skirmish'));
 el('aiVsAiGame').addEventListener('click',()=>startScenario('ai-vs-ai'));
 el('spectatorTerrain').addEventListener('change',()=>{
   revealSpectatorTerrain=(el('spectatorTerrain') as HTMLInputElement).checked;
+  invalidateMapLayer();
   paint();
   uiMessage(revealSpectatorTerrain?'Unexplored terrain is shaded 75%; explored but unseen is shaded 52%. AI intelligence is unchanged.':'Spectator map now shows only the selected faction’s discovered terrain.');
 });
