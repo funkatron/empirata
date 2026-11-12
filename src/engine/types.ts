@@ -32,9 +32,12 @@ export type GameEvent = {
   id: number; round: number; recipient: FactionId | null;
   kind: 'production' | 'movement' | 'system' | 'fuel' | 'repair' | 'combat'; message: string;
 };
+import type { AiPolicy } from './ai/classic-grades.js';
 export type Game = {
   schema: 1; ruleset: 'interstel-2.05'; mode: 'rules-lab';
   scenario?: 'classic-lab' | 'close-quarters' | 'ai-invasion' | 'ai-vs-ai' | 'user-vs-computer';
+  /** Staged policy selection; omitted saves continue to use the existing modern AI. */
+  aiPolicy?: AiPolicy;
   campaignMap?: {layout:'continents'|'islands'|'archipelago';seed:number};
   width: number; height: number; tiles: Terrain[];
   players: Player[]; active: FactionId; round: number;
