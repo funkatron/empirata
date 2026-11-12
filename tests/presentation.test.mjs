@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {cityName,gameOutcome,readableReport,makeRulesLab,exportSave,importSave,advanceLabRound,unitLabel} from '../dist/engine/index.js';
-test('Cities retain names through capture and reload; numeric city series stays distinct',()=>{
+test('Cities retain names through capture and reload without numeric suffixes',()=>{
  const g=makeRulesLab(),names=g.cities.map(c=>cityName(c.id));
  g.cities[0].owner='red';
  assert.deepEqual(importSave(exportSave(g)).cities.map(c=>cityName(c.id)),names);
- assert.equal(new Set(Array.from({length:1000},(_,i)=>cityName(`c${i+1}`))).size,1000);
+ assert.equal(new Set(Array.from({length:256},(_,i)=>cityName(`c${i+1}`))).size,256);
+ assert.ok(Array.from({length:1000},(_,i)=>cityName(`c${i+1}`)).every(name=>!/\s\d+$/.test(name)));
+ assert.ok(!/\s\d+$/.test(cityName('generated-0')));
  assert.ok(cityName('custom-city'));assert.equal(cityName('custom-city'),cityName('custom-city'));
 });
 test('Elimination counts cities, garrisons, stranded aircraft, third factions and draws',()=>{
