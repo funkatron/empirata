@@ -44,6 +44,27 @@ async function captureScenario(page,prefix){
   await page.waitForFunction(()=>document.querySelector('#round')?.textContent==='ROUND 1');
   await page.locator('#fitWorld').click();
   await capture('01-fit-world');
+  // A tap in CvC should bring its production/inspection panel into the visible
+  // sidebar, even when the spectator controls are taller than the viewport.
+  const home=await page.evaluate(async()=>{
+    const {makeCampaignMap}=await import('/engine/index.js');
+    const g=makeCampaignMap('continents',83,'ai-vs-ai');
+    return g.cities.find(c=>c.owner==='blue').position;
+  });
+  const click=await page.locator('#map').evaluate((canvas,p)=>{
+    const tile=Math.min(canvas.clientWidth/100,canvas.clientHeight/60);
+    return {x:(p.x+0.5)*tile,y:(p.y+0.5)*tile};
+  },home);
+  await page.locator('#map').click({position:click});
+  assert.match(await page.locator('#inspector').innerText(),/Production/i);
+  const inView=await page.locator('#inspector').evaluate(element=>{
+    const card=element.closest('.card').getBoundingClientRect();
+    const sidebar=element.closest('.sidebar').getBoundingClientRect();
+    return card.top>=sidebar.top-3&&card.top<sidebar.bottom-44;
+  });
+  assert.ok(inView,'A tapped CvC city must reveal its inspector in the sidebar');
+  await capture('01b-cvc-inspector-selected');
+  await page.locator('.sidebar').evaluate(element=>{element.scrollTop=0;});
   for(let i=0;i<6;i++)await page.locator('#zoomIn').click();
   await page.locator('#recenter').click();
   await capture('02-normal');
@@ -98,7 +119,7 @@ try{
     commit:process.env.GITHUB_SHA??null,
     browser:'Playwright WebKit',
     profiles,
-    scenarios:['continents:83 / ai-vs-ai / round 1','AI Invasion staged test'],
+    scenarios:['continents:83 / ai-vs-ai / round 1','CvC spectator city selection / inspector visible','AI Invasion staged test'],
     note:'Set EMPIRATA_SCREENSHOT_PROFILES=desktop,ipad-portrait,ipad-landscape for full matrix. Normal view adds six zoom clicks after fit; zoomed-in adds twelve more; maximum zoom drives the zoom control to its viewport-aware cap.',
     shots:allShots,
   };
