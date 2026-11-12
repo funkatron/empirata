@@ -4,6 +4,12 @@ This is the working roadmap for the browser-based Empire rules laboratory. Items
 
 Strategic priorities: [capture and sustain cities](AI_CAPTURE_STRATEGY.md).
 
+## Verified integration baseline (2026-11-12)
+
+PRs [#88](https://github.com/funkatron/empirata/pull/88) and [#89](https://github.com/funkatron/empirata/pull/89) passed seeded engine and real WebKit captured-city inspector checks for both factions and human production. The original reported stall was **not reproduced**; historical DOS scheduling parity remains unverified. [#90](https://github.com/funkatron/empirata/pull/90) corrected embarked-unit error guidance without movement changes, and [#91](https://github.com/funkatron/empirata/pull/91) improved selected CvC inspector visibility.
+
+Merged [#92](https://github.com/funkatron/empirata/pull/92) introduced shared mutable AI-turn state, reusable faction-limited PlayerView/indexes, phased observer playback, cached/coalesced map painting, and compact latest-wins autosaving. The planned P1 extraction **must preserve** these contracts. See [performance-aware AI integration baseline](PERFORMANCE_AI_INTEGRATION.md) for evidence, next PR sequence, and PR cleanup policy. The older 2026-11-09 queue below is retained as historical context; its pending P0 browser-verification and P2 error-guidance notes are superseded by this update.
+
 ## Strategy/tactics baseline and plan (2026-10-31)
 
 The [42-campaign study](evaluation/strategy-baseline/BASELINE_INTERPRETATION.md) records 8,150 rounds across matched sparse/dense worlds, swapped factions and a nearby-rival cohort. All saves and unit-accounting checks validate; time-limited games remain censored. The [overall strategy and tactics plan](STRATEGY_AND_TACTICS_PLAN.md) uses that evidence to prioritize faction-neutral control, failure diagnosis, access-aware allocation, concentrated hostile operations and sustained capture.
