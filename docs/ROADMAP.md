@@ -30,6 +30,8 @@ Source: external Codex project-review handoff (2026-11-09). These are **review f
 
 ### P0: Correct evaluation-contaminating gameplay behavior
 
+**Investigation update, 2026-11-11:** The earlier capture-notification fix is already present in `src/engine/adjudication.ts`. Existing `tests/adjudication.test.mjs` tests A-015 and A-016 cover both factions, ownership-memory correction, preservation across JSON save/reload, and production after *human-assigned* orders. Newly seeded AI tests in [PR #88](https://github.com/funkatron/empirata/pull/88) extend the capture → automatic production selection → first unit cycle to both factions, including mid-production save/reload. The PR's checks must pass before those assertions count as verified evidence. A real-browser inspection of the captured-city production panel remains open. Do not conflate this correctness work with long-term city recovery strategy or DOS execution-order parity.
+
 1. **Lost-port ownership memory (existing issue below).** Construct a minimal capture fixture for each faction; inspect the former owner's `Knowledge.cities` immediately after capture and after save/reload. Correct stale friendly ownership without disclosing enemy production, movements, or other hidden information. Keep lost-port recovery strategy separate from the knowledge-correctness fix. **Complete when:** a regression reproduces the error before the fix, passes afterward, and both faction directions and save/reload are covered. Mark any unverified historical call order provisional.
 2. **Production following city capture (existing issue below).** First determine whether the observed stall is in the engine, AI production assignment, or UI presentation. Trace capture → ownership → eligible production choice → progress → first completed unit in short human, AI, and AI-vs-AI fixtures. Verify save/reload continuity and inspector truthfulness. **Complete when:** the actual cause is demonstrated and covered by focused tests, without unrelated AI tuning.
 
@@ -66,7 +68,7 @@ Round 753/758 screenshots show Blue with 186–189 units and three cities, with 
 
 ## Gameplay issue — Production after city capture (2026-10-27)
 
-**User observation:** Captured cities appeared not to start producing units. Not yet reproduced; do not assume whether this is an engine, AI assignment, or display issue.
+**User observation (2026-10-27):** Captured cities appeared not to start producing units. Existing A-016 tests show that manually assigned production on a captured city completes a unit. `playAiOpponent` also includes a post-capture production assignment pass; PR #88 adds a faction-swapped fixture for AI assignment and actual completion. The original observed visual symptom has not been reproduced, and inspector/browser validation remains open.
 
 - Reproduce captures by both factions, including computer-versus-computer play. Trace ownership, production selection, progress, and first-unit completion across subsequent turns.
 - Check whether the AI assigns production on its next eligible turn, and whether human players receive a clear production-selection prompt or indication.
