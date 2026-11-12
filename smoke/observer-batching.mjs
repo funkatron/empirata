@@ -7,13 +7,17 @@ const source=await readFile(new URL('../dist/ui/main.js',import.meta.url),'utf8'
 function observer(count,finish=Infinity){
  const nodes=new Map(),timers=new Map();let id=0,paints=0;const saves=[];
  const el=key=>{if(!nodes.has(key))nodes.set(key,{textContent:'',hidden:true,disabled:false});return nodes.get(key);};
+ // One mocked phase per round keeps coordinator assertions stable while the UI
+ // yields between real labRoundPhases in the browser.
  const c=vm.createContext({game:{scenario:'ai-vs-ai',round:1,nextEventId:0},observer:'blue',spectatorMode:'alternate',
  gameOutcome:g=>({state:g.round>=finish?'finished':'ongoing'}),el,document:{getElementById:el},getPlayerView:()=>({ownUnits:[],events:[]}),
- advanceLabRound:g=>({...g,round:g.round+1}),refresh:()=>{paints++;},saveLocally:g=>{saves.push(g.round);return Promise.resolve();},
+ advanceLabRound:g=>({...g,round:g.round+1}),
+ labRoundPhases:()=>[g=>({...g,round:g.round+1})],
+ refresh:()=>{paints++;},saveLocally:g=>{saves.push(g.round);return Promise.resolve();},
  setTimeout:fn=>{timers.set(++id,fn);return id;},clearTimeout:key=>timers.delete(key)});
  vm.runInContext(source.slice(source.indexOf('let playback ='),source.indexOf('function resize()')),c);
  vm.runInContext(`roundsPerAdvance=${count}`,c);
- return {run:s=>vm.runInContext(s,c),step:()=>{const [key,fn]=timers.entries().next().value;timers.delete(key);fn();},el,saves,paints:()=>paints,round:()=>c.game.round};
+ return {run:s=>vm.runInContext(s,c),step:()=>{const next=timers.entries().next().value;assert.ok(next,'expected a pending playback timer');const [key,fn]=next;timers.delete(key);fn();},el,saves,paints:()=>paints,round:()=>c.game.round};
 }
 for(const count of [1,10,50,100])test(`Observer ${count}-round batch redraws and saves once at completion`,()=>{
  const o=observer(count);o.run('startRoundPlayback(false)');
