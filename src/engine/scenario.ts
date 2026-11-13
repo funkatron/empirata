@@ -8,137 +8,163 @@
 import type { Game, Unit } from './types.js';
 import {makeRulesLab} from './game.js';
 import {emptyKnowledge,updateAllKnowledge} from './knowledge.js';
-import {isCoastal} from './world.js';
+import {
+  applyCitiesToGame,
+  generateEllipseCampaign,
+  generateOrganicTerrain,
+  placeCampaignCities,
+  resolveMapgenOptions,
+  type CampaignLayout,
+  type MapgenOptions,
+} from './mapgen.js';
 
-export type CampaignLayout='continents'|'islands'|'archipelago';
-export type CampaignMode='user-vs-computer'|'ai-vs-ai';
+export type CampaignMode = 'user-vs-computer' | 'ai-vs-ai';
+// CampaignLayout / MapAlgorithm / CityDensity / MapgenOptions live in mapgen.ts.
 
 /** Reproducible clean-start maps shared with the campaign evaluation layouts. */
-export function makeCampaignMap(layout:CampaignLayout,seed:number,mode:CampaignMode='user-vs-computer',swap=false):Game {
-  if(!Number.isInteger(seed)||seed<1)throw new Error('Campaign seed must be a positive integer.');
-  let state=seed>>>0||1;
-  const random=()=>{state^=state<<13;state^=state>>>17;state^=state<<5;return (state>>>0)/4294967296;};
-  const g=makeAiVsAiLab(),{width,height}=g;
-  g.tiles.fill('sea');
-  const config:Record<CampaignLayout,[number,number,number]>={continents:[7,18,13],islands:[16,10,8],archipelago:[32,5,4]};
-  const [count,rx,ry]=config[layout];
-  for(let i=0;i<count;i++){
-    const cx=5+random()*(width-10),cy=5+random()*(height-10);
-    const a=rx*(0.6+random()*0.8),b=ry*(0.6+random()*0.8);
-    for(let y=1;y<height-1;y++)for(let x=1;x<width-1;x++)
-      if(((x-cx)/a)**2+((y-cy)/b)**2<1)g.tiles[y*width+x]='land';
+export function makeCampaignMap(
+  layout: CampaignLayout,
+  seed: number,
+  mode: CampaignMode = 'user-vs-computer',
+  swap = false,
+  options: MapgenOptions = {},
+): Game {
+  if (!Number.isInteger(seed) || seed < 1) throw new Error('Campaign seed must be a positive integer.');
+  const resolved = resolveMapgenOptions(options);
+  const g = makeAiVsAiLab();
+  let tiles;
+  let positions;
+  let pair: [number, number];
+  if (resolved.algorithm === 'organic-v1') {
+    const generated = generateOrganicTerrain(layout, seed, resolved.cityCount);
+    tiles = generated.tiles;
+    ({positions, pair} = placeCampaignCities(tiles, layout, seed, {
+      cityCount: resolved.cityCount,
+      minSpacing: resolved.minSpacing,
+      requireOceanPorts: resolved.requireStartPortOpportunity,
+    }));
+  } else {
+    ({tiles, positions, pair} = generateEllipseCampaign(
+      layout, seed, resolved.cityCount, resolved.minSpacing,
+    ));
   }
-  const candidates=[];
-  for(let y=2;y<height-2;y++)for(let x=2;x<width-2;x++)
-    if(g.tiles[y*width+x]==='land')candidates.push({x,y});
-  for(let i=candidates.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[candidates[i],candidates[j]]=[candidates[j]!,candidates[i]!];}
-  const distance=(a:{x:number;y:number},b:{x:number;y:number})=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
-  const positions:{x:number;y:number}[]=[];
-  for(const p of candidates){
-    if(layout!=='continents'&&!isCoastal(g,p))continue;
-    if(positions.every(q=>distance(p,q)>=7))positions.push(p);
-    if(positions.length===12)break;
-  }
-  if(positions.length<4)throw new Error(`Insufficient cities: ${layout}/${seed}`);
-  let pair:[number,number]=[0,1];
-  for(let a=0;a<positions.length;a++)for(let b=a+1;b<positions.length;b++)
-    if(distance(positions[a]!,positions[b]!)>distance(positions[pair[0]]!,positions[pair[1]]!))pair=[a,b];
-  g.cities=positions.map((position,i)=>({id:`generated-${i}`,position,
-    owner:i===pair[0]?(swap?'red':'blue'):i===pair[1]?(swap?'blue':'red'):null,
-    production:null,progress:0,firstCycle:true}));
-  g.scenario=mode;
-  g.campaignMap={layout,seed};
-  g.rng={seed:(seed^0x9e3779b9)>>>0,draws:0};
-  g.events=[];g.nextEventId=1;
-  for(const faction of ['blue','red','green'] as const)g.knowledge[faction]=emptyKnowledge(g);
+  g.tiles = tiles;
+  applyCitiesToGame(g, positions, pair, swap);
+  g.scenario = mode;
+  g.campaignMap = {
+    layout,
+    seed,
+    algorithm: resolved.algorithm,
+    density: resolved.density,
+  };
+  g.rng = {seed: (seed ^ 0x9e3779b9) >>> 0, draws: 0};
+  g.events = [];
+  g.nextEventId = 1;
+  for (const faction of ['blue', 'red', 'green'] as const) g.knowledge[faction] = emptyKnowledge(g);
   updateAllKnowledge(g);
   return g;
 }
 
-export function makeCloseQuartersLab():Game {
-  const g=makeRulesLab();
-  g.scenario='close-quarters';
-  const blueArmy=g.units.find(u=>u.id==='u1')!;
-  const blueDestroyer=g.units.find(u=>u.id==='u2')!;
-  const redArmy=g.units.find(u=>u.id==='u3')!;
-  redArmy.position={x:10,y:25};
-  const add=(base:Unit,changes:Partial<Unit>):void=>{
-    g.units.push({...structuredClone(base),...changes,id:`u${g.nextId++}`});
+export function makeCloseQuartersLab(): Game {
+  const g = makeRulesLab();
+  g.scenario = 'close-quarters';
+  const blueArmy = g.units.find(u => u.id === 'u1')!;
+  const blueDestroyer = g.units.find(u => u.id === 'u2')!;
+  const redArmy = g.units.find(u => u.id === 'u3')!;
+  redArmy.position = {x: 10, y: 25};
+  const add = (base: Unit, changes: Partial<Unit>): void => {
+    g.units.push({...structuredClone(base), ...changes, id: `u${g.nextId++}`});
   };
   // Additional friendly armies make assaults repeatable without a reset even
   // when the first attacker is lost or absorbed as a city garrison.
-  add(blueArmy,{position:{x:9,y:23},damage:0,spent:0});
-  add(blueArmy,{position:{x:11,y:23},damage:0,spent:0});
+  add(blueArmy, {position: {x: 9, y: 23}, damage: 0, spent: 0});
+  add(blueArmy, {position: {x: 11, y: 23}, damage: 0, spent: 0});
   // Destroyer detects the submerged enemy immediately; both start in water.
-  add(blueDestroyer,{owner:'red',kind:'submarine',position:{x:6,y:25},damage:0,spent:0});
+  add(blueDestroyer, {owner: 'red', kind: 'submarine', position: {x: 6, y: 25}, damage: 0, spent: 0});
   // Adjacent transport/army pair for testing real embarkation and landings.
-  add(blueDestroyer,{kind:'transport',position:{x:7,y:26},damage:0,spent:0});
-  add(blueArmy,{kind:'army',position:{x:8,y:26},damage:0,spent:0});
+  add(blueDestroyer, {kind: 'transport', position: {x: 7, y: 26}, damage: 0, spent: 0});
+  add(blueArmy, {kind: 'army', position: {x: 8, y: 26}, damage: 0, spent: 0});
   // Carrier/fighter pair in sheltered water for refueling and launch testing.
-  add(blueDestroyer,{kind:'carrier',position:{x:4,y:26},damage:0,spent:0});
-  add(blueArmy,{kind:'fighter',position:{x:5,y:26},fuel:8,damage:0,spent:0});
+  add(blueDestroyer, {kind: 'carrier', position: {x: 4, y: 26}, damage: 0, spent: 0});
+  add(blueArmy, {kind: 'fighter', position: {x: 5, y: 26}, fuel: 8, damage: 0, spent: 0});
   // Additional short-range land/air encounter, without stacking on another unit.
-  add(blueArmy,{owner:'blue',kind:'fighter',position:{x:9,y:26},damage:0,spent:0,fuel:20});
-  add(blueArmy,{owner:'red',kind:'fighter',position:{x:10,y:27},damage:0,spent:0,fuel:20});
-  g.cities.push({id:'c-frontier',position:{x:10,y:24},owner:null,production:null,progress:0,firstCycle:true});
+  add(blueArmy, {owner: 'blue', kind: 'fighter', position: {x: 9, y: 26}, damage: 0, spent: 0, fuel: 20});
+  add(blueArmy, {owner: 'red', kind: 'fighter', position: {x: 10, y: 27}, damage: 0, spent: 0, fuel: 20});
+  g.cities.push({id: 'c-frontier', position: {x: 10, y: 24}, owner: null, production: null, progress: 0, firstCycle: true});
   // The original distant player city and neutral cities are retained for
   // map/production testing. This is not a balanced historical setup.
   updateAllKnowledge(g);
-  g.events.push({id:g.nextEventId++,round:1,recipient:'blue',kind:'system',
-    message:'Close Quarters: select a blue unit, then an adjacent enemy or gold city. Combat and capture use the Interstel manual probabilities; Red responds during the next round using the same combat rules.'});
+  g.events.push({
+    id: g.nextEventId++, round: 1, recipient: 'blue', kind: 'system',
+    message: 'Close Quarters: select a blue unit, then an adjacent enemy or gold city. Combat and capture use the Interstel manual probabilities; Red responds during the next round using the same combat rules.',
+  });
   return g;
 }
 
 /** Tiny, deterministic island assault demonstration; NOT an Interstel map. */
-export function makeAiInvasionLab():Game {
-  const g=makeRulesLab();
-  g.scenario='ai-invasion';
-  g.rng={seed:1,draws:0};
-  for(let y=28;y<=32;y++)for(let x=72;x<=83;x++)
-    g.tiles[y*g.width+x]='sea';
-  for(const x of [74,75])g.tiles[29*g.width+x]='land';
-  g.cities.push({id:'invasion-outpost',position:{x:74,y:29},owner:'blue',
-    production:null,progress:0,firstCycle:true});
-  const army=g.units.find(u=>u.id==='u3')!;
-  army.position={x:81,y:30};army.aboard='red-transport';
-  const ship:Unit={...structuredClone(army),id:'red-transport',kind:'transport',
-    position:{x:81,y:30},aboard:null,fuel:null};
+export function makeAiInvasionLab(): Game {
+  const g = makeRulesLab();
+  g.scenario = 'ai-invasion';
+  g.rng = {seed: 1, draws: 0};
+  for (let y = 28; y <= 32; y++) for (let x = 72; x <= 83; x++) g.tiles[y * g.width + x] = 'sea';
+  for (const x of [74, 75]) g.tiles[29 * g.width + x] = 'land';
+  g.cities.push({
+    id: 'invasion-outpost', position: {x: 74, y: 29}, owner: 'blue',
+    production: null, progress: 0, firstCycle: true,
+  });
+  const army = g.units.find(u => u.id === 'u3')!;
+  army.position = {x: 81, y: 30};
+  army.aboard = 'red-transport';
+  const ship: Unit = {
+    ...structuredClone(army), id: 'red-transport', kind: 'transport',
+    position: {x: 81, y: 30}, aboard: null, fuel: null,
+  };
   g.units.push(ship);
-  const scout:Unit={...structuredClone(army),id:'red-scout',aboard:null,position:{x:74,y:30}};
+  const scout: Unit = {...structuredClone(army), id: 'red-scout', aboard: null, position: {x: 74, y: 30}};
   // Red knows the outpost from scouting, but gains no continuing omniscience.
   g.units.push(scout);
   updateAllKnowledge(g);
-  g.units=g.units.filter(u=>u.id!=='red-scout');
+  g.units = g.units.filter(u => u.id !== 'red-scout');
   updateAllKnowledge(g);
-  g.events.push({id:g.nextEventId++,round:1,recipient:'blue',kind:'system',
-    message:'AI Invasion demonstration: a loaded Red transport is approaching your Blue island outpost. End rounds to watch its naval approach and landing.'});
+  g.events.push({
+    id: g.nextEventId++, round: 1, recipient: 'blue', kind: 'system',
+    message: 'AI Invasion demonstration: a loaded Red transport is approaching your Blue island outpost. End rounds to watch its naval approach and landing.',
+  });
   return g;
 }
 
 /** Two autonomous opponents, using the same provisional rules-bound strategy.
  * Uses a constructed skirmish so combat begins quickly; not a DOS AI claim. */
-export function makeAiVsAiSkirmishLab():Game {
-  const g=makeCloseQuartersLab();
-  g.scenario='ai-vs-ai';
-  g.events.push({id:g.nextEventId++,round:g.round,recipient:null,kind:'system',
-    message:'AI versus AI laboratory: both factions act automatically. Advance rounds to observe a deterministic skirmish.'});
+export function makeAiVsAiSkirmishLab(): Game {
+  const g = makeCloseQuartersLab();
+  g.scenario = 'ai-vs-ai';
+  g.events.push({
+    id: g.nextEventId++, round: g.round, recipient: null, kind: 'system',
+    message: 'AI versus AI laboratory: both factions act automatically. Advance rounds to observe a deterministic skirmish.',
+  });
   return g;
 }
 
 /** Clean production opening on the lab terrain; exact DOS placement is unverified. */
-export function makeAiVsAiLab():Game {
-  const g=makeRulesLab();
-  g.scenario='ai-vs-ai';g.units=[];g.nextId=1;g.events=[];g.nextEventId=1;
+export function makeAiVsAiLab(): Game {
+  const g = makeRulesLab();
+  g.scenario = 'ai-vs-ai';
+  g.units = [];
+  g.nextId = 1;
+  g.events = [];
+  g.nextEventId = 1;
   // Mirror the home ports relative to their island centers (Blue: 24 - 8,
   // Red: 92 - 76). Give Red a short eastern harbor rather than the long
   // artificial channel in the general rules-lab fixture.
-  const redHome=g.cities.find(city=>city.id==='c-red')!;
-  redHome.position={x:92,y:36};
-  for(let x=81;x<=92;x++)g.tiles[36*g.width+x]='land';
-  for(let x=93;x<=94;x++)g.tiles[36*g.width+x]='sea';
-  for(const faction of ['blue','red','green'] as const)g.knowledge[faction]=emptyKnowledge(g);
+  const redHome = g.cities.find(city => city.id === 'c-red')!;
+  redHome.position = {x: 92, y: 36};
+  for (let x = 81; x <= 92; x++) g.tiles[36 * g.width + x] = 'land';
+  for (let x = 93; x <= 94; x++) g.tiles[36 * g.width + x] = 'sea';
+  for (const faction of ['blue', 'red', 'green'] as const) g.knowledge[faction] = emptyKnowledge(g);
   updateAllKnowledge(g);
-  g.events.push({id:g.nextEventId++,round:1,recipient:null,kind:'system',
-    message:'Clean computer campaign: one city each, no starting units. Production begins on each faction turn. Lab terrain; original DOS placement is not verified.'});
+  g.events.push({
+    id: g.nextEventId++, round: 1, recipient: null, kind: 'system',
+    message: 'Clean computer campaign: one city each, no starting units. Production begins on each faction turn. Lab terrain; original DOS placement is not verified.',
+  });
   return g;
 }

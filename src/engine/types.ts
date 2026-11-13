@@ -38,7 +38,12 @@ export type Game = {
   scenario?: 'classic-lab' | 'close-quarters' | 'ai-invasion' | 'ai-vs-ai' | 'user-vs-computer';
   /** Staged policy selection; omitted saves continue to use the existing modern AI. */
   aiPolicy?: AiPolicy;
-  campaignMap?: {layout:'continents'|'islands'|'archipelago';seed:number};
+  campaignMap?: {
+    layout: 'continents' | 'islands' | 'archipelago';
+    seed: number;
+    algorithm?: 'ellipse-v1' | 'organic-v1';
+    density?: 'sparse' | 'standard';
+  };
   width: number; height: number; tiles: Terrain[];
   players: Player[]; active: FactionId; round: number;
   cities: City[]; units: Unit[]; knowledge: Record<FactionId, Knowledge>;

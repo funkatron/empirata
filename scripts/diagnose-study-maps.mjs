@@ -22,7 +22,15 @@ for(const job of manifests.flatMap(m=>m.jobs)){
   const ports=local.filter(c=>E.isCoastal(g,c.position));
   return [f,{startingCity:start.id,component,startingPort:E.isCoastal(g,start.position),citiesOnStartLandmass:local.length,portCitiesOnStartLandmass:ports.length,portIds:ports.map(c=>c.id),enemyStartsOnLandmass:local.some(c=>c.owner&&c.owner!==f),portAccessPhysicallyPossible:ports.length>0}];
  }));
- result.push({id:job.id,profile:job.profile??'distant',landComponents:count,terrainHash:createHash('sha256').update(JSON.stringify(g.tiles)).digest('hex'),factions});
+ result.push({
+  id:job.id,
+  profile:job.profile??'distant',
+  algorithm:g.campaignMap?.algorithm??'ellipse-v1',
+  density:g.campaignMap?.density??'sparse',
+  landComponents:count,
+  terrainHash:createHash('sha256').update(JSON.stringify(g.tiles)).digest('hex'),
+  factions,
+ });
 }
 writeFileSync(`${root}/map-diagnostics.json`,JSON.stringify(result,null,2)+'\n');
 console.log('Diagnosed',result.length,'maps; start sides without any port opportunity:',result.flatMap(r=>Object.values(r.factions)).filter(f=>!f.portAccessPhysicallyPossible).length);

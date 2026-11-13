@@ -7,6 +7,9 @@ const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
 test('Semantic UI: global Game menu and map-local viewport controls',()=>{
   assert.match(html,/id="gameMenu"/);
   assert.match(html,/id="startCampaign"/);
+  assert.match(html,/id="campaignAlgorithm"/);
+  assert.match(html,/id="campaignDensity"/);
+  assert.match(html,/organic-v1/);
   assert.match(html,/id="fitWorld"/);
   assert.ok(!html.includes('id="startSkirmish"'),'scenario start must not live in map toolbar');
 });

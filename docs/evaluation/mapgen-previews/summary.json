@@ -1,0 +1,169 @@
+[
+  {
+    "layout": "continents",
+    "seed": 17,
+    "ellipse": {
+      "landFraction": 0.534658691062632,
+      "landComponents": 2,
+      "ok": false,
+      "reasons": [
+        "landFraction 0.535 outside 0.28–0.5"
+      ]
+    },
+    "organic": {
+      "landFraction": 0.3736805066854328,
+      "landComponents": 2,
+      "ok": true,
+      "attempts": 2,
+      "reasons": []
+    }
+  },
+  {
+    "layout": "continents",
+    "seed": 83,
+    "ellipse": {
+      "landFraction": 0.5052779732582688,
+      "landComponents": 2,
+      "ok": false,
+      "reasons": [
+        "landFraction 0.505 outside 0.28–0.5"
+      ]
+    },
+    "organic": {
+      "landFraction": 0.3064743138634764,
+      "landComponents": 5,
+      "ok": true,
+      "attempts": 2,
+      "reasons": []
+    }
+  },
+  {
+    "layout": "continents",
+    "seed": 211,
+    "ellipse": {
+      "landFraction": 0.5622800844475722,
+      "landComponents": 1,
+      "ok": false,
+      "reasons": [
+        "landFraction 0.562 outside 0.28–0.5"
+      ]
+    },
+    "organic": {
+      "landFraction": 0.3886347642505278,
+      "landComponents": 1,
+      "ok": true,
+      "attempts": 1,
+      "reasons": []
+    }
+  },
+  {
+    "layout": "islands",
+    "seed": 17,
+    "ellipse": {
+      "landFraction": 0.5431034482758621,
+      "landComponents": 3,
+      "ok": false,
+      "reasons": [
+        "landFraction 0.543 outside 0.16–0.36",
+        "landComponents 3 outside 4–32"
+      ]
+    },
+    "organic": {
+      "landFraction": 0.23979591836734693,
+      "landComponents": 8,
+      "ok": true,
+      "attempts": 2,
+      "reasons": []
+    }
+  },
+  {
+    "layout": "islands",
+    "seed": 83,
+    "ellipse": {
+      "landFraction": 0.4213581984517945,
+      "landComponents": 2,
+      "ok": false,
+      "reasons": [
+        "landFraction 0.421 outside 0.16–0.36",
+        "landComponents 2 outside 4–32"
+      ]
+    },
+    "organic": {
+      "landFraction": 0.25650950035186487,
+      "landComponents": 8,
+      "ok": true,
+      "attempts": 2,
+      "reasons": []
+    }
+  },
+  {
+    "layout": "islands",
+    "seed": 211,
+    "ellipse": {
+      "landFraction": 0.45935960591133007,
+      "landComponents": 4,
+      "ok": false,
+      "reasons": [
+        "landFraction 0.459 outside 0.16–0.36"
+      ]
+    },
+    "organic": {
+      "landFraction": 0.24331456720619282,
+      "landComponents": 7,
+      "ok": true,
+      "attempts": 8,
+      "reasons": []
+    }
+  },
+  {
+    "layout": "archipelago",
+    "seed": 17,
+    "ellipse": {
+      "landFraction": 0.2813159746657284,
+      "landComponents": 9,
+      "ok": true,
+      "reasons": []
+    },
+    "organic": {
+      "landFraction": 0.17223786066150598,
+      "landComponents": 19,
+      "ok": true,
+      "attempts": 4,
+      "reasons": []
+    }
+  },
+  {
+    "layout": "archipelago",
+    "seed": 83,
+    "ellipse": {
+      "landFraction": 0.25158339197748064,
+      "landComponents": 8,
+      "ok": true,
+      "reasons": []
+    },
+    "organic": {
+      "landFraction": 0.10010555946516538,
+      "landComponents": 11,
+      "ok": true,
+      "attempts": 2,
+      "reasons": []
+    }
+  },
+  {
+    "layout": "archipelago",
+    "seed": 211,
+    "ellipse": {
+      "landFraction": 0.28395496129486275,
+      "landComponents": 12,
+      "ok": true,
+      "reasons": []
+    },
+    "organic": {
+      "landFraction": 0.2494722026741731,
+      "landComponents": 14,
+      "ok": true,
+      "attempts": 4,
+      "reasons": []
+    }
+  }
+]

@@ -4,9 +4,13 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
-## Version 0.4 — First genuinely interactive skirmish
+## Version 0.5 — Organic campaign maps
 
-**Close Quarters** is the default starting test scenario. Unlike v0.3, it uses actual randomized encounters, **not** buttons that prescribe who wins. Its layout is an original, intentionally compact fixture rather than a historical Interstel opening.
+Campaign games can opt into **organic-v1** seed-deterministic worlds (noise coasts + playability checks) alongside the legacy **ellipse-v1** study generator. City density may be sparse (~12) or standard (~64). Close Quarters remains the default interactive skirmish.
+
+### Version 0.4 — First genuinely interactive skirmish
+
+**Close Quarters** uses actual randomized encounters, **not** buttons that prescribe who wins. Its layout is an original, intentionally compact fixture rather than a historical Interstel opening.
 
 - **Combat:** select a blue unit, then tap an adjacent red unit. Each hit is assigned by the probability described in the Interstel 2.05 manual; damaged units retain their damage, and a fight destroys one participant. Unit type determines damage per hit.
 - **Conquest:** select a blue army, then tap a nearby neutral city. At normal combat efficiency, the capture attempt has a 50% chance of success. A victorious army becomes the city garrison and is removed from active units; a defeated army is also removed.
@@ -32,6 +36,19 @@ The Interstel 2.05 manual explicitly explains that damage is awarded by repeated
 We follow those **documented odds**, but the original DOS PRNG, seeding, and sequence of calls have not been verified from the executable. Empirata uses a local seeded xorshift RNG, so its random outcomes are **not guaranteed to match the original executable turn-for-turn**. This is a known fidelity gap, not a gameplay-enhancement rule.
 
 Other remaining limits: simplified red AI; unfinished troop transport/carrier loading, automatic standing orders, and victory conditions; historical maps not imported; exact production timing and some submarine detection details still need executable confirmation. The old “Original test map” remains available as a passive rules test fixture.
+
+## Campaign map generators
+
+Campaign games can use two seed-deterministic generators (Game menu):
+
+- **ellipse-v1** — legacy random ellipses; default for frozen evaluation baselines.
+- **organic-v1** — value-noise fBm with domain-warped coasts, playability validation (land fraction, ocean connectivity, lake-port ban), and city density **sparse (~12)** or **standard (~64)**.
+
+Organic maps are Empirata lab geography, not Interstel `.MAP` / editor parity. See [playability checklist](docs/evaluation/mapgen-playability.md) and [`.MAP` research note](docs/INTERSTEL_MAP_FORMAT_RESEARCH.md).
+
+```bash
+npm run build && node scripts/preview-organic-maps.mjs
+```
 
 ## Current logistics work (in development)
 
