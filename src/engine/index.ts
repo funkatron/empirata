@@ -31,3 +31,4 @@ export * from './ai/classic-glyph-masks.js';
 export * from './ai/classic-escort.js';
 export * from './ai/classic-resign.js';
 export * from './ai/modern-planners.js';
+export * from './ai/dos-production.js';
