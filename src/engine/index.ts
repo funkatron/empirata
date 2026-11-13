@@ -14,3 +14,4 @@ export * from './scenario.js';
 export * from './unit-names.js';
 export * from './presentation.js';
 export * from './ai/classic-grades.js';
+export * from './ai/dos-production.js';
