@@ -4,8 +4,11 @@ import {observerFogOpacity,observerTerrain} from './observer-map.js';
 import {endgameModal} from './endgame.js';
 import {advanceLabRound,labRoundPhases,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,makeCampaignMap,
   moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
-  STATS,UNIT_TYPES,isCoastal,unitName,cityName,gameOutcome,readableReport} from '../engine/index.js';
-import type {CampaignLayout,CampaignMode,City,CityDensity,Coord,Game,MapAlgorithm,Unit,UnitType,PlayerView} from '../engine/index.js';
+  STATS,UNIT_TYPES,isCoastal,unitName,cityName,gameOutcome,readableReport,
+  formatMapSeedLine,mapRecipeFromCampaign,parseCampaignSeed,parseMapRecipe,randomCampaignSeed,serializeMapRecipe,
+  isCampaignLayout,isCityDensity,isMapAlgorithm} from '../engine/index.js';
+import type {CampaignLayout,CampaignMode,City,CityDensity,Coord,Game,MapAlgorithm,MapRecipe,Unit,UnitType,PlayerView} from '../engine/index.js';
+type SeedSource='custom'|'random';
 
 const el=(id:string)=>document.getElementById(id)!;
 const canvas=el('map') as HTMLCanvasElement;
@@ -651,49 +654,145 @@ document.addEventListener('keydown',ev=>{
 el('nextRound').addEventListener('click',()=>{dispatch(()=>advanceLabRound(game));uiMessage(`Round ${game.round}. Red has completed its response turn.`);});
 el('zoomIn').addEventListener('click',()=>zoom(4));el('zoomOut').addEventListener('click',()=>zoom(-4));
 el('recenter').addEventListener('click',()=>focus(view.ownUnits.find(u=>u.id===selectedUnit)?.position??view.ownCities[0]?.position??{x:8,y:25}));
-el('exportSave').addEventListener('click',()=>{
-  const data=new Blob([exportSave(game)],{type:'application/json'}),url=URL.createObjectURL(data);
-  const link=document.createElement('a');link.href=url;link.download=`empirata-lab-round-${game.round}.json`;
+function downloadText(filename:string,text:string):void{
+  const data=new Blob([text],{type:'application/json'}),url=URL.createObjectURL(data);
+  const link=document.createElement('a');link.href=url;link.download=filename;
   document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function seedSource():SeedSource{
+  return (el('campaignSeedSource') as HTMLSelectElement).value==='custom'?'custom':'random';
+}
+function syncCampaignSeedControls():void{
+  const seedInput=el('campaignSeed') as HTMLInputElement;
+  seedInput.readOnly=seedSource()==='random';
+}
+function applyRecipeToMenu(recipe:MapRecipe):void{
+  (el('campaignLayout') as HTMLSelectElement).value=recipe.layout;
+  (el('campaignAlgorithm') as HTMLSelectElement).value=recipe.algorithm;
+  (el('campaignDensity') as HTMLSelectElement).value=recipe.density;
+  (el('campaignSeedSource') as HTMLSelectElement).value='custom';
+  (el('campaignSeed') as HTMLInputElement).value=String(recipe.seed);
+  syncCampaignSeedControls();
+}
+function syncMenuFromCampaign(campaign:NonNullable<Game['campaignMap']>):void{
+  applyRecipeToMenu(mapRecipeFromCampaign(campaign));
+}
+function currentMenuRecipe():MapRecipe{
+  const layoutRaw=(el('campaignLayout') as HTMLSelectElement).value;
+  const algorithmRaw=(el('campaignAlgorithm') as HTMLSelectElement).value;
+  const densityRaw=(el('campaignDensity') as HTMLSelectElement).value;
+  if(!isCampaignLayout(layoutRaw))throw new Error('Choose a valid layout.');
+  if(!isMapAlgorithm(algorithmRaw))throw new Error('Choose a valid generator.');
+  if(!isCityDensity(densityRaw))throw new Error('Choose a valid city density.');
+  const seed=parseCampaignSeed((el('campaignSeed') as HTMLInputElement).value);
+  if(seed===null)throw new Error('Enter a positive integer seed between 1 and 4294967295.');
+  return mapRecipeFromCampaign({layout:layoutRaw,seed,algorithm:algorithmRaw,density:densityRaw});
+}
+function recipeForCopy():MapRecipe{
+  if(game.campaignMap)return mapRecipeFromCampaign(game.campaignMap);
+  return currentMenuRecipe();
+}
+el('exportSave').addEventListener('click',()=>{
+  const map=game.campaignMap;
+  const name=map
+    ?`empirata-${map.layout}-seed-${map.seed}-round-${game.round}.json`
+    :`empirata-lab-round-${game.round}.json`;
+  downloadText(name,exportSave(game));
 });
 el('importSave').addEventListener('click',()=>(el('saveFile') as HTMLInputElement).click());
 el('saveFile').addEventListener('change',async()=>{
   const input=el('saveFile') as HTMLInputElement,file=input.files?.[0];if(!file)return;
   pausePlayback();
   try{const loaded=importSave(await file.text());if(loaded.active!=='blue')throw new Error('This lab UI only supports saves during the blue faction turn.');
-    resultModal.reset();spectatorContact=null;spectatorCity=null;choosingDestination=false;game=loaded;selectedUnit=null;selectedCity=null;refresh();void saveLocally(game);uiMessage('Saved game imported.');}
+    resultModal.reset();spectatorContact=null;spectatorCity=null;choosingDestination=false;game=loaded;selectedUnit=null;selectedCity=null;
+    if(loaded.campaignMap)syncMenuFromCampaign(loaded.campaignMap);
+    refresh();void saveLocally(game);uiMessage('Saved game imported.');}
   catch(error){uiMessage(error instanceof Error?error.message:'Save could not be loaded.');}finally{input.value='';}
 });
+el('copyMapSeed').addEventListener('click',async()=>{
+  try{
+    const recipe=recipeForCopy();
+    const text=`${formatMapSeedLine(recipe)}\n${serializeMapRecipe(recipe)}`;
+    await navigator.clipboard.writeText(text);
+    uiMessage(`Copied ${formatMapSeedLine(recipe)}.`);
+  }catch(error){uiMessage(error instanceof Error?error.message:'Could not copy map seed.');}
+});
+el('exportMapRecipe').addEventListener('click',()=>{
+  try{
+    const recipe=recipeForCopy();
+    downloadText(`empirata-map-${recipe.layout}-${recipe.seed}.json`,serializeMapRecipe(recipe));
+    uiMessage(`Exported map recipe for ${formatMapSeedLine(recipe)}.`);
+  }catch(error){uiMessage(error instanceof Error?error.message:'Could not export map recipe.');}
+});
+el('importMapRecipe').addEventListener('click',()=>(el('recipeFile') as HTMLInputElement).click());
+el('recipeFile').addEventListener('change',async()=>{
+  const input=el('recipeFile') as HTMLInputElement,file=input.files?.[0];if(!file)return;
+  try{
+    const recipe=parseMapRecipe(await file.text());
+    applyRecipeToMenu(recipe);
+    uiMessage(`Loaded map recipe ${formatMapSeedLine(recipe)}. Press Start campaign when ready.`);
+  }catch(error){uiMessage(error instanceof Error?error.message:'Map recipe could not be loaded.');}
+  finally{input.value='';}
+});
+function closeGameMenu():void{(el('gameMenu') as HTMLDetailsElement).open=false;}
 function startScenario(kind:'close-quarters'|'classic-lab'|'ai-invasion'|'ai-vs-ai'|'ai-skirmish'):void{
   if(!window.confirm('Start a new test scenario? This will replace the current local autosave. Export JSON first if you want to keep it.'))return;
+  closeGameMenu();
   pausePlayback();resultModal.reset();spectatorContact=null;spectatorCity=null;observer='blue';spectatorMode='alternate';choosingDestination=false;game=kind==='ai-skirmish'?makeAiVsAiSkirmishLab():kind==='ai-vs-ai'?makeAiVsAiLab():kind==='ai-invasion'?makeAiInvasionLab():kind==='close-quarters'?makeCloseQuartersLab():makeRulesLab();
   selectedUnit=kind==='ai-invasion'||kind==='ai-vs-ai'||kind==='ai-skirmish'?null:'u1';selectedCity=null;refresh();focus(kind==='ai-invasion'?{x:76,y:29}:{x:9,y:25});
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; export JSON.'));
   uiMessage(game.scenario==='ai-vs-ai'?'Computer vs computer ready. Choose rounds per advance, then use Play or Advance.':kind==='ai-invasion'?'AI Invasion ready: press Next round to watch the Red landing operation.':kind==='close-quarters'?'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.':'Classic rules lab reset.');
 }
 function startCampaign(layout?:CampaignLayout,seed?:number,mode?:CampaignMode,algorithm?:MapAlgorithm,density?:CityDensity):void{
-  if(!window.confirm('Start a new game on the selected test map? This replaces the current local autosave. Export JSON first if you want to keep it.'))return;
-  const value=(el('campaignMap') as HTMLSelectElement).value.split(':');
-  const chosenLayout=layout??value[0] as CampaignLayout,chosenSeed=seed??Number(value[1]);
+  if(!window.confirm('Start a new campaign? This replaces the current local autosave. Export JSON or a map recipe first if you want to keep it.'))return;
+  const source=seedSource();
   const chosenMode=mode??(el('campaignMode') as HTMLSelectElement).value as CampaignMode;
   const chosenAlgorithm=algorithm??(el('campaignAlgorithm') as HTMLSelectElement).value as MapAlgorithm;
   const chosenDensity=density??(el('campaignDensity') as HTMLSelectElement).value as CityDensity;
-  (el('campaignMap') as HTMLSelectElement).value=`${chosenLayout}:${chosenSeed}`;
+  const layoutRaw=layout??(el('campaignLayout') as HTMLSelectElement).value;
+  if(!isCampaignLayout(layoutRaw)||!isMapAlgorithm(chosenAlgorithm)||!isCityDensity(chosenDensity)){
+    uiMessage('Campaign options are invalid.');return;
+  }
+  let chosenSeed=seed;
+  if(chosenSeed===undefined){
+    if(source==='random')chosenSeed=randomCampaignSeed();
+    else chosenSeed=parseCampaignSeed((el('campaignSeed') as HTMLInputElement).value)??undefined;
+  }
+  if(chosenSeed===undefined){uiMessage('Enter a positive integer seed between 1 and 4294967295.');return;}
+  closeGameMenu();
+  (el('campaignLayout') as HTMLSelectElement).value=layoutRaw;
   (el('campaignMode') as HTMLSelectElement).value=chosenMode;
   (el('campaignAlgorithm') as HTMLSelectElement).value=chosenAlgorithm;
   (el('campaignDensity') as HTMLSelectElement).value=chosenDensity;
+  (el('campaignSeed') as HTMLInputElement).value=String(chosenSeed);
+  if(source!=='random')(el('campaignSeedSource') as HTMLSelectElement).value='custom';
+  syncCampaignSeedControls();
   pausePlayback();resultModal.reset();spectatorContact=null;spectatorCity=null;observer='blue';spectatorMode='alternate';choosingDestination=false;
-  game=makeCampaignMap(chosenLayout,chosenSeed,chosenMode,false,{algorithm:chosenAlgorithm,density:chosenDensity});
+  game=makeCampaignMap(layoutRaw,chosenSeed,chosenMode,false,{algorithm:chosenAlgorithm,density:chosenDensity});
   selectedUnit=null;selectedCity=null;refresh();
   const home=game.cities.find(city=>city.owner==='blue');if(home)focus(home.position);
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; use Export JSON.'));
-  uiMessage(chosenMode==='ai-vs-ai'?`Computer versus computer started on ${chosenLayout} (${chosenAlgorithm}, ${chosenDensity}), seed ${chosenSeed}. Use Play or Advance to watch.`:`User versus computer started on ${chosenLayout} (${chosenAlgorithm}, ${chosenDensity}), seed ${chosenSeed}. Select your city to set production, then advance rounds.`);
+  uiMessage(chosenMode==='ai-vs-ai'?`Computer versus computer started on ${layoutRaw} (${chosenAlgorithm}, ${chosenDensity}), seed ${chosenSeed}. Use Play or Advance to watch.`:`User versus computer started on ${layoutRaw} (${chosenAlgorithm}, ${chosenDensity}), seed ${chosenSeed}. Select your city to set production, then advance rounds.`);
 }
+el('campaignSeedSource').addEventListener('change',()=>syncCampaignSeedControls());
+syncCampaignSeedControls();
 el('startCampaign').addEventListener('click',()=>startCampaign());
 el('newGame').addEventListener('click',()=>startScenario('close-quarters'));
-// Close the native Game menu after a scenario or save command.
-for(const id of ['newGame','classicGame','invasionGame','aiVsAiGame','aiSkirmishGame','startCampaign','exportSave','importSave']){
-  el(id).addEventListener('click',()=>{(el('gameMenu') as HTMLDetailsElement).open=false;});
+const studyMapButtons=document.querySelectorAll('.studyMapButton');
+for(let i=0;i<studyMapButtons.length;i++){
+  const button=studyMapButtons[i] as HTMLButtonElement;
+  button.addEventListener('click',()=>{
+    const layout=button.dataset.layout;
+    const seed=parseCampaignSeed(button.dataset.seed);
+    if(!isCampaignLayout(layout)||seed===null){uiMessage('Study map button is misconfigured.');return;}
+    const mode=(el('campaignMode') as HTMLSelectElement).value as CampaignMode;
+    startCampaign(layout,seed,mode,'ellipse-v1','sparse');
+  });
+}
+// Close the Game menu after save actions; starts close themselves after confirm.
+const closeMenuIds=['exportSave','importSave','copyMapSeed','exportMapRecipe'];
+for(let i=0;i<closeMenuIds.length;i++){
+  el(closeMenuIds[i]!).addEventListener('click',()=>closeGameMenu());
 }
 document.addEventListener('pointerdown',event=>{
   const menu=el('gameMenu') as HTMLDetailsElement;

@@ -4,6 +4,10 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.5.1 — Random seeds and map recipes
+
+The Game menu can start campaigns with **preset**, **custom**, or **random-on-start** seeds. Copy / export / import a small **map recipe** JSON to reuse a layout+generator+density+seed without a mid-game save. Full **Export JSON** still saves the entire game (filenames include the seed when present).
+
 ## Version 0.5 — Organic campaign maps
 
 Campaign games can opt into **organic-v1** seed-deterministic worlds (noise coasts + playability checks) alongside the legacy **ellipse-v1** study generator. City density may be sparse (~12) or standard (~64). Close Quarters remains the default interactive skirmish.
@@ -43,6 +47,8 @@ Campaign games can use two seed-deterministic generators (Game menu):
 
 - **ellipse-v1** — legacy random ellipses; default for frozen evaluation baselines.
 - **organic-v1** — value-noise fBm with domain-warped coasts, playability validation (land fraction, ocean connectivity, lake-port ban), and city density **sparse (~12)** or **standard (~64)**.
+
+Seeds may be a custom integer or **random on start**. Deterministic study maps (layout × seeds 17 / 83 / 211, ellipse · sparse) and lab fixtures live under **Game → Test scenarios**. Use **Copy map seed** / **Export map recipe** to reuse a world; import a recipe to fill the menu without auto-starting.
 
 Organic maps are Empirata lab geography, not Interstel `.MAP` / editor parity. See [playability checklist](docs/evaluation/mapgen-playability.md) and [`.MAP` research note](docs/INTERSTEL_MAP_FORMAT_RESEARCH.md).
 
