@@ -28,3 +28,16 @@ export function dosShipMixChoice(inventory:DosUnitInventory,grade:DosComputerGra
   if(inventory.destroyer===0&&grade===2)return 'destroyer';
   return candidate;
 }
+
+/** ALG-AI-002 inventory block ES:1810, derived solely from the acting
+ * player's own units in PlayerView. Embarked units remain living inventory.
+ * This does not inspect enemy units, undiscovered terrain or hidden cities.
+ */
+export function dosOwnUnitInventory(view:Pick<import('../types.js').PlayerView,'ownUnits'>):DosUnitInventory {
+  const counts:Record<UnitType,number>={army:0,fighter:0,destroyer:0,transport:0,submarine:0,cruiser:0,carrier:0,battleship:0};
+  for(const unit of view.ownUnits){
+    if(!Object.hasOwn(counts,unit.kind))throw new Error('Invalid unit type in DOS inventory.');
+    counts[unit.kind]++;
+  }
+  return counts;
+}
