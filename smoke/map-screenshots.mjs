@@ -37,9 +37,10 @@ async function captureScenario(page,prefix){
     await page.screenshot({path:resolve(output,file),animations:'disabled',fullPage:true});
     shots.push({file,...size});
   }
-  await page.locator('#gameMenu summary').click();
+  // Use direct-child summary — nested Test scenarios also has a <summary>.
+  await page.locator('#gameMenu > summary').click();
   await page.locator('#campaignMode').selectOption('ai-vs-ai');
-  await page.locator('#testScenariosMenu summary').click();
+  await page.locator('#testScenariosMenu > summary').click();
   await page.locator('.studyMapButton[data-layout="continents"][data-seed="83"]').click();
   await page.waitForFunction(()=>document.querySelector('#round')?.textContent==='ROUND 1');
   await page.locator('#fitWorld').click();
@@ -74,7 +75,10 @@ async function captureScenario(page,prefix){
   // Each zoom-in click adds 4 CSS pixels; 220 steps cover the largest supported profile.
   await page.locator('#zoomIn').evaluate(button=>{for(let i=0;i<220;i++)button.click();});
   await capture('04-maximum-zoom');
-  await page.locator('#gameMenu summary').click();
+  await page.locator('#gameMenu > summary').click();
+  // Invasion lives under the nested Test scenarios submenu.
+  const testMenu=page.locator('#testScenariosMenu');
+  if(!(await testMenu.evaluate(el=>el.open)))await page.locator('#testScenariosMenu > summary').click();
   await page.locator('#invasionGame').click();
   await page.locator('#recenter').click();
   await capture('05-invasion');
