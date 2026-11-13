@@ -205,6 +205,12 @@ checks cover counts 1/10/50/100, cancellation and repeated playback. Browser smo
 checks now assert one map redraw per batch and observe live progress for Pause.
 No measured overall speed improvement is claimed.
 
+**Implemented follow-up (2026-11-13):** CvC “show map beneath fog” no longer rebuilds
+the full-map atlas on every observer refresh. True geography is cached
+(`tilesRevision` + `tileSize`); fog is always a live viewport overlay. Knowledge
+mode (reveal off) still invalidates stamps when exploration changes. Unit tests
+cover cache-key stability; browser paint timing stays on GitHub Actions.
+
 **Observed:** AI turns become noticeably slower as unit counts grow. Investigate
 whether suppressing intermediate round movement/map redraws speeds up observer
 mode. This is a performance hypothesis, not a measured diagnosis.

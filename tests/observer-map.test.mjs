@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {getPlayerView,makeAiVsAiLab,makeRulesLab} from '../dist/engine/index.js';
-import {observerTerrain,observerFogOpacity,SPECTATOR_FOG_OPACITY,EXPLORED_FOG_OPACITY} from '../dist/ui/observer-map.js';
+import {
+  observerTerrain,observerFogOpacity,SPECTATOR_FOG_OPACITY,EXPLORED_FOG_OPACITY,
+  terrainLayerCacheKey,refreshShouldInvalidateKnowledgeLayer,
+} from '../dist/ui/observer-map.js';
 
 test('CvC spectator sees undiscovered geography through exactly 75% fog',()=>{
   const game=makeAiVsAiLab(),view=getPlayerView(game,'blue');
@@ -52,4 +55,25 @@ test('User-versus-computer never reveals hidden geography',()=>{
   assert.ok(unseen>=0);
   assert.equal(observerTerrain(game,view,unseen,true),null);
   assert.equal(observerFogOpacity(game,view,unseen,true),0);
+});
+
+test('Reveal-on geography cache key ignores knowledge generation and visibility churn',()=>{
+  const a=terrainLayerCacheKey(3,24,true,0);
+  const b=terrainLayerCacheKey(3,24,true,99);
+  assert.equal(a,b,'Visibility-only refreshes must keep the stamped geography layer');
+  assert.equal(a,'geo|3|24');
+  assert.notEqual(terrainLayerCacheKey(3,24,true,0),terrainLayerCacheKey(4,24,true,0));
+  assert.notEqual(terrainLayerCacheKey(3,24,true,0),terrainLayerCacheKey(3,30,true,0));
+});
+
+test('Knowledge terrain cache key tracks exploration generation',()=>{
+  assert.equal(terrainLayerCacheKey(1,16,false,7),'know|1|16|7');
+  assert.notEqual(terrainLayerCacheKey(1,16,false,7),terrainLayerCacheKey(1,16,false,8));
+});
+
+test('Only CvC reveal-on skips knowledge-layer invalidation on refresh',()=>{
+  assert.equal(refreshShouldInvalidateKnowledgeLayer('ai-vs-ai',true),false);
+  assert.equal(refreshShouldInvalidateKnowledgeLayer('ai-vs-ai',false),true);
+  assert.equal(refreshShouldInvalidateKnowledgeLayer('close-quarters',true),true);
+  assert.equal(refreshShouldInvalidateKnowledgeLayer('ai-invasion',false),true);
 });
