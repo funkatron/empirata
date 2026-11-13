@@ -22,6 +22,15 @@ export function importSave(json:string):Game {
     typeof g.active!=='string'||!g.players.some(p=>p?.id===g.active)||
     !Number.isInteger(g.round)||!Number.isInteger(g.nextId)||!Number.isInteger(g.nextEventId)||
     !g.knowledge||!g.rng||!Array.isArray(g.events))throw new Error('Invalid game structure.');
+  if(g.aiPolicy!==undefined){
+    const policy=g.aiPolicy;
+    if(!policy||typeof policy!=='object'||
+      !(policy.kind==='modern-experimental'||
+        (policy.kind==='classic-dos'&&(policy.grade===1||policy.grade===2))))
+      throw new Error('Invalid AI policy.');
+    // Classic behavior is not yet implemented: reject saves claiming an active classic opponent.
+    if(policy.kind==='classic-dos')throw new Error('Classic DOS AI is not yet playable.');
+  }
   const validFaction=(id:unknown)=>id==='blue'||id==='red'||id==='green';
   const finiteInt=(value:unknown)=>Number.isSafeInteger(value)&&Number.isFinite(value);
   const validPosition=(pos:any)=>pos&&finiteInt(pos.x)&&finiteInt(pos.y)&&playable(g as Game,pos);
