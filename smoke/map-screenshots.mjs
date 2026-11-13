@@ -39,8 +39,8 @@ async function captureScenario(page,prefix){
   }
   await page.locator('#gameMenu summary').click();
   await page.locator('#campaignMode').selectOption('ai-vs-ai');
-  await page.locator('#campaignMap').selectOption('continents:83');
-  await page.locator('#startCampaign').click();
+  await page.locator('#testScenariosMenu summary').click();
+  await page.locator('.studyMapButton[data-layout="continents"][data-seed="83"]').click();
   await page.waitForFunction(()=>document.querySelector('#round')?.textContent==='ROUND 1');
   await page.locator('#fitWorld').click();
   await capture('01-fit-world');
