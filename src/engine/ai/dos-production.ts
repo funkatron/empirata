@@ -19,7 +19,7 @@ export function dosShipMixChoice(inventory:DosUnitInventory,grade:DosComputerGra
   // replacing the candidate when the lower-index count is smaller.
   let candidate:UnitType='battleship';
   for(let type=6;type>=2;type--){
-    if(inventory[TYPES[type]]<inventory[TYPES[type+1]])candidate=TYPES[type];
+    if(inventory[TYPES[type]!] < inventory[TYPES[type+1]!])candidate=TYPES[type]!;
   }
   // Remaining branch priorities follow the recovered 0x39A9 sketch.
   if(inventory.battleship===0&&grade===2)return 'battleship';
