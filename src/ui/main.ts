@@ -5,7 +5,7 @@ import {endgameModal} from './endgame.js';
 import {advanceLabRound,labRoundPhases,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,makeCampaignMap,
   moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
   STATS,UNIT_TYPES,isCoastal,unitName,cityName,gameOutcome,readableReport} from '../engine/index.js';
-import type {CampaignLayout,CampaignMode,City,Coord,Game,Unit,UnitType,PlayerView} from '../engine/index.js';
+import type {CampaignLayout,CampaignMode,City,CityDensity,Coord,Game,MapAlgorithm,Unit,UnitType,PlayerView} from '../engine/index.js';
 
 const el=(id:string)=>document.getElementById(id)!;
 const canvas=el('map') as HTMLCanvasElement;
@@ -530,7 +530,7 @@ function refresh():void {
   el('round').textContent=`ROUND ${game.round}`;
   el('cityCount').textContent=String(view.ownCities.length);
   el('unitCount').textContent=String(view.ownUnits.length);
-  el('scenarioName').textContent=game.campaignMap?`${game.scenario==='ai-vs-ai'?'COMPUTER vs COMPUTER':'USER vs COMPUTER'} · ${game.campaignMap.layout.toUpperCase()} · SEED ${game.campaignMap.seed}`:game.scenario==='ai-vs-ai'?'COMPUTER vs COMPUTER · EXPERIMENTAL':game.scenario==='ai-invasion'?'AI INVASION · DEMONSTRATION':game.scenario==='close-quarters'?'CLOSE QUARTERS · PLAYABLE':'CLASSIC RULES LAB';
+  el('scenarioName').textContent=game.campaignMap?`${game.scenario==='ai-vs-ai'?'COMPUTER vs COMPUTER':'USER vs COMPUTER'} · ${game.campaignMap.layout.toUpperCase()} · ${(game.campaignMap.algorithm??'ellipse-v1').toUpperCase()} · ${(game.campaignMap.density??'sparse').toUpperCase()} · SEED ${game.campaignMap.seed}`:game.scenario==='ai-vs-ai'?'COMPUTER vs COMPUTER · EXPERIMENTAL':game.scenario==='ai-invasion'?'AI INVASION · DEMONSTRATION':game.scenario==='close-quarters'?'CLOSE QUARTERS · PLAYABLE':'CLASSIC RULES LAB';
   el('threatCount').textContent=String(view.enemies.filter(u=>!u.stale).length);
   const unit=view.ownUnits.find(u=>u.id===selectedUnit);
   const city=view.ownCities.find(c=>c.id===selectedCity);
@@ -671,18 +671,23 @@ function startScenario(kind:'close-quarters'|'classic-lab'|'ai-invasion'|'ai-vs-
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; export JSON.'));
   uiMessage(game.scenario==='ai-vs-ai'?'Computer vs computer ready. Choose rounds per advance, then use Play or Advance.':kind==='ai-invasion'?'AI Invasion ready: press Next round to watch the Red landing operation.':kind==='close-quarters'?'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.':'Classic rules lab reset.');
 }
-function startCampaign(layout?:CampaignLayout,seed?:number,mode?:CampaignMode):void{
+function startCampaign(layout?:CampaignLayout,seed?:number,mode?:CampaignMode,algorithm?:MapAlgorithm,density?:CityDensity):void{
   if(!window.confirm('Start a new game on the selected test map? This replaces the current local autosave. Export JSON first if you want to keep it.'))return;
   const value=(el('campaignMap') as HTMLSelectElement).value.split(':');
   const chosenLayout=layout??value[0] as CampaignLayout,chosenSeed=seed??Number(value[1]);
   const chosenMode=mode??(el('campaignMode') as HTMLSelectElement).value as CampaignMode;
+  const chosenAlgorithm=algorithm??(el('campaignAlgorithm') as HTMLSelectElement).value as MapAlgorithm;
+  const chosenDensity=density??(el('campaignDensity') as HTMLSelectElement).value as CityDensity;
   (el('campaignMap') as HTMLSelectElement).value=`${chosenLayout}:${chosenSeed}`;
   (el('campaignMode') as HTMLSelectElement).value=chosenMode;
+  (el('campaignAlgorithm') as HTMLSelectElement).value=chosenAlgorithm;
+  (el('campaignDensity') as HTMLSelectElement).value=chosenDensity;
   pausePlayback();resultModal.reset();spectatorContact=null;spectatorCity=null;observer='blue';spectatorMode='alternate';choosingDestination=false;
-  game=makeCampaignMap(chosenLayout,chosenSeed,chosenMode);selectedUnit=null;selectedCity=null;refresh();
+  game=makeCampaignMap(chosenLayout,chosenSeed,chosenMode,false,{algorithm:chosenAlgorithm,density:chosenDensity});
+  selectedUnit=null;selectedCity=null;refresh();
   const home=game.cities.find(city=>city.owner==='blue');if(home)focus(home.position);
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; use Export JSON.'));
-  uiMessage(chosenMode==='ai-vs-ai'?`Computer versus computer started on ${chosenLayout}, seed ${chosenSeed}. Use Play or Advance to watch.`:`User versus computer started on ${chosenLayout}, seed ${chosenSeed}. Select your city to set production, then advance rounds.`);
+  uiMessage(chosenMode==='ai-vs-ai'?`Computer versus computer started on ${chosenLayout} (${chosenAlgorithm}, ${chosenDensity}), seed ${chosenSeed}. Use Play or Advance to watch.`:`User versus computer started on ${chosenLayout} (${chosenAlgorithm}, ${chosenDensity}), seed ${chosenSeed}. Select your city to set production, then advance rounds.`);
 }
 el('startCampaign').addEventListener('click',()=>startCampaign());
 el('newGame').addEventListener('click',()=>startScenario('close-quarters'));
@@ -722,7 +727,7 @@ el('autoPlay').addEventListener('click',()=>{
   startRoundPlayback(true);
 });
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pausePlayback();});
-el('resultNewGame').addEventListener('click',()=>game.campaignMap?startCampaign(game.campaignMap.layout,game.campaignMap.seed,game.scenario==='ai-vs-ai'?'ai-vs-ai':'user-vs-computer'):startScenario(game.scenario==='ai-vs-ai'?'ai-vs-ai':'close-quarters'));
+el('resultNewGame').addEventListener('click',()=>game.campaignMap?startCampaign(game.campaignMap.layout,game.campaignMap.seed,game.scenario==='ai-vs-ai'?'ai-vs-ai':'user-vs-computer',game.campaignMap.algorithm,game.campaignMap.density):startScenario(game.scenario==='ai-vs-ai'?'ai-vs-ai':'close-quarters'));
 el('resultReview').addEventListener('click',()=>resultModal.show());
 el('endgameExport').addEventListener('click',()=>el('exportSave').click());
 el('endgameNewGame').addEventListener('click',()=>el('resultNewGame').click());

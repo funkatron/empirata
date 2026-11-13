@@ -10,6 +10,7 @@ export * from './adjudication.js';
 export * from './combat.js';
 
 export * from './scenario.js';
+export * from './mapgen.js';
 
 export * from './unit-names.js';
 export * from './presentation.js';
