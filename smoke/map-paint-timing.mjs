@@ -32,7 +32,8 @@ test('CvC map paint: warm reveal-on refresh skips geography rebuild',async()=>{
     page.on('dialog',dialog=>dialog.accept());
     await page.goto(`http://127.0.0.1:${server.address().port}`);
     await page.waitForFunction(()=>document.querySelector('#toast').textContent.length>0);
-    await page.locator('#gameMenu summary').click();
+    // Direct-child summary only — nested Test scenarios also uses <summary>.
+    await page.locator('#gameMenu > summary').click();
     await page.locator('#aiVsAiGame').click();
     await page.waitForFunction(()=>document.querySelector('#round').textContent==='ROUND 1');
     await page.waitForFunction(()=>window.empirataMapPaintProbe&&document.querySelector('#spectatorTerrain'));
