@@ -34,7 +34,9 @@ test('CvC map paint: warm reveal-on refresh skips geography rebuild',async()=>{
     await page.waitForFunction(()=>document.querySelector('#toast').textContent.length>0);
     // Direct-child summary only — nested Test scenarios also uses <summary>.
     await page.locator('#gameMenu > summary').click();
-    await page.locator('#aiVsAiGame').click();
+    const testMenu=page.locator('#testScenariosMenu');
+    if(!(await testMenu.evaluate(el=>el.open)))await page.locator('#testScenariosMenu > summary').click();
+    await page.locator('#aiVsAiGame').click({force:true});
     await page.waitForFunction(()=>document.querySelector('#round').textContent==='ROUND 1');
     await page.waitForFunction(()=>window.empirataMapPaintProbe&&document.querySelector('#spectatorTerrain'));
     // Atlas load rebuilds the layer once; wait so cold/warm samples are stable.
