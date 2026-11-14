@@ -62,6 +62,8 @@ let terrainLayer:HTMLCanvasElement|null=null;
 let terrainLayerKey='';
 let lastInspectorKey='';
 let lastEventsKey='';
+/** CI / smoke timing probe — presentation only; never feeds gameplay. */
+const mapPaintStats={terrainRebuilds:0,lastEnsureMs:0,lastPaintMs:0,lastRebuild:false};
 const stackDialog=el('stackDialog') as HTMLDialogElement;
 const colors={blue:'#68c4f1',red:'#f47c73',green:'#a4dc8b',neutral:'#e2c37c'};
 function uiMessage(message:string):void {el('toast').textContent=message;}
@@ -74,6 +76,29 @@ function invalidateKnowledgeLayer():void {
   knowledgeLayerGeneration++;
   terrainLayerKey='';
 }
+function publishMapPaintProbe():void {
+  // observer-batching.mjs evaluates a slice of this file in vm without `window`.
+  if(typeof window==='undefined')return;
+  (window as Window&{empirataMapPaintProbe?:unknown}).empirataMapPaintProbe={
+    stats:()=>({...mapPaintStats}),
+    reset(){
+      mapPaintStats.terrainRebuilds=0;
+      mapPaintStats.lastEnsureMs=0;
+      mapPaintStats.lastPaintMs=0;
+      mapPaintStats.lastRebuild=false;
+    },
+    paintOnce:()=>paint(),
+    refreshOnce:()=>refresh(),
+    invalidateAndPaint(){invalidateMapLayer();paint();},
+    setReveal(enabled:boolean){
+      revealSpectatorTerrain=enabled;
+      (el('spectatorTerrain') as HTMLInputElement).checked=enabled;
+      invalidateMapLayer();
+      paint();
+    },
+  };
+}
+publishMapPaintProbe();
 /** Coalesce continuous camera updates to one paint per animation frame. */
 function schedulePaint():void {
   if(paintRaf!==null)return;
@@ -186,7 +211,12 @@ function fitWorld():void {
 window.addEventListener('empirata-terrain-ready',()=>{invalidateMapLayer();paint();});
 function ensureTerrainLayer(revealMap:boolean):HTMLCanvasElement {
   const key=terrainLayerCacheKey(tilesRevision,tileSize,revealMap,knowledgeLayerGeneration);
-  if(terrainLayer&&terrainLayerKey===key)return terrainLayer;
+  if(terrainLayer&&terrainLayerKey===key){
+    mapPaintStats.lastEnsureMs=0;
+    mapPaintStats.lastRebuild=false;
+    return terrainLayer;
+  }
+  const started=performance.now();
   const width=Math.max(1,Math.ceil(game.width*tileSize));
   const height=Math.max(1,Math.ceil(game.height*tileSize));
   if(!terrainLayer)terrainLayer=document.createElement('canvas');
@@ -208,9 +238,13 @@ function ensureTerrainLayer(revealMap:boolean):HTMLCanvasElement {
     if(tileSize>=9){layer.strokeStyle='rgba(120,159,166,.12)';layer.lineWidth=.65;layer.strokeRect(px+.3,py+.3,tileSize-.6,tileSize-.6);}
   }
   terrainLayerKey=key;
+  mapPaintStats.terrainRebuilds++;
+  mapPaintStats.lastRebuild=true;
+  mapPaintStats.lastEnsureMs=performance.now()-started;
   return terrainLayer;
 }
 function paintFrame():void {
+  const paintStarted=performance.now();
   const w=canvas.clientWidth,h=canvas.clientHeight;
   ctx.clearRect(0,0,w,h);
   ctx.fillStyle='#08131b';ctx.fillRect(0,0,w,h);
@@ -288,6 +322,7 @@ function paintFrame():void {
     ctx.fillStyle=`rgba(3,13,22,${fog})`;
     ctx.fillRect(x*tileSize-cameraX,y*tileSize-cameraY,tileSize,tileSize);
   }
+  mapPaintStats.lastPaintMs=performance.now()-paintStarted;
 }
 function cellFromPointer(ev:PointerEvent):Coord {
   const rect=canvas.getBoundingClientRect();

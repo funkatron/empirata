@@ -1,0 +1,56 @@
+name: Map paint timing (WebKit)
+
+on:
+  pull_request:
+    paths:
+      - 'src/ui/main.ts'
+      - 'src/ui/observer-map.ts'
+      - 'src/ui/map-art.ts'
+      - 'smoke/map-paint-timing.mjs'
+      - '.github/workflows/map-paint-timing.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  time:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install project dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install Playwright WebKit
+        run: |
+          npm install --no-save --package-lock=false playwright@1.65.0
+          npx playwright install --with-deps webkit
+      - name: Build browser sources
+        run: npm run build
+      - name: Measure cold vs warm map paints
+        run: node --test smoke/map-paint-timing.mjs
+        env:
+          EMPIRATA_MAP_PAINT_DIR: artifacts/map-paint-timing
+      - name: Summarize timings
+        if: always()
+        run: |
+          if [ -f artifacts/map-paint-timing/map-paint-timing.json ]; then
+            {
+              echo '### Map paint timing'
+              echo '```json'
+              cat artifacts/map-paint-timing/map-paint-timing.json
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload timing artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: map-paint-timing-${{ github.sha }}
+          path: artifacts/map-paint-timing/
+          if-no-files-found: warn
+          retention-days: 14

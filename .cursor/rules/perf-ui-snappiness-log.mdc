@@ -50,3 +50,8 @@ unexplored tiles were cheap solid fills instead of full atlas stamps under trans
 `paintFrame`. `refresh()` only invalidates knowledge stamps when not CvC reveal-on.
 
 **Verify:** `tests/observer-map.test.mjs` locally; `smoke/observer.mjs` / Playwright on GitHub Actions only.
+
+**Timing probe (GitHub only):** `smoke/map-paint-timing.mjs` via workflow
+`map-paint-timing.yml` / `npm run test:map-paint-timing`. Compares cold vs warm
+reveal-on paint and assert warm refresh is a geography cache hit (`lastRebuild=false`).
+Artifact: `map-paint-timing.json` + job summary.
