@@ -1,6 +1,8 @@
 import {clampTileSize,fitTileSize} from './camera.js';
 import {drawCity,drawCoast,drawTerrain,drawUnit} from './map-art.js';
-import {observerFogOpacity,observerTerrain} from './observer-map.js';
+import {
+  observerFogOpacity,observerTerrain,refreshShouldInvalidateKnowledgeLayer,terrainLayerCacheKey,
+} from './observer-map.js';
 import {endgameModal} from './endgame.js';
 import {advanceLabRound,labRoundPhases,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,makeCampaignMap,
   moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
@@ -52,18 +54,51 @@ let hydrated=false;
 let choosingDestination=false;
 let choosingOrder:'move-to'|'patrol'|'go-direction'|'escort'='move-to';
 let paintRaf:number|null=null;
-let mapLayerGeneration=0;
+/** Bumps when the underlying world tiles change (new game, import, atlas ready). */
+let tilesRevision=0;
+/** Bumps when knowledge-based terrain stamps must rebuild (reveal-off refreshes). */
+let knowledgeLayerGeneration=0;
 let terrainLayer:HTMLCanvasElement|null=null;
 let terrainLayerKey='';
 let lastInspectorKey='';
 let lastEventsKey='';
+/** CI / smoke timing probe — presentation only; never feeds gameplay. */
+const mapPaintStats={terrainRebuilds:0,lastEnsureMs:0,lastPaintMs:0,lastRebuild:false};
 const stackDialog=el('stackDialog') as HTMLDialogElement;
 const colors={blue:'#68c4f1',red:'#f47c73',green:'#a4dc8b',neutral:'#e2c37c'};
 function uiMessage(message:string):void {el('toast').textContent=message;}
 function invalidateMapLayer():void {
-  mapLayerGeneration++;
+  tilesRevision++;
+  knowledgeLayerGeneration++;
   terrainLayerKey='';
 }
+function invalidateKnowledgeLayer():void {
+  knowledgeLayerGeneration++;
+  terrainLayerKey='';
+}
+function publishMapPaintProbe():void {
+  // observer-batching.mjs evaluates a slice of this file in vm without `window`.
+  if(typeof window==='undefined')return;
+  (window as Window&{empirataMapPaintProbe?:unknown}).empirataMapPaintProbe={
+    stats:()=>({...mapPaintStats}),
+    reset(){
+      mapPaintStats.terrainRebuilds=0;
+      mapPaintStats.lastEnsureMs=0;
+      mapPaintStats.lastPaintMs=0;
+      mapPaintStats.lastRebuild=false;
+    },
+    paintOnce:()=>paint(),
+    refreshOnce:()=>refresh(),
+    invalidateAndPaint(){invalidateMapLayer();paint();},
+    setReveal(enabled:boolean){
+      revealSpectatorTerrain=enabled;
+      (el('spectatorTerrain') as HTMLInputElement).checked=enabled;
+      invalidateMapLayer();
+      paint();
+    },
+  };
+}
+publishMapPaintProbe();
 /** Coalesce continuous camera updates to one paint per animation frame. */
 function schedulePaint():void {
   if(paintRaf!==null)return;
@@ -175,8 +210,13 @@ function fitWorld():void {
 }
 window.addEventListener('empirata-terrain-ready',()=>{invalidateMapLayer();paint();});
 function ensureTerrainLayer(revealMap:boolean):HTMLCanvasElement {
-  const key=`${mapLayerGeneration}|${tileSize}|${revealMap}|${revealSpectatorTerrain}`;
-  if(terrainLayer&&terrainLayerKey===key)return terrainLayer;
+  const key=terrainLayerCacheKey(tilesRevision,tileSize,revealMap,knowledgeLayerGeneration);
+  if(terrainLayer&&terrainLayerKey===key){
+    mapPaintStats.lastEnsureMs=0;
+    mapPaintStats.lastRebuild=false;
+    return terrainLayer;
+  }
+  const started=performance.now();
   const width=Math.max(1,Math.ceil(game.width*tileSize));
   const height=Math.max(1,Math.ceil(game.height*tileSize));
   if(!terrainLayer)terrainLayer=document.createElement('canvas');
@@ -186,24 +226,25 @@ function ensureTerrainLayer(revealMap:boolean):HTMLCanvasElement {
   layer.setTransform(1,0,0,1,0,0);
   layer.clearRect(0,0,width,height);
   layer.fillStyle='#08131b';layer.fillRect(0,0,width,height);
+  // Reveal-on stamps true geography only; fog is painted live so this cache survives refreshes.
   const displayTerrain=(x:number,y:number)=>x>=0&&x<view.width&&y>=0&&y<view.height?
     observerTerrain(game,view,y*view.width+x,revealSpectatorTerrain):null;
   for(let y=0;y<view.height;y++)for(let x=0;x<view.width;x++){
-    const i=y*view.width+x,terrain=displayTerrain(x,y);
+    const terrain=displayTerrain(x,y);
     const px=x*tileSize,py=y*tileSize;
     const seaAt=(dx:number,dy:number)=>displayTerrain(x+dx,y+dy)==='sea';
     drawTerrain(layer,terrain,px,py,tileSize,x,y);
     if(terrain==='land')drawCoast(layer,px,py,tileSize,seaAt(0,-1),seaAt(1,0),seaAt(0,1),seaAt(-1,0));
-    if(!revealMap){
-      const fog=observerFogOpacity(game,view,i,false);
-      if(fog>0){layer.fillStyle=`rgba(3,13,22,${fog})`;layer.fillRect(px,py,tileSize,tileSize);}
-    }
     if(tileSize>=9){layer.strokeStyle='rgba(120,159,166,.12)';layer.lineWidth=.65;layer.strokeRect(px+.3,py+.3,tileSize-.6,tileSize-.6);}
   }
   terrainLayerKey=key;
+  mapPaintStats.terrainRebuilds++;
+  mapPaintStats.lastRebuild=true;
+  mapPaintStats.lastEnsureMs=performance.now()-started;
   return terrainLayer;
 }
 function paintFrame():void {
+  const paintStarted=performance.now();
   const w=canvas.clientWidth,h=canvas.clientHeight;
   ctx.clearRect(0,0,w,h);
   ctx.fillStyle='#08131b';ctx.fillRect(0,0,w,h);
@@ -273,15 +314,15 @@ function paintFrame():void {
     if(u.id===selectedUnit||u.id===spectatorContact){ctx.strokeStyle='#fff0a4';ctx.lineWidth=2.3;ctx.strokeRect(px+1,py+1,Math.max(1,tileSize-2),Math.max(1,tileSize-2));}
   }
   // Shroud unexplored tiles at 75% and previously explored but unseen at 52%.
-  // Draw over both terrain and symbols; only faction-known units are present.
-  if(revealMap){
-    for(let y=sy;y<ey;y++)for(let x=sx;x<ex;x++){
-      const fog=observerFogOpacity(game,view,y*view.width+x,true);
-      if(fog===0)continue;
-      ctx.fillStyle=`rgba(3,13,22,${fog})`;
-      ctx.fillRect(x*tileSize-cameraX,y*tileSize-cameraY,tileSize,tileSize);
-    }
+  // Always overlay (never bake into the geography cache) so reveal-on CvC can
+  // reuse stamped terrain across observer refreshes. Symbols stay under fog.
+  for(let y=sy;y<ey;y++)for(let x=sx;x<ex;x++){
+    const fog=observerFogOpacity(game,view,y*view.width+x,revealSpectatorTerrain);
+    if(fog===0)continue;
+    ctx.fillStyle=`rgba(3,13,22,${fog})`;
+    ctx.fillRect(x*tileSize-cameraX,y*tileSize-cameraY,tileSize,tileSize);
   }
+  mapPaintStats.lastPaintMs=performance.now()-paintStarted;
 }
 function cellFromPointer(ev:PointerEvent):Coord {
   const rect=canvas.getBoundingClientRect();
@@ -515,7 +556,9 @@ function bindInspectorControls(unit:Unit|undefined,city:City|undefined):void {
 }
 function refresh():void {
   view=getPlayerView(game,observer);
-  invalidateMapLayer();
+  if(refreshShouldInvalidateKnowledgeLayer(game.scenario,revealSpectatorTerrain)){
+    invalidateKnowledgeLayer();
+  }
   if(spectatorContact&&!view.enemies.some(u=>u.id===spectatorContact&&!u.stale))spectatorContact=null;
   if(spectatorCity&&!view.cells.some(c=>c.city?.id===spectatorCity))spectatorCity=null;
   el('aiSpectator').hidden=game.scenario!=='ai-vs-ai';
@@ -706,6 +749,7 @@ el('saveFile').addEventListener('change',async()=>{
   try{const loaded=importSave(await file.text());if(loaded.active!=='blue')throw new Error('This lab UI only supports saves during the blue faction turn.');
     resultModal.reset();spectatorContact=null;spectatorCity=null;choosingDestination=false;game=loaded;selectedUnit=null;selectedCity=null;
     if(loaded.campaignMap)syncMenuFromCampaign(loaded.campaignMap);
+    invalidateMapLayer();
     refresh();void saveLocally(game);uiMessage('Saved game imported.');}
   catch(error){uiMessage(error instanceof Error?error.message:'Save could not be loaded.');}finally{input.value='';}
 });
@@ -739,7 +783,7 @@ function startScenario(kind:'close-quarters'|'classic-lab'|'ai-invasion'|'ai-vs-
   if(!window.confirm('Start a new test scenario? This will replace the current local autosave. Export JSON first if you want to keep it.'))return;
   closeGameMenu();
   pausePlayback();resultModal.reset();spectatorContact=null;spectatorCity=null;observer='blue';spectatorMode='alternate';choosingDestination=false;game=kind==='ai-skirmish'?makeAiVsAiSkirmishLab():kind==='ai-vs-ai'?makeAiVsAiLab():kind==='ai-invasion'?makeAiInvasionLab():kind==='close-quarters'?makeCloseQuartersLab():makeRulesLab();
-  selectedUnit=kind==='ai-invasion'||kind==='ai-vs-ai'||kind==='ai-skirmish'?null:'u1';selectedCity=null;refresh();focus(kind==='ai-invasion'?{x:76,y:29}:{x:9,y:25});
+  selectedUnit=kind==='ai-invasion'||kind==='ai-vs-ai'||kind==='ai-skirmish'?null:'u1';selectedCity=null;invalidateMapLayer();refresh();focus(kind==='ai-invasion'?{x:76,y:29}:{x:9,y:25});
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; export JSON.'));
   uiMessage(game.scenario==='ai-vs-ai'?'Computer vs computer ready. Choose rounds per advance, then use Play or Advance.':kind==='ai-invasion'?'AI Invasion ready: press Next round to watch the Red landing operation.':kind==='close-quarters'?'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.':'Classic rules lab reset.');
 }
@@ -769,7 +813,7 @@ function startCampaign(layout?:CampaignLayout,seed?:number,mode?:CampaignMode,al
   syncCampaignSeedControls();
   pausePlayback();resultModal.reset();spectatorContact=null;spectatorCity=null;observer='blue';spectatorMode='alternate';choosingDestination=false;
   game=makeCampaignMap(layoutRaw,chosenSeed,chosenMode,false,{algorithm:chosenAlgorithm,density:chosenDensity});
-  selectedUnit=null;selectedCity=null;refresh();
+  selectedUnit=null;selectedCity=null;invalidateMapLayer();refresh();
   const home=game.cities.find(city=>city.owner==='blue');if(home)focus(home.position);
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; use Export JSON.'));
   uiMessage(chosenMode==='ai-vs-ai'?`Computer versus computer started on ${layoutRaw} (${chosenAlgorithm}, ${chosenDensity}), seed ${chosenSeed}. Use Play or Advance to watch.`:`User versus computer started on ${layoutRaw} (${chosenAlgorithm}, ${chosenDensity}), seed ${chosenSeed}. Select your city to set production, then advance rounds.`);
@@ -834,7 +878,7 @@ el('resultExport').addEventListener('click',()=>el('exportSave').click());
 new ResizeObserver(resize).observe(canvas);
 async function boot():Promise<void>{
   try{const saved=await loadLocal();if(saved?.active==='blue')game=saved;}catch{uiMessage('Could not load local autosave; use Import JSON if needed.');}
-  if(hydrated)return;hydrated=true;selectedUnit=game.units.some(u=>u.id==='u1'&&u.owner==='blue')?'u1':null;refresh();focus(game.campaignMap?game.cities.find(c=>c.owner==='blue')?.position??{x:50,y:30}:game.scenario==='ai-invasion'?{x:76,y:29}:{x:9,y:25});
+  if(hydrated)return;hydrated=true;selectedUnit=game.units.some(u=>u.id==='u1'&&u.owner==='blue')?'u1':null;invalidateMapLayer();refresh();focus(game.campaignMap?game.cities.find(c=>c.owner==='blue')?.position??{x:50,y:30}:game.scenario==='ai-invasion'?{x:76,y:29}:{x:9,y:25});
   if(game.scenario==='ai-vs-ai')uiMessage('Computer versus computer restored, paused. Press Play to resume.');
   else if(game.scenario==='user-vs-computer')uiMessage(`User versus computer restored on ${game.campaignMap?.layout??'test map'}. Select your city to set production, then advance rounds.`);
   else if(game.scenario==='ai-invasion')uiMessage('AI Invasion restored. Press Next round to watch the invasion.');

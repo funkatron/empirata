@@ -11,6 +11,7 @@
     "build": "tsc -p tsconfig.json && node scripts/copy-assets.mjs",
     "test": "npm run test:coverage",
     "test:observer": "npm run build && node --test smoke/observer.mjs",
+    "test:map-paint-timing": "npm run build && node --test smoke/map-paint-timing.mjs",
     "evaluate:ai": "npm run build && node scripts/evaluate-ai.mjs",
     "start": "node scripts/server.mjs",
     "dev": "npm run build && npm run start",

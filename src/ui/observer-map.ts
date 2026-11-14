@@ -22,3 +22,21 @@ export function observerFogOpacity(
   if(cell.terrain!==null)return EXPLORED_FOG_OPACITY;
   return revealsTerrain(game,reveal)?SPECTATOR_FOG_OPACITY:0;
 }
+
+/**
+ * Offscreen terrain cache key. Reveal-on CvC geography ignores PlayerView so
+ * visibility-only refreshes keep the stamped atlas layer.
+ */
+export function terrainLayerCacheKey(
+  tilesRevision:number,tileSize:number,revealMap:boolean,knowledgeGeneration:number
+):string {
+  if(revealMap)return `geo|${tilesRevision}|${tileSize}`;
+  return `know|${tilesRevision}|${tileSize}|${knowledgeGeneration}`;
+}
+
+/** Knowledge-based stamps must rebuild when fog/exploration changes; true geography does not. */
+export function refreshShouldInvalidateKnowledgeLayer(
+  scenario:Game['scenario'],revealSpectatorTerrain:boolean
+):boolean {
+  return !(scenario==='ai-vs-ai'&&revealSpectatorTerrain);
+}

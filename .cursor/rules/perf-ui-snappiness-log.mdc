@@ -31,3 +31,27 @@ Roughly **2×** faster AI rounds. Skirmish p95 still above a soft 400 ms goal.
 2. **Engine:** one private clone per AI turn (`mutable` ops); reused `PlayerView` + unit/hostile-city indexes in `playAiOpponent`.
 3. **Save/playback:** compact IndexedDB autosave with latest-wins coalescing; `labRoundPhases` yields between AI/endTurn phases; Pause finishes the open round onto a blue turn.
 4. **Harness:** `scripts/bench-rounds.mjs`; tests `ai-mutable-turn`, `autosave-compact`.
+
+## Map draw split terrain/fog (2026-11-13)
+
+**Observation:** CvC observer rounds felt faster with opaque / reveal-off fog because
+unexplored tiles were cheap solid fills instead of full atlas stamps under translucent fog.
+
+**Baseline (Node, no browser — this machine cannot run Playwright):**
+
+| Step | Cost |
+|---|---:|
+| `getPlayerView` after 10 CvC rounds | ~1.7 ms |
+| Full-map terrain+fog lookups (6000 tiles) | ~0.3 ms |
+| Full-map canvas atlas rebuild | Dominates flush paint (inferred; skipped locally) |
+
+**Change:** Cache geography separately from fog. Reveal-on key is
+`geo|tilesRevision|tileSize` (ignores knowledge generation). Fog always overlays in
+`paintFrame`. `refresh()` only invalidates knowledge stamps when not CvC reveal-on.
+
+**Verify:** `tests/observer-map.test.mjs` locally; `smoke/observer.mjs` / Playwright on GitHub Actions only.
+
+**Timing probe (GitHub only):** `smoke/map-paint-timing.mjs` via workflow
+`map-paint-timing.yml` / `npm run test:map-paint-timing`. Compares cold vs warm
+reveal-on paint and assert warm refresh is a geography cache hit (`lastRebuild=false`).
+Artifact: `map-paint-timing.json` + job summary.
