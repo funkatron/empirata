@@ -21,6 +21,11 @@
   ],
   "overlapWithBaselineManifest": [],
   "otherEvaluationJsonReferences": [],
+  "auditScope": "Only the recorded strategy-baseline and pressure-manifest jobs are checked for exact numeric seed overlap. Other top-level evaluation JSON files are scanned for textual references; this is not a repository-history or private-fixture audit.",
+  "checkedSources": [
+    "docs/evaluation/strategy-baseline/manifest.json",
+    "docs/evaluation/strategy-baseline/pressure-manifest.json"
+  ],
   "cleared": true,
-  "recommendation": "Map seeds 104729 and 130363 are not used in the 42-campaign baseline manifest; treat as screening holdout, not optimization fixtures."
+  "recommendation": "Map seeds 104729 and 130363 are not used in the 42-campaign baseline manifest; treat as screening holdout only; absence from these manifests does not prove the maps were never used."
 }
