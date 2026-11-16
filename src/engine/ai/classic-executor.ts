@@ -1,9 +1,11 @@
 import type { Coord, FactionId, Game, Unit, UnitType } from '../types.js';
 import type { AiPolicy } from './classic-grades.js';
 import { chooseClassicCityProduction } from './classic-production.js';
-import { classicHomeRepairStep, classicMoveToStep, embarkedCargoCount } from './classic-move.js';
+import { classicHomeRepairStep, classicMoveToStep, classicPatrolStep, embarkedCargoCount } from './classic-move.js';
+import { classicLegalDirectionStep } from './classic-path.js';
 import {
   classicDamagedShipSeeksPort,
+  classicFighterMoveToExhausted,
   classicRandomOrderTick,
   classicSentryEngageTarget,
   classicStandingOrderTick,
@@ -62,18 +64,23 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
       const moveToDestination = fresh.order.kind === 'move-to' ? fresh.order.destination : null;
       const hadMoveTo = moveToDestination !== null;
       const cargo = embarkedCargoCount(g, unit.id);
+      const grade = policy.grade;
       let step: Coord | null = null;
+      if (classicFighterMoveToExhausted(fresh)) {
+        g = ops.setOrder(g, unit.id, { kind: 'go-home' }, true);
+      }
       if (classicDamagedShipSeeksPort(fresh, cargo)) {
         g = ops.setOrder(g, unit.id, { kind: 'go-home' }, true);
         const ship = g.units.find(u => u.id === unit.id);
-        if (ship) step = classicHomeRepairStep(g, ship, ops.routeStep);
+        if (ship) step = classicHomeRepairStep(g, ship, ops.routeStep, grade);
       } else {
         step = classicSentryEngageTarget(view, fresh);
         if (step) g = ops.setOrder(g, unit.id, { kind: 'none' }, true);
         if (!step) {
           const ship = g.units.find(u => u.id === unit.id);
-          if (ship?.order.kind === 'go-home') step = classicHomeRepairStep(g, ship, ops.routeStep);
-          else if (ship) step = classicMoveToStep(g, ship, ops.routeStep);
+          if (ship?.order.kind === 'go-home') step = classicHomeRepairStep(g, ship, ops.routeStep, grade);
+          else if (ship?.order.kind === 'patrol') step = classicPatrolStep(g, ship, grade);
+          else if (ship) step = classicMoveToStep(g, ship, ops.routeStep, grade);
         }
         if (!step) {
           if (fresh.order.kind === 'random') {
@@ -81,20 +88,17 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
             g = rotated.game;
             g = ops.setOrder(g, unit.id, { kind: 'go-direction', direction: { ...directions[rotated.directionIndex]! } }, true);
             const positioned = g.units.find(u => u.id === unit.id);
-            if (positioned) {
-              const bearing = directions[rotated.directionIndex]!;
-              step = { x: positioned.position.x + bearing.x, y: positioned.position.y + bearing.y };
-            }
+            if (positioned) step = classicLegalDirectionStep(g, positioned, rotated.directionIndex, grade);
           } else {
             const tick = classicStandingOrderTick(fresh.order);
             if (tick?.kind === 'bear') {
               g = ops.setOrder(g, unit.id, { kind: 'go-direction', direction: { ...tick.direction } }, true);
               const positioned = g.units.find(u => u.id === unit.id);
               if (positioned) {
-                step = {
-                  x: positioned.position.x + tick.direction.x,
-                  y: positioned.position.y + tick.direction.y,
-                };
+                const idx = directions.findIndex(
+                  d => d.x === tick.direction.x && d.y === tick.direction.y,
+                );
+                step = classicLegalDirectionStep(g, positioned, idx >= 0 ? idx : 1, grade);
               }
             }
           }

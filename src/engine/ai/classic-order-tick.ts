@@ -59,6 +59,14 @@ export function classicDamagedShipSeeksPort(unit: Unit, embarkedCargo: number): 
 }
 
 /** ALG-AI-001 order 1 (Sentry): engage an adjacent fresh contact when possible. */
+/** ALG-AI-001 Move-To fighter fuel gate (`0x3F64`). */
+export function classicFighterMoveToExhausted(unit: Unit): boolean {
+  if (unit.kind !== 'fighter' || unit.aboard) return false;
+  if (unit.order.kind !== 'move-to') return false;
+  const threshold = unit.aboard ? 14 : 10;
+  return (unit.fuel ?? 0) <= threshold;
+}
+
 export function classicSentryEngageTarget(view: PlayerView, unit: Unit): Coord | null {
   if (unit.order.kind !== 'sentry') return null;
   const adjacent = view.enemies
