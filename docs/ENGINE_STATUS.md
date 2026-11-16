@@ -6,7 +6,22 @@
 
 **Rules target:** Interstel *Empire: Wargame of the Century*, DOS 2.05, classic edition. All implementation work should use the same reference edition.
 
-## Working systems
+## Alignment snapshot (2026-11-16, v0.5.1)
+
+Facts on current `main`; see [TEST_STRATEGY.md](TEST_STRATEGY.md) for CI and counts.
+
+| Area | Status (high level) |
+|------|---------------------|
+| **Engine tests** | 432 Node tests; Node 24; coverage gates 85% line / 80% branch |
+| **Scenarios** | Rules lab, Close Quarters, campaigns, `ai-vs-ai` observer, mapgen/recipes |
+| **Logistics** | Troop transport embark/disembark, carriers/fighters, load & unload ship, cargo combat, overload |
+| **Modern AI** | Experimental opponent: `src/engine/ai/modern-planners.ts`, `modern-executor.ts`; save fields in [MODERN_AI_UNIT_FIELDS.md](MODERN_AI_UNIT_FIELDS.md) |
+| **Classic AI** | Policy/difficulty scaffolding (`classic-grades.ts`); DOS parity track separate per [ROADMAP.md](ROADMAP.md) |
+| **Not claimed** | Byte-for-byte DOS RNG/AI parity; full historical `.MAP` loading |
+
+## Working systems (v0.4 snapshot — historical table)
+
+> **This table describes the October 2025 milestone archive, not the live product.** Many rows are superseded by the snapshot above and the dated sections below.
 
 | System | Coverage and limitations |
 |---|---|
