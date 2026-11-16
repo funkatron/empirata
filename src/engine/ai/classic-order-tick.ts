@@ -1,4 +1,5 @@
-import type { Coord, PlayerView, Unit, UnitOrder } from '../types.js';
+import type { Coord, Game, PlayerView, Unit, UnitOrder } from '../types.js';
+import { nextRandom15 } from '../rng.js';
 import { STATS } from '../units.js';
 import { directions } from '../world.js';
 
@@ -14,8 +15,35 @@ export type ClassicStandingOrderTick =
   | { kind: 'hold' };
 
 /** Maps Empirata standing orders to the first ALG-AI-001 tranche (none + sentry only). */
+export function classicDirectionIndex(unit: Unit): number {
+  if (unit.order.kind === 'go-direction') {
+    const { direction } = unit.order;
+    const idx = directions.findIndex(d => d.x === direction.x && d.y === direction.y);
+    if (idx >= 0) return idx;
+  }
+  return CLASSIC_ORDER_NONE_DIRECTION_INDEX;
+}
+
+/** Parity-based rotation bias from ALG-AI-001 scratch `8ADC` / `8ADE`. */
+export function classicRandomRotationBias(unit: Unit): number {
+  let parity = 0;
+  for (const ch of unit.id) parity ^= ch.charCodeAt(0);
+  return parity % 2 === 0 ? 1 : -1;
+}
+
+/** ALG-AI-001 order 2 (Random): `rand%16==0` rotates compass index, else keep bearing. */
+export function classicRandomOrderTick(game: Game, unit: Unit): { game: Game; directionIndex: number } {
+  const draw = nextRandom15(game.rng);
+  let index = classicDirectionIndex(unit);
+  if (draw.value % 16 === 0) {
+    index = (index + classicRandomRotationBias(unit) + directions.length) % directions.length;
+  }
+  return { game: { ...game, rng: draw.next }, directionIndex: index };
+}
+
 export function classicStandingOrderTick(order: UnitOrder): ClassicStandingOrderTick | null {
   if (order.kind === 'none') return { kind: 'bear', direction: classicNoneOrderBearing() };
+  if (order.kind === 'random') return null;
   if (order.kind === 'sentry') return { kind: 'hold' };
   return null;
 }

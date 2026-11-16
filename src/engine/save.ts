@@ -82,7 +82,7 @@ export function importSave(json:string):Game {
         throw new Error('Invalid AI mission retry.');
     }
     const kind=u.order?.kind;
-    if(!['none','skip','sentry','move-to','go-direction','patrol','go-home','escort','load-ship'].includes(kind))throw new Error('Invalid unit order.');
+    if(!['none','skip','sentry','random','move-to','go-direction','patrol','go-home','escort','load-ship'].includes(kind))throw new Error('Invalid unit order.');
     if(kind==='sentry'&&u.kind==='fighter'&&u.aboard===null&&
       !g.cities.some(c=>c.owner===u.owner&&equal(c.position,u.position)))
       throw new Error('Sentry fighter requires a friendly base.');

@@ -105,7 +105,7 @@ export function unloadShip(game:Game,shipId:string):Game {
 export function setOrder(game:Game,unitId:string,order:UnitOrder,mutable=false):Game {
   if(order.kind==='load-ship')return loadShip(game,unitId);
   if(order.kind==='unload-ship')return unloadShip(game,unitId);
-  if(!['sentry','skip','none','move-to','go-direction','patrol','go-home','escort'].includes(order.kind)) throw new RuleNotImplemented('STANDING_ORDERS','This standing order is not implemented yet.');
+  if(!['sentry','skip','none','random','move-to','go-direction','patrol','go-home','escort'].includes(order.kind)) throw new RuleNotImplemented('STANDING_ORDERS','This standing order is not implemented yet.');
   const g=own(game,mutable),unit=g.units.find(u=>u.id===unitId);
   if(!unit||unit.owner!==g.active) throw new Error('Unit not available to the active player.');
   if(order.kind==='sentry'&&unit.kind==='fighter'&&!unit.aboard&&
