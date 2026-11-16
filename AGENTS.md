@@ -7,3 +7,14 @@
 - For ChatGPT/agent classic DOS parity work, use [`agents/classic-parity-chatgpt-pack.md`](agents/classic-parity-chatgpt-pack.md) with [`docs/DOS_ALGORITHM_RULESET.md`](docs/DOS_ALGORITHM_RULESET.md); one ALG per PR; prioritize classic DOS AI as the intended default. Preserve modern AI as a selectable experimental difficulty, but freeze its strategic development. Keep shared engine rules and performance optimizations for both policies. Do not switch gameplay to an incomplete classic AI without a clearly marked staged implementation.
 - For post-review continuation (architecture, doc drift, recommended sequence, semver iteration), use [`agents/extended-review-chatgpt-handoff.md`](agents/extended-review-chatgpt-handoff.md). Iterate semantic version when coherent milestones ship; do not leave the product stuck on an outdated 0.x label.
 - Do not push commits straight to `main`. Use a feature branch and open a PR (`gh pr create`); merge only when asked.
+
+## Planning (OODA)
+
+Before **non-simple** work (roadmap items, multi-file engine/UI changes, new tests/fixtures, DOS parity), sketch an **OODA** loop and record it under `agents/` when the task spans more than one PR or touches gameplay rules:
+
+1. **Observe** — Facts only: current code paths, tests, roadmap/docs, CI status; cite files.
+2. **Orient** — Constraints: Interstel 2.05 fidelity, fog/legal boundaries, frozen modern AI strategy, PR boundaries, explicit out-of-scope.
+3. **Decide** — Scope, PR split, success criteria, risks.
+4. **Act** — Ordered next steps (branches, tests to add, docs to update).
+
+Simple tasks (typo, single-line fix, question-only) skip a written plan. Example: [`agents/p2-ooda-plan.md`](agents/p2-ooda-plan.md).
