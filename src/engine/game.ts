@@ -518,6 +518,7 @@ const modernAi = createModernAiExecutor({
 const classicAi = createClassicAiExecutor({
   moveUnit,
   setOrder,
+  selectProduction,
   log,
 });
 

@@ -18,4 +18,5 @@ export * from './presentation.js';
 export * from './ai/classic-grades.js';
 export * from './ai/policy.js';
 export * from './ai/classic-order-tick.js';
+export * from './ai/classic-production.js';
 export * from './ai/modern-planners.js';
