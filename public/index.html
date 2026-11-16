@@ -34,18 +34,36 @@
     <div class="game-dialog-body" role="region" aria-label="Campaign setup, test scenarios, and save files">
       <h3 class="game-dialog-section">New campaign</h3>
       <p class="menu-hint">Choose who plays, a generator, and a seed. Starting a game replaces the current autosave.</p>
-      <label for="campaignMode">Players</label>
-      <select id="campaignMode"><option value="user-vs-computer">User vs computer</option><option value="ai-vs-ai">Computer vs computer</option></select>
-      <label for="campaignAlgorithm">Generator</label>
-      <select id="campaignAlgorithm"><option value="organic-v1" selected>Organic · noise coasts</option><option value="ellipse-v1">Ellipse · study baseline</option></select>
-      <label for="campaignDensity">City density</label>
-      <select id="campaignDensity"><option value="sparse">Sparse · ~12 cities</option><option value="standard">Standard · ~64 cities</option></select>
-      <label for="campaignLayout">Layout</label>
-      <select id="campaignLayout"><option value="continents">Continents</option><option value="islands">Islands</option><option value="archipelago">Archipelago</option></select>
-      <label for="campaignSeedSource">Seed source</label>
-      <select id="campaignSeedSource"><option value="random">Random on start</option><option value="custom">Custom seed</option></select>
-      <label for="campaignSeed">Seed value</label>
-      <input id="campaignSeed" type="number" inputmode="numeric" min="1" max="4294967295" step="1" value="17" aria-describedby="campaignSeedHint"/>
+      <div class="game-dialog-row game-dialog-row--2">
+        <div class="game-dialog-field">
+          <label for="campaignMode">Players</label>
+          <select id="campaignMode"><option value="user-vs-computer">User vs computer</option><option value="ai-vs-ai">Computer vs computer</option></select>
+        </div>
+        <div class="game-dialog-field">
+          <label for="campaignAlgorithm">Generator</label>
+          <select id="campaignAlgorithm"><option value="organic-v1" selected>Organic · noise coasts</option><option value="ellipse-v1">Ellipse · study baseline</option></select>
+        </div>
+      </div>
+      <div class="game-dialog-row game-dialog-row--2">
+        <div class="game-dialog-field">
+          <label for="campaignLayout">Layout</label>
+          <select id="campaignLayout"><option value="continents">Continents</option><option value="islands">Islands</option><option value="archipelago">Archipelago</option></select>
+        </div>
+        <div class="game-dialog-field">
+          <label for="campaignDensity">City density</label>
+          <select id="campaignDensity"><option value="sparse">Sparse · ~12 cities</option><option value="standard" selected>Standard · ~64 cities</option></select>
+        </div>
+      </div>
+      <div class="game-dialog-row game-dialog-row--seed">
+        <div class="game-dialog-field">
+          <label for="campaignSeedSource">Seed source</label>
+          <select id="campaignSeedSource"><option value="random">Random on start</option><option value="custom">Custom seed</option></select>
+        </div>
+        <div class="game-dialog-field">
+          <label for="campaignSeed">Seed value</label>
+          <input id="campaignSeed" type="number" inputmode="numeric" min="1" max="4294967295" step="1" value="17" aria-describedby="campaignSeedHint"/>
+        </div>
+      </div>
       <p id="campaignSeedHint" class="menu-hint">Random on start picks a new seed when you press Start. Study seeds and lab fixtures are below.</p>
       <details class="game-submenu" id="testScenariosMenu"><summary aria-label="Test scenarios and study maps">Test scenarios <span aria-hidden="true">▾</span></summary><div class="game-submenu-panel" role="region" aria-label="Lab fixtures and study maps"><h3>Lab fixtures</h3><button id="newGame" type="button">Close Quarters</button><button id="classicGame" type="button">Original test map</button><button id="invasionGame" type="button">AI Invasion</button><button id="aiVsAiGame" type="button">Computer vs computer · clean start</button><button id="aiSkirmishGame" type="button">Computer skirmish · staged test</button><h3>Study maps · ellipse · sparse</h3><p class="menu-hint">Deterministic evaluation seeds (layout × 17 / 83 / 211). Study buttons still use the ellipse generator.</p><button type="button" class="studyMapButton" data-layout="continents" data-seed="17">Continents · seed 17</button><button type="button" class="studyMapButton" data-layout="continents" data-seed="83">Continents · seed 83</button><button type="button" class="studyMapButton" data-layout="continents" data-seed="211">Continents · seed 211</button><button type="button" class="studyMapButton" data-layout="islands" data-seed="17">Islands · seed 17</button><button type="button" class="studyMapButton" data-layout="islands" data-seed="83">Islands · seed 83</button><button type="button" class="studyMapButton" data-layout="islands" data-seed="211">Islands · seed 211</button><button type="button" class="studyMapButton" data-layout="archipelago" data-seed="17">Archipelago · seed 17</button><button type="button" class="studyMapButton" data-layout="archipelago" data-seed="83">Archipelago · seed 83</button><button type="button" class="studyMapButton" data-layout="archipelago" data-seed="211">Archipelago · seed 211</button></div></details>
       <h3 class="game-dialog-section">Saved games</h3>
