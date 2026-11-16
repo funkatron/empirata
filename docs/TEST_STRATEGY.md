@@ -10,11 +10,11 @@ Updated 2026-11-16. Target ruleset: Interstel DOS v2.05C. Historical DOS binary 
 
 ## Current coverage (local, Node 24)
 
-Measured on `main` after `npm ci` + `npm test` (2026-11-16; reconcile with latest `main` if counts drift):
+Measured on `main` after `npm ci` + `npm test` (2026-11-16, commit `8f3b2f1`; reconcile with latest `main` if counts drift):
 
 | Metric | Value |
 |--------|--------|
-| Tests | **432** pass, 0 fail (`tests/*.test.mjs`, 84 files) |
+| Tests | **445** pass, 0 fail (`tests/*.test.mjs`, 85 files) |
 | Line coverage | **~94.8%** (`dist/engine/*.js`) |
 | Branch coverage | **~91.5%** |
 | Function coverage | **~96.5%** |

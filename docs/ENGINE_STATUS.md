@@ -12,7 +12,7 @@ Facts on current `main`; see [TEST_STRATEGY.md](TEST_STRATEGY.md) for CI and cou
 
 | Area | Status (high level) |
 |------|---------------------|
-| **Engine tests** | 432 Node tests; Node 24; coverage gates 85% line / 80% branch |
+| **Engine tests** | 445 Node tests; Node 24; coverage gates 85% line / 80% branch |
 | **Scenarios** | Rules lab, Close Quarters, campaigns, `ai-vs-ai` observer, mapgen/recipes |
 | **Logistics** | Troop transport embark/disembark, carriers/fighters, load & unload ship, cargo combat, overload |
 | **Modern AI** | Experimental opponent: `src/engine/ai/modern-planners.ts`, `modern-executor.ts`; save fields in [MODERN_AI_UNIT_FIELDS.md](MODERN_AI_UNIT_FIELDS.md) |
