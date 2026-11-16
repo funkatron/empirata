@@ -14,7 +14,7 @@ Use this section for **what to work on now**. Older dated sections below are his
 
 **Product (v0.5.1):** Campaign and lab scenarios, organic/ellipse mapgen, map recipes, unit/city names, troop transport and carrier logistics, computer-vs-computer observer mode, and JSON save/export are in active use. The shipped default opponent remains **modern (experimental)** until classic migration step (4) is complete.
 
-**Engine queue (authoritative):** Follow the [review-driven execution queue](#review-driven-execution-queue-2026-11-09) — **P0** capture knowledge/production contamination **closed** (see P0 status note), **P1** modern AI modularization **closed** (`modern-planners.ts` + `modern-executor.ts` wired from `game.ts`), **P2** **closed** (cargo rule-surface error + [`MODERN_AI_UNIT_FIELDS.md`](MODERN_AI_UNIT_FIELDS.md)), **P3** reconcile `ENGINE_STATUS.md` and `TEST_STRATEGY.md` with source.
+**Engine queue (authoritative):** Follow the [review-driven execution queue](#review-driven-execution-queue-2026-11-09) — **P0**–**P3** **closed** (capture knowledge, AI modularization, cargo/`ai*` docs, ENGINE_STATUS/TEST_STRATEGY reconcile); **P4** remaining UI confidence (Priority 1 map UX, optional browser smoke in CI).
 
 **Evaluation discipline:** The frozen [42-campaign baseline](evaluation/strategy-baseline/BASELINE_INTERPRETATION.md) and [held-out manifest audit](../agents/evaluation/held-out-manifest-audit.json) are screening tools, not optimization targets. Long campaigns stay opt-in (`npm run evaluate:ai`, held-out workflow).
 
@@ -74,7 +74,7 @@ Source: external Codex project-review handoff (2026-11-09). These are **review f
 
 ### P3: Documentation accuracy
 
-7. Reconcile `docs/ENGINE_STATUS.md` and `docs/TEST_STRATEGY.md` against current source, Node 24 and coverage policy; update `docs/WORKSTREAM_STATUS.md` only when its evidence/status changes. Keep documentation commits separate from gameplay changes.
+7. **Closed (2026-11-16):** [TEST_STRATEGY.md](TEST_STRATEGY.md) matches Node 24, 432-test CI, and verify workflow; [ENGINE_STATUS.md](ENGINE_STATUS.md) adds v0.5.1 alignment snapshot and marks the working-systems table as historical.
 
 ### P4: Remaining UI confidence
 

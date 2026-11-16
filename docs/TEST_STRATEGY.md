@@ -1,50 +1,79 @@
 # Empirata test strategy and coverage gates
 
-Updated 2026-10-23. The target is Interstel DOS v2.05C. Historical DOS binary assets must not be committed.
+Updated 2026-11-16. Target ruleset: Interstel DOS v2.05C. Historical DOS binary assets must not be committed.
 
 ## Required checks
 
-- `npm test`: compile TypeScript, execute Node tests, report **engine-only** V8 coverage and fail below 85% line / 80% branch. The GitHub Pages workflow calls `npm test` before publishing.
-- `npm run test:coverage`: same test and coverage operation; direct invocation is useful for local development.
-- No claim of exact historical fidelity follows from coverage alone: manual-confirmed rules and binary-confirmed behaviors require separate oracle fixtures.
+- **`npm test`** (alias for **`npm run test:coverage`**): TypeScript build, then `node --test` over `tests/*.test.mjs`, **engine-only** V8 coverage, failing below **85% line / 80% branch** (`package.json` → `test:coverage` flags).
+- **Runtime:** Node **24** (`package.json` `engines`; CI enforces major version 24 in [`.github/workflows/verify.yml`](../.github/workflows/verify.yml)).
+- Coverage alone does not prove DOS fidelity. Manual-confirmed and binary-oracle behaviors use dedicated fixtures (`tests/alg-*.test.mjs`, `docs/manual/`).
 
-## Current coverage (local, Node 22)
+## Current coverage (local, Node 24)
 
-- 74 passing tests (count as of this revision, including 128-seed combat and 128-seed conquest stress checks).
-- Engine line coverage approximately 92.45%; branch coverage approximately 88.28%; function coverage approximately 91.11%.
-- Reports target `dist/engine/*.js`, deliberately excluding test files and the browser interface.
-- The coverage floors are initial regression gates, not final quality targets.
+Measured on `main` after `npm ci` + `npm test` (2026-11-16; reconcile with latest `main` if counts drift):
+
+| Metric | Value |
+|--------|--------|
+| Tests | **432** pass, 0 fail (`tests/*.test.mjs`, 84 files) |
+| Line coverage | **~94.8%** (`dist/engine/*.js`) |
+| Branch coverage | **~91.5%** |
+| Function coverage | **~96.5%** |
+| Typical wall time | ~100 s engine suite (includes build; target remains “fast enough for every PR”) |
+
+Reports intentionally **exclude** `src/ui` and test files; UI regression uses a separate subset in CI (below).
+
+## Default GitHub Actions (`verify` workflow)
+
+On every PR and on `main` pushes that touch non-`docs/**` paths:
+
+1. `tests/ci-scope.test.mjs` + `scripts/ci-scope.mjs` — **focused** vs **full** verification (display-only diffs may skip full `npm test`).
+2. **Full scope:** `npm test` (build + engine tests + coverage gates).
+3. **Focused scope:** `npm run build` + `tests/unit-names`, `presentation`, `ui-camera`, `ui-structure`.
+4. `node scripts/build-single-file.cjs` → standalone `index.html`.
+5. `smoke/bundle.mjs` and `smoke/observer-batching.mjs` (no browser download).
+
+Pages deploy runs on `main` after verify; a green verify on a PR does not by itself prove production Pages freshness.
+
+**Opt-in workflows** (not required for a normal engine PR): compare-reconnaissance, held-out evaluation, map screenshots, Playwright capture-production, replay-uploaded-save, etc.
+
+## npm scripts (testing-related)
+
+| Script | Purpose |
+|--------|---------|
+| `npm run build` | `tsc` + static assets into `dist/` |
+| `npm test` / `npm run test:coverage` | Default engine gate |
+| `npm run test:observer` | Observer-mode smoke |
+| `npm run test:map-paint-timing` | Map paint timing smoke |
+| `npm run evaluate:ai` | Long AI evaluation (local/opt-in) |
 
 ## Important regression scenarios
 
-1. **RNG:** original seed-1 and zero-seed 15-bit output vectors, determinism, saved state.
-2. **Combat:** exact seed-1 result, damage, movement, one-winner invariant, random draw accounting and 128-seed replay.
-3. **Conquest:** seeded 50% capture threshold across 128 seeds, army consumption and city ownership.
-4. **Movement/orders:** per-turn allowance, cardinal/diagonal movement, order persistence, patrol direction changes and safe contact interruption.
-5. **Fog of war:** opponent secrecy, stale reports and a hidden-city route-planning regression.
-6. **Save files:** roundtrip, invalid unit/city types, illegal coordinates, duplicate IDs, broken cargo links, malformed standing orders and corrupt RNG values.
+1. **RNG:** seed vectors, determinism, saved draw count (`tests/core.test.mjs`, save roundtrips).
+2. **Combat / conquest:** seeded hit allocation, city assault, 128-seed stress where present.
+3. **Movement / orders:** allowance, standing orders, go-home, escort, move-to (`tests/move-to.test.mjs`, `home-escort.test.mjs`, …).
+4. **Fog of war:** knowledge isolation, stale sightings, route planning on `PlayerView`.
+5. **Logistics:** embark/disembark, carriers, load/unload ship, cargo combat, overload (**implemented** — `transport.test.mjs`, `carrier.test.mjs`, `cargo-combat.test.mjs`, `alg-011-overload.test.mjs`, …).
+6. **Save files:** schema 1 validation, illegal AI fields, cargo links (`save.ts` + `tests/hardening.test.mjs`, `p0-capture-contamination.test.mjs`).
+7. **Modern AI (experimental):** deterministic fixtures under `tests/ai-*.test.mjs`; planners in `src/engine/ai/`; field semantics in [`MODERN_AI_UNIT_FIELDS.md`](MODERN_AI_UNIT_FIELDS.md). Classic AI grades stub: `tests/alg-ai-003-grades.test.mjs`.
+8. **Cargo rule surface:** embarked `moveUnit` guidance + friendly stacking errors (`embarked-move-guidance.test.mjs`, `p2-cargo-rule-surface.test.mjs`).
 
-## Remaining high-priority coverage gaps
+## Remaining high-priority gaps
 
-- **UI:** automate touch/pointer selection, panel controls, pan/zoom, save/restore and a played round in a real browser. No UI coverage gate yet.
-- **Original-game oracle:** acquire legal/reference DOS play traces for draw timing, unusual detection rules, naval mechanics and production rounding.
-- **Logistics:** loading/unloading and carrier operations are not implemented yet; add rigorous tests before implementing them.
-- **Adversarial persistence:** extend validation to nested fog-of-war knowledge records, event records, cargo cycles and total import-size limits.
-- **AI:** deterministic strategic fixtures and no-omniscience differential tests as tactics develop.
-- **Mutation testing:** validate that core combat and pathfinding tests fail under deliberately introduced faults.
+- **Browser UX:** full touch/pinch/inspector acceptance; partial coverage via UI structure/camera tests and opt-in Playwright workflows — no UI coverage **gate** yet.
+- **DOS oracle:** legal/reference traces for draw order, detection edge cases, production rounding (`docs/manual/findings.md`).
+- **Adversarial save/import:** deeper limits on payload size and nested knowledge abuse.
+- **Mutation / fuzz:** optional; not in default CI.
+- **Held-out / compare AI:** screening only; see `agents/evaluation/` and roadmap evaluation discipline.
 
 ## Policy
 
-Build new rules using a *failing red test → smallest rule change → green test* sequence. Prefer fixed, explainable expected states over permissive assertions. For uncertain mechanics, mark test expectations as provisional rather than presenting assumptions as original behavior.
+Use **failing red test → smallest rule change → green test**. Prefer exact expected states. Mark uncertain expectations **provisional** in tests and docs.
 
-## Lightweight testing policy (2026-10-24)
+### Lightweight testing policy
 
-**No DOS emulator in normal tests or CI.** Original DOS behavior is researched separately, then captured as small, legally shareable expected-output fixtures (such as RNG vectors, turn transcripts, and input/output state snapshots). Normal tests compare against these fixtures without running the original executable.
+- **No DOS emulator in normal CI.** Fixtures are legally shareable transcripts, seeds, and state snapshots.
+- **Default commit path:** Node tests + engine coverage + TS build + bundle smoke (above).
+- **Growth control:** table-driven cases, small seeds; long campaigns and `evaluate:ai` stay opt-in.
+- **Fixture labels:** executable-verified, manual-derived, or provisional — see `docs/manual/README.md`.
 
-- **Default, on each commit:** Node unit/integration tests with fixed seeds and small scenarios; V8 engine coverage; TypeScript compilation. Favor bounded tests and simple in-memory fixtures.
-- **Browser smoke tests:** a handful of critical player flows using one headless browser engine, without screenshots or full campaigns by default. Browser-specific touch testing may be run separately when needed. No download-heavy mobile device emulation in the default CI path.
-- **Optional research tests:** DOS-emulator comparisons, long campaigns, extensive randomized fuzzing, mutation testing, and visual regression are manually triggered and never prerequisites for a normal commit or deployment.
-- **Execution budget targets:** aim for under 10 seconds of test execution for the engine suite on a typical development machine (excluding dependency installation and TypeScript compilation); aim for under 30 seconds for the default browser smoke suite after the browser is installed. Measure before enforcing timeouts.
-- **Growth control:** prefer representative table-driven cases, exact assertions and small seed sets. Avoid one test per rule permutation or thousands of randomized seeds on every commit. Any broader sweep should have an explicit optional test command.
-- **Fixture policy:** never commit the original DOS executable, unpacked binaries, copyrighted art, or save files containing proprietary assets.
-- **Historical status:** label each fixture as executable-verified, manual-derived, or provisional. Do not treat a provisional fixture as proof of original-game parity.
+For product priorities use [ROADMAP.md](ROADMAP.md#current-status-2026-11-15), not this file alone.

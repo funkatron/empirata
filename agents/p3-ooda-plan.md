@@ -79,15 +79,8 @@ Roadmap: [P3 — Documentation accuracy](../docs/ROADMAP.md#p3-documentation-acc
 
 ## Act (ordered steps)
 
-1. `git checkout main && git pull` — confirm P2 on main (**432** tests).  
-2. Branch `cursor/p3-doc-reconcile-85b7`.  
-3. Run `npm test`; paste totals into `TEST_STRATEGY.md` “Current coverage” section.  
-4. Draft `TEST_STRATEGY.md` edits: regression scenario list → add P0 capture, `MODERN_AI_UNIT_FIELDS`, `ci-scope` focused runs if documented.  
-5. Draft `ENGINE_STATUS.md` snapshot section (bullets: scenarios, mapgen, save schema 1, modern AI modules, classic grades stub — link files).  
-6. Grep `TECHNICAL_IMPLEMENTATION_PLAN.md` for “74 tests” / Node 22; minimal fixes.  
-7. Update `ROADMAP.md` Current status + P3 item 7.  
-8. Touch `WORKSTREAM_STATUS.md` only if evidence column changes.  
-9. `npm run build` (sanity); push; PR; merge when verify green.  
+**Completed 2026-11-16** via PR `cursor/p3-doc-reconcile-85b7`: `TEST_STRATEGY.md`, `ENGINE_STATUS.md` snapshot, `ROADMAP.md` P3 closed, `WORKSTREAM_STATUS.md` evidence refresh.
+
 10. Optional follow-up (P4 / separate): roadmap item 9 browser smoke in CI — **not** part of P3.
 
 ## Risks
