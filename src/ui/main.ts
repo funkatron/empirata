@@ -19,8 +19,8 @@ import {advanceLabRound,labRoundPhases,capacity,exportSave,getPlayerView,importS
   moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
   STATS,UNIT_TYPES,isCoastal,unitName,cityName,gameOutcome,readableReport,
   formatMapSeedLine,mapRecipeFromCampaign,parseCampaignSeed,parseMapRecipe,randomCampaignSeed,serializeMapRecipe,
-  isCampaignLayout,isCityDensity,isMapAlgorithm,classicResignPendingFor,respondClassicResign,hasBlockingClassicResign} from '../engine/index.js';
-import type {CampaignLayout,CampaignMode,City,CityDensity,Coord,Game,MapAlgorithm,MapRecipe,Unit,UnitType,PlayerView} from '../engine/index.js';
+  isCampaignLayout,isCityDensity,isMapAlgorithm,classicResignPendingFor,respondClassicResign,hasBlockingClassicResign,formatAiPolicyLabel,resolveAiPolicy} from '../engine/index.js';
+import type {AiPolicy,CampaignLayout,CampaignMode,City,CityDensity,Coord,Game,MapAlgorithm,MapRecipe,Unit,UnitType,PlayerView} from '../engine/index.js';
 type SeedSource='custom'|'random';
 
 const el=(id:string)=>document.getElementById(id)!;
@@ -661,7 +661,8 @@ function refresh():void {
   el('round').textContent=`ROUND ${game.round}`;
   el('cityCount').textContent=String(view.ownCities.length);
   el('unitCount').textContent=String(view.ownUnits.length);
-  el('scenarioName').textContent=game.campaignMap?`${game.scenario==='ai-vs-ai'?'COMPUTER vs COMPUTER':'USER vs COMPUTER'} · ${game.campaignMap.layout.toUpperCase()} · ${(game.campaignMap.algorithm??'ellipse-v1').toUpperCase()} · ${(game.campaignMap.density??'sparse').toUpperCase()} · SEED ${game.campaignMap.seed}`:game.scenario==='ai-vs-ai'?'COMPUTER vs COMPUTER · EXPERIMENTAL':game.scenario==='ai-invasion'?'AI INVASION · DEMONSTRATION':game.scenario==='close-quarters'?'CLOSE QUARTERS · PLAYABLE':'CLASSIC RULES LAB';
+  const policyBanner=game.campaignMap?` · ${formatAiPolicyLabel(resolveAiPolicy(game)).toUpperCase()}`:'';
+  el('scenarioName').textContent=game.campaignMap?`${game.scenario==='ai-vs-ai'?'COMPUTER vs COMPUTER':'USER vs COMPUTER'} · ${game.campaignMap.layout.toUpperCase()} · ${(game.campaignMap.algorithm??'ellipse-v1').toUpperCase()} · ${(game.campaignMap.density??'sparse').toUpperCase()} · SEED ${game.campaignMap.seed}${policyBanner}`:game.scenario==='ai-vs-ai'?'COMPUTER vs COMPUTER · EXPERIMENTAL':game.scenario==='ai-invasion'?'AI INVASION · DEMONSTRATION':game.scenario==='close-quarters'?'CLOSE QUARTERS · PLAYABLE':'CLASSIC RULES LAB';
   el('threatCount').textContent=String(view.enemies.filter(u=>!u.stale).length);
   const unit=view.ownUnits.find(u=>u.id===selectedUnit);
   const city=view.ownCities.find(c=>c.id===selectedCity);
@@ -806,6 +807,24 @@ function syncCampaignSeedControls():void{
   const seedInput=el('campaignSeed') as HTMLInputElement;
   seedInput.readOnly=seedSource()==='random';
 }
+function syncCampaignClassicGrade():void{
+  const classic=(el('campaignAiPolicy') as HTMLSelectElement).value==='classic-dos';
+  (el('campaignClassicGrade') as HTMLSelectElement).disabled=!classic;
+}
+function readCampaignAiPolicy():AiPolicy{
+  const kind=(el('campaignAiPolicy') as HTMLSelectElement).value;
+  if(kind==='classic-dos'){
+    const grade=Number((el('campaignClassicGrade') as HTMLSelectElement).value);
+    return {kind:'classic-dos',grade:grade===2?2:1};
+  }
+  return {kind:'modern-experimental'};
+}
+function applyAiPolicyToMenu(policy:AiPolicy|undefined):void{
+  const resolved=policy??{kind:'modern-experimental'};
+  (el('campaignAiPolicy') as HTMLSelectElement).value=resolved.kind;
+  (el('campaignClassicGrade') as HTMLSelectElement).value=String(resolved.kind==='classic-dos'?resolved.grade:1);
+  syncCampaignClassicGrade();
+}
 function applyRecipeToMenu(recipe:MapRecipe):void{
   (el('campaignLayout') as HTMLSelectElement).value=recipe.layout;
   (el('campaignAlgorithm') as HTMLSelectElement).value=recipe.algorithm;
@@ -816,6 +835,7 @@ function applyRecipeToMenu(recipe:MapRecipe):void{
 }
 function syncMenuFromCampaign(campaign:NonNullable<Game['campaignMap']>):void{
   applyRecipeToMenu(mapRecipeFromCampaign(campaign));
+  applyAiPolicyToMenu(game.aiPolicy);
 }
 function currentMenuRecipe():MapRecipe{
   const layoutRaw=(el('campaignLayout') as HTMLSelectElement).value;
@@ -878,6 +898,7 @@ el('recipeFile').addEventListener('change',async()=>{
 let gameMenuReturnFocus:HTMLElement|null=null;
 function openGameMenu():void{
   gameMenuReturnFocus=document.activeElement as HTMLElement;
+  if(game.campaignMap)syncMenuFromCampaign(game.campaignMap);
   if(!gameMenuDialog.open)gameMenuDialog.showModal();
   el('campaignMode').focus();
 }
@@ -894,7 +915,7 @@ function startScenario(kind:'close-quarters'|'classic-lab'|'ai-invasion'|'ai-vs-
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; export JSON.'));
   uiMessage(game.scenario==='ai-vs-ai'?'Computer vs computer ready. Choose rounds per advance, then use Play or Advance.':kind==='ai-invasion'?'AI Invasion ready: press Next round to watch the Red landing operation.':kind==='close-quarters'?'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.':'Classic rules lab reset.');
 }
-function startCampaign(layout?:CampaignLayout,seed?:number,mode?:CampaignMode,algorithm?:MapAlgorithm,density?:CityDensity):void{
+function startCampaign(layout?:CampaignLayout,seed?:number,mode?:CampaignMode,algorithm?:MapAlgorithm,density?:CityDensity,aiPolicy?:AiPolicy):void{
   if(!window.confirm('Start a new campaign? This replaces the current local autosave. Export JSON or a map recipe first if you want to keep it.'))return;
   const source=seedSource();
   const chosenMode=mode??(el('campaignMode') as HTMLSelectElement).value as CampaignMode;
@@ -918,15 +939,20 @@ function startCampaign(layout?:CampaignLayout,seed?:number,mode?:CampaignMode,al
   (el('campaignSeed') as HTMLInputElement).value=String(chosenSeed);
   if(source!=='random')(el('campaignSeedSource') as HTMLSelectElement).value='custom';
   syncCampaignSeedControls();
+  const policy=aiPolicy??readCampaignAiPolicy();
+  applyAiPolicyToMenu(policy);
   pausePlayback();resultModal.reset();spectatorContact=null;spectatorCity=null;observer='blue';spectatorMode='alternate';choosingDestination=false;
-  game=makeCampaignMap(layoutRaw,chosenSeed,chosenMode,false,{algorithm:chosenAlgorithm,density:chosenDensity});
+  game=makeCampaignMap(layoutRaw,chosenSeed,chosenMode,false,{algorithm:chosenAlgorithm,density:chosenDensity,aiPolicy:policy});
   selectedUnit=null;selectedCity=null;invalidateMapLayer();refresh();
   const home=game.cities.find(city=>city.owner==='blue');if(home)focus(home.position);
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; use Export JSON.'));
-  uiMessage(chosenMode==='ai-vs-ai'?`Computer versus computer started on ${layoutRaw} (${chosenAlgorithm}, ${chosenDensity}), seed ${chosenSeed}. Use Play or Advance to watch.`:`User versus computer started on ${layoutRaw} (${chosenAlgorithm}, ${chosenDensity}), seed ${chosenSeed}. Select your city to set production, then advance rounds.`);
+  const opponent=formatAiPolicyLabel(policy);
+  uiMessage(chosenMode==='ai-vs-ai'?`Computer versus computer started on ${layoutRaw} (${chosenAlgorithm}, ${chosenDensity}), seed ${chosenSeed}. Opponent: ${opponent}. Use Play or Advance to watch.`:`User versus computer started on ${layoutRaw} (${chosenAlgorithm}, ${chosenDensity}), seed ${chosenSeed}. Opponent: ${opponent}. Select your city to set production, then advance rounds.`);
 }
 el('campaignSeedSource').addEventListener('change',()=>syncCampaignSeedControls());
+el('campaignAiPolicy').addEventListener('change',()=>syncCampaignClassicGrade());
 syncCampaignSeedControls();
+syncCampaignClassicGrade();
 el('startCampaign').addEventListener('click',()=>startCampaign());
 el('newGame').addEventListener('click',()=>startScenario('close-quarters'));
 const studyMapButtons=document.querySelectorAll('.studyMapButton');
@@ -973,7 +999,7 @@ el('autoPlay').addEventListener('click',()=>{
   startRoundPlayback(true);
 });
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pausePlayback();});
-el('resultNewGame').addEventListener('click',()=>game.campaignMap?startCampaign(game.campaignMap.layout,game.campaignMap.seed,game.scenario==='ai-vs-ai'?'ai-vs-ai':'user-vs-computer',game.campaignMap.algorithm,game.campaignMap.density):startScenario(game.scenario==='ai-vs-ai'?'ai-vs-ai':'close-quarters'));
+el('resultNewGame').addEventListener('click',()=>game.campaignMap?startCampaign(game.campaignMap.layout,game.campaignMap.seed,game.scenario==='ai-vs-ai'?'ai-vs-ai':'user-vs-computer',game.campaignMap.algorithm,game.campaignMap.density,game.aiPolicy):startScenario(game.scenario==='ai-vs-ai'?'ai-vs-ai':'close-quarters'));
 el('resultReview').addEventListener('click',()=>resultModal.show());
 el('endgameExport').addEventListener('click',()=>el('exportSave').click());
 el('endgameNewGame').addEventListener('click',()=>el('resultNewGame').click());

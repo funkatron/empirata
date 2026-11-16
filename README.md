@@ -4,6 +4,10 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.5.3 — Campaign classic AI policy selector
+
+New campaigns can choose **Modern (experimental)** or **Classic DOS** with **grade 1 / 2** in the Game menu. The choice is stored on `Game.aiPolicy` and in JSON saves.
+
 ## Version 0.5.2 — Classic resign UI and staged DOS AI
 
 Classic-policy games can show a **resignation** accept/decline dialog; accepting transfers computer cities and removes their units. Staged **classic DOS** AI gains deeper order pathing and expanded computer production heuristics when `aiPolicy` is `classic-dos` (default opponent remains modern).

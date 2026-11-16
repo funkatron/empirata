@@ -28,7 +28,7 @@ export function importSave(json:string):Game {
       !(policy.kind==='modern-experimental'||
         (policy.kind==='classic-dos'&&(policy.grade===1||policy.grade===2))))
       throw new Error('Invalid AI policy.');
-    // Classic gameplay is staged: policy metadata is valid, but the classic executor does not issue orders yet.
+    // Classic gameplay remains staged; policy selects classic vs modern executor when present.
   }
   const validFaction=(id:unknown)=>id==='blue'||id==='red'||id==='green';
   if(g.classicResignOffered!==undefined){

@@ -11,3 +11,9 @@ export function resolveAiPolicy(game: Game): AiPolicy {
 export function isClassicDosPolicy(policy: AiPolicy): policy is Extract<AiPolicy, { kind: 'classic-dos' }> {
   return policy.kind === 'classic-dos';
 }
+
+/** Player-facing label for campaign UI and reports. */
+export function formatAiPolicyLabel(policy: AiPolicy): string {
+  if (policy.kind === 'modern-experimental') return 'Modern (experimental)';
+  return `Classic DOS · computer grade ${policy.grade}`;
+}
