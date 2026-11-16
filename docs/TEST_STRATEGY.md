@@ -30,7 +30,7 @@ On every PR and on `main` pushes that touch non-`docs/**` paths:
 2. **Full scope:** `npm test` (build + engine tests + coverage gates).
 3. **Focused scope:** `npm run build` + `tests/unit-names`, `presentation`, `ui-camera`, `ui-structure`.
 4. `node scripts/build-single-file.cjs` → standalone `index.html`.
-5. `smoke/bundle.mjs` and `smoke/observer-batching.mjs` (no browser download).
+5. `smoke/bundle.mjs`, `smoke/observer-batching.mjs`, and `smoke/ui-load.mjs` (HTML contract smoke; no browser download).
 
 Pages deploy runs on `main` after verify; a green verify on a PR does not by itself prove production Pages freshness.
 
