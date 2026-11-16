@@ -34,6 +34,14 @@ export function terrainLayerCacheKey(
   return `know|${tilesRevision}|${tileSize}|${knowledgeGeneration}`;
 }
 
+/** Fog stamps follow knowledge; reveal-on CvC matches geography (no knowledge gen in key). */
+export function fogLayerCacheKey(
+  tilesRevision:number,tileSize:number,revealMap:boolean,knowledgeGeneration:number
+):string {
+  if(revealMap)return `fog-geo|${tilesRevision}|${tileSize}`;
+  return `fog-know|${tilesRevision}|${tileSize}|${knowledgeGeneration}`;
+}
+
 /** Knowledge-based stamps must rebuild when fog/exploration changes; true geography does not. */
 export function refreshShouldInvalidateKnowledgeLayer(
   scenario:Game['scenario'],revealSpectatorTerrain:boolean

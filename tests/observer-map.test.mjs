@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {getPlayerView,makeAiVsAiLab,makeRulesLab} from '../dist/engine/index.js';
 import {
   observerTerrain,observerFogOpacity,SPECTATOR_FOG_OPACITY,EXPLORED_FOG_OPACITY,
-  terrainLayerCacheKey,refreshShouldInvalidateKnowledgeLayer,
+  terrainLayerCacheKey,fogLayerCacheKey,refreshShouldInvalidateKnowledgeLayer,
 } from '../dist/ui/observer-map.js';
 
 test('CvC spectator sees undiscovered geography through exactly 75% fog',()=>{
@@ -64,6 +64,12 @@ test('Reveal-on geography cache key ignores knowledge generation and visibility 
   assert.equal(a,'geo|3|24');
   assert.notEqual(terrainLayerCacheKey(3,24,true,0),terrainLayerCacheKey(4,24,true,0));
   assert.notEqual(terrainLayerCacheKey(3,24,true,0),terrainLayerCacheKey(3,30,true,0));
+});
+
+test('Fog layer cache keys mirror terrain reveal-on vs knowledge rules',()=>{
+  assert.equal(fogLayerCacheKey(3,24,true,0),fogLayerCacheKey(3,24,true,99));
+  assert.equal(fogLayerCacheKey(3,24,true,0),'fog-geo|3|24');
+  assert.equal(fogLayerCacheKey(1,16,false,7),'fog-know|1|16|7');
 });
 
 test('Knowledge terrain cache key tracks exploration generation',()=>{
