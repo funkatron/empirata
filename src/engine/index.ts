@@ -22,5 +22,7 @@ export * from './ai/classic-production.js';
 export * from './ai/classic-move.js';
 export * from './ai/classic-passability.js';
 export * from './ai/classic-path.js';
+export * from './ai/classic-mask.js';
+export * from './ai/classic-escort.js';
 export * from './ai/classic-resign.js';
 export * from './ai/modern-planners.js';

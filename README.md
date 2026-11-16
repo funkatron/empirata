@@ -4,6 +4,10 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.5.4 — Classic AI escort, masks, load-ship
+
+Classic DOS activation pass: **escort** stationing, **ship-B** coastal-sea mask (grade 2), empty-transport order cleanup, **load-ship** units hold still for loading.
+
 ## Version 0.5.3 — Campaign classic AI policy selector
 
 New campaigns can choose **Modern (experimental)** or **Classic DOS** with **grade 1 / 2** in the Game menu. The choice is stored on `Game.aiPolicy` and in JSON saves.

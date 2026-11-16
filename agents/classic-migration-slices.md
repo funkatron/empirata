@@ -6,7 +6,7 @@ Authoritative **order** for post–v0.5.2 classic work. Update status as PRs lan
 |-------|-------------|--------|
 | **A** | Doc reconcile: ALG §2 mapping, TEST_STRATEGY 483 tests, roadmap dates | done (Q15) |
 | **B** | Campaign **AI policy + grade** UI (ALG-AI-003 selectors, saves) | done (Q14 → v0.5.3) |
-| **C** | ALG-AI-001 depth: escort/load, glyph passability, ship set B | open |
+| **C** | ALG-AI-001 depth: escort/load, glyph passability, ship set B | done (Q16 → v0.5.4) |
 | **D** | ALG-AI-002 threat / `0x3ADC` reachability refinements | open |
 | **E** | Default opponent = Classic DOS when staged complete | open |
 
