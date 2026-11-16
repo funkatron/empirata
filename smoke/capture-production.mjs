@@ -32,15 +32,7 @@ await new Promise(done=>server.listen(0,'127.0.0.1',done));
 const observations=[];
 async function inspectCity(page,position){
   await page.locator('#fitWorld').click();
-  // "Fit World" clamps camera offsets to zero. A center-of-cell click uses
-  // the same camera helper formula as the app, in CSS rather than device pixels.
-  const click=await page.locator('#map').evaluate((canvas,p)=>{
-    const tile=Math.min(canvas.clientWidth/100,canvas.clientHeight/60);
-    return {x:(p.x+0.5)*tile,y:(p.y+0.5)*tile};
-  },position);
-  await page.locator('#map').click({position:click});
-  if(/Zoomed in on that area/i.test(await page.locator('#toast').innerText()))
-    await page.locator('#map').click({position:click});
+  await page.evaluate(p=>window.empirataMapPaintProbe.selectMapCell(p),position);
   if(await page.locator('#stackDialog').isVisible()){
     await page.locator('#stackChoices button').filter({hasText:'Inspect '}).first().click();
   }

@@ -107,6 +107,16 @@ function publishMapPaintProbe():void {
       invalidateMapLayer();
       paint();
     },
+    /** Playwright smoke: select a map cell through the same tap path as the UI (incl. overview zoom). */
+    selectMapCell(pos:Coord){
+      for(let attempt=0;attempt<3;attempt++){
+        tapTile(pos,true);
+        const inspector=el('inspector');
+        const text=inspector.textContent??'';
+        const idleSpectator=text.includes('Both factions are computer-controlled')&&!inspector.querySelector('.selection-title');
+        if(!idleSpectator)return;
+      }
+    },
   };
 }
 publishMapPaintProbe();

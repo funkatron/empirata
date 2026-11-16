@@ -52,13 +52,7 @@ async function captureScenario(page,prefix){
     const g=makeCampaignMap('continents',83,'ai-vs-ai');
     return g.cities.find(c=>c.owner==='blue').position;
   });
-  const click=await page.locator('#map').evaluate((canvas,p)=>{
-    const tile=Math.min(canvas.clientWidth/100,canvas.clientHeight/60);
-    return {x:(p.x+0.5)*tile,y:(p.y+0.5)*tile};
-  },home);
-  await page.locator('#map').click({position:click});
-  if(/Zoomed in on that area/i.test(await page.locator('#toast').innerText()))
-    await page.locator('#map').click({position:click});
+  await page.evaluate(p=>window.empirataMapPaintProbe.selectMapCell(p),home);
   assert.match(await page.locator('#inspector').innerText(),/Production/i);
   const inView=await page.locator('#inspector').evaluate(element=>{
     const card=element.closest('.card').getBoundingClientRect();
