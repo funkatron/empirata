@@ -51,6 +51,8 @@ export function chooseClassicCityProduction(
   const counts = classicLiveUnitCounts(game, faction);
   const coastal = isCoastal(game, city.position);
   if (coastal && counts.transport < 2) return 'transport';
+  if (coastal && counts.carrier === 0 && counts.destroyer > 0 && counts.transport > 0) return 'carrier';
+  if (coastal && counts.fighter * 3 < counts.army && counts.army >= 2) return 'fighter';
   if (coastal && dosAiGradeBFlag(grade) === 1 && counts.destroyer === 0 && counts.transport > 0) {
     return 'destroyer';
   }
