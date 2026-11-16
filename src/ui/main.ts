@@ -1,4 +1,14 @@
 import {clampTileSize,fitTileSize} from './camera.js';
+import {
+  exceedsPanThreshold,
+  panCamera,
+  pinchFrame,
+  pinchGestureSample,
+  pinchWorldAnchor,
+  shouldBeginPinch,
+  shouldEmitTap,
+  shouldSuppressMultiTouch,
+} from './gestures.js';
 import {drawCity,drawCoast,drawTerrain,drawUnit} from './map-art.js';
 import {
   observerFogOpacity,observerTerrain,refreshShouldInvalidateKnowledgeLayer,terrainLayerCacheKey,
@@ -625,26 +635,20 @@ function refresh():void {
   if(finished)inspector.querySelectorAll<HTMLButtonElement|HTMLSelectElement>('button,select').forEach(control=>{if(!control.classList.contains('cargoButton'))control.disabled=true;});
   paint();
 }
-function pinchPoints():{x:number;y:number;distance:number}|null {
-  if(touches.size<2)return null;
-  const points=[...touches.values()];
-  const a=points[0]!,b=points[1]!;
-  return {x:(a.x+b.x)/2,y:(a.y+b.y)/2,distance:Math.max(1,Math.hypot(a.x-b.x,a.y-b.y))};
-}
+function pinchPoints(){if(touches.size<2)return null;const [a,b]=[...touches.values()];return pinchGestureSample(a!,b!);}
 function beginPinch():void {
   const p=pinchPoints();if(!p)return;
   const rect=canvas.getBoundingClientRect();
-  pinch={distance:p.distance,scale:tileSize,
-    worldX:(p.x-rect.left+cameraX)/tileSize,
-    worldY:(p.y-rect.top+cameraY)/tileSize};
+  const anchor=pinchWorldAnchor(p.x,p.y,rect.left,rect.top,cameraX,cameraY,tileSize);
+  pinch={distance:p.distance,scale:tileSize,worldX:anchor.worldX,worldY:anchor.worldY};
   suppressTap=true;down=null;
 }
 canvas.addEventListener('pointerdown',ev=>{
   if(ev.pointerType==='mouse'&&ev.button!==0)return;
   canvas.setPointerCapture(ev.pointerId);
   touches.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
-  if(touches.size===2){beginPinch();return;}
-  if(touches.size>2){suppressTap=true;down=null;return;}
+  if(shouldBeginPinch(touches.size)){beginPinch();return;}
+  if(shouldSuppressMultiTouch(touches.size)){suppressTap=true;down=null;return;}
   if(suppressTap)return;
   down={id:ev.pointerId,x:ev.clientX,y:ev.clientY,cameraX,cameraY,moved:false};
   canvas.focus({preventScroll:true});
@@ -654,16 +658,21 @@ canvas.addEventListener('pointermove',ev=>{
   touches.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
   if(pinch&&touches.size===2){
     const p=pinchPoints()!,rect=canvas.getBoundingClientRect();
-    const w=canvas.clientWidth,h=canvas.clientHeight;
-    tileSize=clampTileSize(pinch.scale*p.distance/pinch.distance,w,h,game.width,game.height);
-    cameraX=pinch.worldX*tileSize-(p.x-rect.left);
-    cameraY=pinch.worldY*tileSize-(p.y-rect.top);
+    const frame=pinchFrame({
+      worldX:pinch.worldX,worldY:pinch.worldY,
+      startScale:pinch.scale,startDistance:pinch.distance,
+      midX:p.x,midY:p.y,currentDistance:p.distance,
+      rectLeft:rect.left,rectTop:rect.top,
+      viewW:canvas.clientWidth,viewH:canvas.clientHeight,
+      worldW:game.width,worldH:game.height,
+    });
+    tileSize=frame.tileSize;cameraX=frame.cameraX;cameraY=frame.cameraY;
     clamp();schedulePaint();return;
   }
   if(!down||down.id!==ev.pointerId)return;
   const dx=ev.clientX-down.x,dy=ev.clientY-down.y;
-  if(Math.abs(dx)+Math.abs(dy)>6)down.moved=true;
-  if(down.moved){cameraX=down.cameraX-dx;cameraY=down.cameraY-dy;clamp();schedulePaint();}
+  if(exceedsPanThreshold(dx,dy))down.moved=true;
+  if(down.moved){const next=panCamera(down.cameraX,down.cameraY,dx,dy);cameraX=next.x;cameraY=next.y;clamp();schedulePaint();}
 });
 function finishPointer(ev:PointerEvent,cancelled:boolean):void {
   if(!touches.has(ev.pointerId))return;
@@ -674,7 +683,7 @@ function finishPointer(ev:PointerEvent,cancelled:boolean):void {
     return;
   }
   if(down?.id===ev.pointerId){
-    const tapped=!cancelled&&!down.moved;
+    const tapped=shouldEmitTap({cancelled,moved:down.moved,suppressTap:false,endingPinch:false});
     down=null;if(tapped)tapTile(cellFromPointer(ev));
   }
 }

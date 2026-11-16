@@ -23,8 +23,8 @@
 
 | # | Acceptance criterion | Status | Evidence |
 |---|----------------------|--------|----------|
-| 1.1 | Pinch inward = zoom out, spread = zoom in; anchor stable | **Partial** | `main.ts` `beginPinch` / `pointermove` math; **no test** |
-| 1.2 | Pan without order; tap selects; 2-finger never attacks | **Partial** | `suppressTap`, `finishPointer`, 6px move threshold; **no test** |
+| 1.1 | Pinch inward = zoom out, spread = zoom in; anchor stable | **Pass (unit)** | `src/ui/gestures.ts` + `tests/ui-gestures.test.mjs`; wired from `main.ts` |
+| 1.2 | Pan without order; tap selects; 2-finger never attacks | **Pass (unit)** | `exceedsPanThreshold`, `shouldEmitTap`, `panCamera` tests |
 | 1.3 | Fit world shows full 100×60 on iPad + phone viewports | **Pass** | `ui-camera.test.mjs`; screenshots after ⊞ |
 | 1.4 | Zoom bounded, no NaN after resize | **Partial** | `clampTileSize` tests; resize path **untested** in browser |
 | 1.5 | +/-, wheel, keyboard zoom still work | **Partial** | Code: `zoom()`, `keydown` +/-; **no automated UI test** |

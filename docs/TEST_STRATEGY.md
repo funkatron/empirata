@@ -59,7 +59,7 @@ Pages deploy runs on `main` after verify; a green verify on a PR does not by its
 
 ## Remaining high-priority gaps
 
-- **Browser UX:** full touch/pinch/inspector acceptance; partial coverage via UI structure/camera tests and opt-in Playwright workflows — no UI coverage **gate** yet.
+- **Browser UX:** full touch/pinch/inspector acceptance; `tests/ui-gestures.test.mjs` covers pinch/pan/tap math; `ui-camera` + `ui-structure` for layout; opt-in Playwright — no full UI **gate** yet.
 - **DOS oracle:** legal/reference traces for draw order, detection edge cases, production rounding (`docs/manual/findings.md`).
 - **Adversarial save/import:** deeper limits on payload size and nested knowledge abuse.
 - **Mutation / fuzz:** optional; not in default CI.
