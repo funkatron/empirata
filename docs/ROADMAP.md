@@ -8,6 +8,21 @@
 
 **Migration:** (1) reconcile recovered ALG claims with actual engine/tests, since the ruleset mapping table contains stale pre-implementation statuses; (2) add a game-level policy/difficulty setting and original grade parameters with save/replay coverage; (3) implement classic production and movement in bounded deterministic steps; (4) make Classic DOS the default once the minimum classic policy is usable and visibly distinguish incomplete features until then. Keep both factions symmetrical and verify CI/Copilot before merge. No merge or deployment without authorization.
 
+## Current status (2026-11-15)
+
+Use this section for **what to work on now**. Older dated sections below are historical context and detailed specifications.
+
+**Product (v0.5.1):** Campaign and lab scenarios, organic/ellipse mapgen, map recipes, unit/city names, troop transport and carrier logistics, computer-vs-computer observer mode, and JSON save/export are in active use. The shipped default opponent remains **modern (experimental)** until classic migration step (4) is complete.
+
+**Engine queue (authoritative):** Follow the [review-driven execution queue](#review-driven-execution-queue-2026-11-09) — **P0** lost-port ownership memory and post-capture production (tests exist; original UI symptom still not reproduced), **P1** extract `planAi*` from `src/engine/game.ts` into `src/engine/ai/` without behavior change (`classic-grades.ts` started; planners still mostly in `game.ts`), **P2** cargo rule-surface accuracy and `ai*` field documentation, **P3** reconcile `ENGINE_STATUS.md` and `TEST_STRATEGY.md` with source.
+
+**Evaluation discipline:** The frozen [42-campaign baseline](evaluation/strategy-baseline/BASELINE_INTERPRETATION.md) and [held-out manifest audit](../agents/evaluation/held-out-manifest-audit.json) are screening tools, not optimization targets. Long campaigns stay opt-in (`npm run evaluate:ai`, held-out workflow).
+
+**Tooling:** Node **24**, `npm ci` + `npm run build` before tests; CI generates `dist/` and root `index.html` — **not** committed (enforced in `.gitignore`). Cloud Agent install/start scripts live in `.cursor/`.
+
+**UI (Priority 1):** Game menu, map toolbar, fit-world, and pinch-zoom exist in source; finish acceptance against the Priority 1 checklist only where behavior still fails (especially iPad gesture audit).
+
+**Docs debt:** `ENGINE_STATUS.md` is a milestone archive with a stale banner — prefer this roadmap, [WORKSTREAM_STATUS.md](WORKSTREAM_STATUS.md), and [ENGINE_STATUS.md](ENGINE_STATUS.md) only for deep history.
 
 This is the working roadmap for the browser-based Empire rules laboratory. Items are proposals until marked implemented and verified. Historical rule fidelity, reproducibility, and accessibility remain core constraints.
 
@@ -69,7 +84,7 @@ Source: external Codex project-review handoff (2026-11-09). These are **review f
 - Repeat asymmetric cases with factions swapped; preserve fog-of-war and legal-action boundaries. Record the seed, starting state, expected decision, and reason for failure.
 - Build on existing `makeAiInvasionLab()` and `advanceLabRound()` infrastructure rather than inventing a parallel simulator. Priority follow-ons after P0: idle transport reassignment, destroyer investigation of stale sightings, and coordinated landing with a small pre-seeded force.
 - Long held-out campaigns remain **manual/opt-in milestone checks**, never the routine PR feedback loop. Do not modify the frozen 42-campaign baseline. A single passing scenario is a regression check, not proof of overall AI strength.
-- For engine changes: Node 24, `npm run build`, `npm test`, GitHub CI and Copilot/Cursor review checks before merge. UI changes also require relevant browser evidence. Do not commit generated `dist/` or root standalone `index.html` as source patches. Keep `AGENTS.md` and `agents/` guidance authoritative.
+- For engine changes: Node 24, `npm run build`, `npm test`, GitHub CI and Copilot/Cursor review checks before merge. UI changes also require relevant browser evidence. Do not commit generated `dist/` or root standalone `index.html` as source patches (enforced in `.gitignore`). Keep `AGENTS.md` and `agents/` guidance authoritative.
 
 ## Gameplay issue — Lost ports and stale ownership (2026-10-27)
 
@@ -233,10 +248,10 @@ mode. This is a performance hypothesis, not a measured diagnosis.
 **Verification checklist**
 
 - [ ] Profile representative large-unit observer sessions.
-- [ ] Compare current redraws with batch-end/reduced redraw modes.
-- [ ] Confirm identical deterministic outcomes and save/resume behavior.
-- [ ] Confirm responsive progress and pause on iPad.
-- [ ] Document measured benefit and remaining computation costs.
+- [x] Compare current redraws with batch-end/reduced redraw modes (batch refresh after N rounds; see 2026-10-31 follow-up).
+- [x] Confirm identical deterministic outcomes and save/resume behavior (coordinator tests + observer smoke).
+- [ ] Confirm responsive progress and pause on iPad (opt-in `npm run test:observer`).
+- [ ] Document measured benefit and remaining computation costs (computation vs display still open).
 
 ## Strategic/tactical AI program: faction neutrality and campaign evaluation (2026-10-31)
 
