@@ -14,7 +14,7 @@ Use this section for **what to work on now**. Older dated sections below are his
 
 **Product (v0.5.1):** Campaign and lab scenarios, organic/ellipse mapgen, map recipes, unit/city names, troop transport and carrier logistics, computer-vs-computer observer mode, and JSON save/export are in active use. The shipped default opponent remains **modern (experimental)** until classic migration step (4) is complete.
 
-**Engine queue (authoritative):** Follow the [review-driven execution queue](#review-driven-execution-queue-2026-11-09) — **P0** capture knowledge/production contamination **closed** (see P0 status note), **P1** extract `planAi*` from `src/engine/game.ts` into `src/engine/ai/` without behavior change (`classic-grades.ts` started; planners still mostly in `game.ts`), **P2** cargo rule-surface accuracy and `ai*` field documentation, **P3** reconcile `ENGINE_STATUS.md` and `TEST_STRATEGY.md` with source.
+**Engine queue (authoritative):** Follow the [review-driven execution queue](#review-driven-execution-queue-2026-11-09) — **P0** capture knowledge/production contamination **closed** (see P0 status note), **P1** planner extraction **closed** (`src/engine/ai/modern-planners.ts`; `playAiOpponent` still in `game.ts` — optional thin executor in a follow-up PR), **P2** cargo rule-surface accuracy and `ai*` field documentation, **P3** reconcile `ENGINE_STATUS.md` and `TEST_STRATEGY.md` with source.
 
 **Evaluation discipline:** The frozen [42-campaign baseline](evaluation/strategy-baseline/BASELINE_INTERPRETATION.md) and [held-out manifest audit](../agents/evaluation/held-out-manifest-audit.json) are screening tools, not optimization targets. Long campaigns stay opt-in (`npm run evaluate:ai`, held-out workflow).
 
@@ -64,7 +64,7 @@ Source: external Codex project-review handoff (2026-11-09). These are **review f
 
 ### P1: Reduce `src/engine/game.ts` coupling without behavior changes
 
-3. Extract `planAi*` and private planning helpers into `src/engine/ai/` (exact modules to be decided from current source). Planners must score only faction-available `PlayerView` intelligence and return intentions; the authoritative engine must apply legal actions. Preserve existing deterministic decisions, fog boundaries, and test expectations. **Complete when:** `npm run build` and `npm test` pass with no intentional behavior change; separate PR from P0.
+3. **Closed (2026-11-15):** `planAi*` and private planning helpers live in `src/engine/ai/modern-planners.ts` (`PlayerView`-typed); re-exported from `src/engine/index.ts` and `game.ts` for existing tests. Planners score only faction-available `PlayerView` intelligence and return intentions; `playAiOpponent` still applies legal actions in `game.ts`.
 4. **Optional, separate PR:** Extract `playAiOpponent` into a thin executor after planners are isolated. Preserve legal action routing and replay determinism.
 
 ### P2: Remove misleading behavior and clarify model ownership
