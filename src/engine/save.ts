@@ -31,6 +31,12 @@ export function importSave(json:string):Game {
     // Classic gameplay is staged: policy metadata is valid, but the classic executor does not issue orders yet.
   }
   const validFaction=(id:unknown)=>id==='blue'||id==='red'||id==='green';
+  if(g.classicResignOffered!==undefined){
+    if(!g.classicResignOffered||typeof g.classicResignOffered!=='object')throw new Error('Invalid classic resign metadata.');
+    for(const [key,val] of Object.entries(g.classicResignOffered)){
+      if(!validFaction(key)||typeof val!=='boolean')throw new Error('Invalid classic resign metadata.');
+    }
+  }
   const finiteInt=(value:unknown)=>Number.isSafeInteger(value)&&Number.isFinite(value);
   const validPosition=(pos:any)=>pos&&finiteInt(pos.x)&&finiteInt(pos.y)&&playable(g as Game,pos);
   if(!finiteInt(g.round)||g.round!<1||!finiteInt(g.nextId)||g.nextId!<1||
