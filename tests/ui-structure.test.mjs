@@ -19,7 +19,10 @@ test('Semantic UI: global Game menu and map-local viewport controls',()=>{
   assert.match(html,/id="copyMapSeed"/);
   assert.match(html,/id="exportMapRecipe"/);
   assert.match(html,/id="importMapRecipe"/);
-  assert.match(html,/organic-v1/);
+  assert.match(html,/value="organic-v1" selected/);
+  assert.match(html,/value="standard" selected/);
+  assert.match(html,/class="game-dialog-row game-dialog-row--seed"/);
+  assert.match(html,/id="gameMenuDialog"/);
   assert.match(html,/id="fitWorld"/);
   assert.ok(!html.includes('id="startSkirmish"'),'scenario start must not live in map toolbar');
   assert.ok(!html.includes('id="campaignMap"'),'legacy combined layout:seed select was replaced');
@@ -40,8 +43,9 @@ test('CvC observer has a checked-by-default full-map fog toggle',()=>{
 });
 
 test('Game menu and map toolbar expose screen-reader labels',()=>{
-  assert.match(html,/id="gameMenu"[^>]*>[\s\S]*?aria-label="Game menu, campaigns and saved games"/);
-  assert.match(html,/class="game-menu-panel" role="region" aria-label="Campaign setup, test scenarios, and save files"/);
+  assert.match(html,/id="gameMenu"[^>]*aria-label="Game menu, campaigns and saved games"/);
+  assert.match(html,/class="game-dialog-body" role="region" aria-label="Campaign setup, test scenarios, and save files"/);
+  assert.match(html,/class="game-dialog-footer"[^>]*>[\s\S]*id="startCampaign"/);
   assert.match(html,/id="recenter" aria-label="Focus selection or home city"/);
   assert.match(html,/class="toolbar-right" role="toolbar" aria-label="Map zoom and recenter"/);
 });

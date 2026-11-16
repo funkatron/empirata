@@ -29,7 +29,9 @@ test('Observer speed, progress and cancellation in WebKit',async t=>{
     await page.goto(`http://127.0.0.1:${server.address().port}`);
     await page.waitForFunction(()=>document.querySelector('#toast').textContent.length>0);
     const start=async()=>{
-      await page.locator('#gameMenu summary').click();await page.locator('#aiVsAiGame').click();
+      await page.locator('#gameMenu').click();
+      await page.locator('#gameMenuDialog').waitFor({state:'visible'});
+      await page.locator('#aiVsAiGame').click();
       await page.waitForFunction(()=>document.querySelector('#round').textContent==='ROUND 1');
     };
     const round=async()=>Number((await page.locator('#round').textContent()).replace('ROUND ',''));
