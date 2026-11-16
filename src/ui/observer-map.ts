@@ -34,17 +34,20 @@ export function terrainLayerCacheKey(
   return `know|${tilesRevision}|${tileSize}|${knowledgeGeneration}`;
 }
 
-/** Fog stamps follow knowledge; reveal-on CvC matches geography (no knowledge gen in key). */
+/** Fog always tracks PlayerView visibility; reveal-on only changes terrain stamps, not fog. */
 export function fogLayerCacheKey(
   tilesRevision:number,tileSize:number,revealMap:boolean,knowledgeGeneration:number
 ):string {
-  if(revealMap)return `fog-geo|${tilesRevision}|${tileSize}`;
-  return `fog-know|${tilesRevision}|${tileSize}|${knowledgeGeneration}`;
+  const prefix=revealMap?'fog-geo':'fog-know';
+  return `${prefix}|${tilesRevision}|${tileSize}|${knowledgeGeneration}`;
 }
 
-/** Knowledge-based stamps must rebuild when fog/exploration changes; true geography does not. */
+/**
+ * Bumps knowledge-layer generation on refresh. Terrain cache keys for reveal-on CvC ignore
+ * generation (true geography), but fog stamps always depend on visible/explored cells.
+ */
 export function refreshShouldInvalidateKnowledgeLayer(
-  scenario:Game['scenario'],revealSpectatorTerrain:boolean
+  _scenario:Game['scenario'],_revealSpectatorTerrain:boolean
 ):boolean {
-  return !(scenario==='ai-vs-ai'&&revealSpectatorTerrain);
+  return true;
 }

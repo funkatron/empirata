@@ -66,9 +66,9 @@ test('Reveal-on geography cache key ignores knowledge generation and visibility 
   assert.notEqual(terrainLayerCacheKey(3,24,true,0),terrainLayerCacheKey(3,30,true,0));
 });
 
-test('Fog layer cache keys mirror terrain reveal-on vs knowledge rules',()=>{
-  assert.equal(fogLayerCacheKey(3,24,true,0),fogLayerCacheKey(3,24,true,99));
-  assert.equal(fogLayerCacheKey(3,24,true,0),'fog-geo|3|24');
+test('Fog layer cache keys always track knowledge generation',()=>{
+  assert.notEqual(fogLayerCacheKey(3,24,true,0),fogLayerCacheKey(3,24,true,99));
+  assert.equal(fogLayerCacheKey(3,24,true,0),'fog-geo|3|24|0');
   assert.equal(fogLayerCacheKey(1,16,false,7),'fog-know|1|16|7');
 });
 
@@ -77,9 +77,8 @@ test('Knowledge terrain cache key tracks exploration generation',()=>{
   assert.notEqual(terrainLayerCacheKey(1,16,false,7),terrainLayerCacheKey(1,16,false,8));
 });
 
-test('Only CvC reveal-on skips knowledge-layer invalidation on refresh',()=>{
-  assert.equal(refreshShouldInvalidateKnowledgeLayer('ai-vs-ai',true),false);
+test('Refresh always invalidates knowledge stamps for fog updates',()=>{
+  assert.equal(refreshShouldInvalidateKnowledgeLayer('ai-vs-ai',true),true);
   assert.equal(refreshShouldInvalidateKnowledgeLayer('ai-vs-ai',false),true);
   assert.equal(refreshShouldInvalidateKnowledgeLayer('close-quarters',true),true);
-  assert.equal(refreshShouldInvalidateKnowledgeLayer('ai-invasion',false),true);
 });
