@@ -14,7 +14,7 @@ Use this section for **what to work on now**. Older dated sections below are his
 
 **Product (v0.5.1):** Campaign and lab scenarios, organic/ellipse mapgen, map recipes, unit/city names, troop transport and carrier logistics, computer-vs-computer observer mode, and JSON save/export are in active use. The shipped default opponent remains **modern (experimental)** until classic migration step (4) is complete.
 
-**Engine queue (authoritative):** Follow the [review-driven execution queue](#review-driven-execution-queue-2026-11-09) — **P0** lost-port ownership memory and post-capture production (tests exist; original UI symptom still not reproduced), **P1** extract `planAi*` from `src/engine/game.ts` into `src/engine/ai/` without behavior change (`classic-grades.ts` started; planners still mostly in `game.ts`), **P2** cargo rule-surface accuracy and `ai*` field documentation, **P3** reconcile `ENGINE_STATUS.md` and `TEST_STRATEGY.md` with source.
+**Engine queue (authoritative):** Follow the [review-driven execution queue](#review-driven-execution-queue-2026-11-09) — **P0** capture knowledge/production contamination **closed** (see P0 status note), **P1** extract `planAi*` from `src/engine/game.ts` into `src/engine/ai/` without behavior change (`classic-grades.ts` started; planners still mostly in `game.ts`), **P2** cargo rule-surface accuracy and `ai*` field documentation, **P3** reconcile `ENGINE_STATUS.md` and `TEST_STRATEGY.md` with source.
 
 **Evaluation discipline:** The frozen [42-campaign baseline](evaluation/strategy-baseline/BASELINE_INTERPRETATION.md) and [held-out manifest audit](../agents/evaluation/held-out-manifest-audit.json) are screening tools, not optimization targets. Long campaigns stay opt-in (`npm run evaluate:ai`, held-out workflow).
 
@@ -54,10 +54,13 @@ Source: external Codex project-review handoff (2026-11-09). These are **review f
 
 ### P0: Correct evaluation-contaminating gameplay behavior
 
-**Investigation update, 2026-11-11:** The earlier capture-notification fix is already present in `src/engine/adjudication.ts`. Existing `tests/adjudication.test.mjs` tests A-015 and A-016 cover both factions, ownership-memory correction, preservation across JSON save/reload, and production after *human-assigned* orders. Newly seeded AI tests in [PR #88](https://github.com/funkatron/empirata/pull/88) extend the capture → automatic production selection → first unit cycle to both factions, including mid-production save/reload. The PR's checks must pass before those assertions count as verified evidence. A real-browser inspection of the captured-city production panel remains open. Do not conflate this correctness work with long-term city recovery strategy or DOS execution-order parity.
+**Status (2026-11-15): closed in engine with focused regression tests.** Remaining human UX check is optional (see P4).
 
-1. **Lost-port ownership memory (existing issue below).** Construct a minimal capture fixture for each faction; inspect the former owner's `Knowledge.cities` immediately after capture and after save/reload. Correct stale friendly ownership without disclosing enemy production, movements, or other hidden information. Keep lost-port recovery strategy separate from the knowledge-correctness fix. **Complete when:** a regression reproduces the error before the fix, passes afterward, and both faction directions and save/reload are covered. Mark any unverified historical call order provisional.
-2. **Production following city capture (existing issue below).** First determine whether the observed stall is in the engine, AI production assignment, or UI presentation. Trace capture → ownership → eligible production choice → progress → first completed unit in short human, AI, and AI-vs-AI fixtures. Verify save/reload continuity and inspector truthfulness. **Complete when:** the actual cause is demonstrated and covered by focused tests, without unrelated AI tuning.
+**Engine evidence:** `tests/adjudication.test.mjs` (A-015/A-016 and production-leak fixture), `tests/ai-post-capture-production.test.mjs`, and `tests/p0-capture-contamination.test.mjs` (neutral-observer/Green knowledge, off-sight production leak, human explicit-assignment path). Capture now corrects **every** faction's remembered `previousOwner` on that city (including Green lab knowledge not listed in `players`), not only the defender.
+
+**Findings**
+1. **Lost-port ownership memory** — fixed stale friendly/enemy ownership for any faction that remembered the pre-capture owner; save/reload covered. Old campaign saves before the fix are not repaired (explicitly out of scope). Long-term port-recovery **strategy** remains open elsewhere.
+2. **Production after capture** — not an engine stall: captured factories reset to unassigned by design; **human** players must choose production in the inspector; **AI** assigns army production after movement (post-capture pass uses live `g.cities`). Browser inspector validation for the human path remains optional.
 
 ### P1: Reduce `src/engine/game.ts` coupling without behavior changes
 

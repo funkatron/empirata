@@ -9,7 +9,7 @@ Updated 2026-11-15. This ledger tracks independent areas of work and their CI ga
 | C — Manual/DOS conformance | Unit/rules audit, detection/combat, 2.05C comparisons | **In progress** | Independent of AI tuning | `docs/MANUAL_CONFORMANCE_AUDIT.md`, `tests/manual-unit-roster.test.mjs` |
 | D — Campaign outcomes | Baseline study + follow-on telemetry on holdout maps | **Baseline complete; tuning pending** | Do not mutate raw 42-campaign archive | #45 baseline + `STRATEGY_AND_TACTICS_PLAN.md`; `tests/ai-campaign.test.mjs`, `ai-vs-ai` |
 | E — UI / graphics | Fit world, Game menu, screenshot baselines, G1–U1 plan | **Core chrome in source; iPad acceptance open** | Review actual desktop/iPad captures; separate deployment verification | Game menu + map toolbar + pinch/fit in `src/ui/main.ts`; #62 camera; #65 terrain atlas; roadmap Priority 1 acceptance checklist |
-| F — Gameplay defects | Lost ports, post-capture production, ownership memory | **Open — engine tests; UI repro unconfirmed** | Close P0 or reclassify with evidence before strategy tuning | `tests/adjudication.test.mjs` A-015/A-016; `docs/ROADMAP.md` P0 queue |
+| F — Gameplay defects | Lost ports, post-capture production, ownership memory | **Engine closed 2026-11-15** (optional UI inspector audit) | Strategy/port recovery remains separate from knowledge correctness | `tests/p0-capture-contamination.test.mjs`, adjudication + AI post-capture suites |
 | G — Independent review | Adversarial testing and wargaming second pass | **Pending** | Manual audit + campaign evidence | `docs/ROADMAP.md` Priority 3A |
 
 ## Coordination rules
