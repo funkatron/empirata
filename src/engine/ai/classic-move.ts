@@ -31,3 +31,14 @@ export function embarkedCargoCount(game: Game, shipId: string): number {
 export function classicUnitView(game: Game, faction: FactionId): ReturnType<typeof getPlayerView> {
   return getPlayerView(game, faction);
 }
+
+/** One activation step toward a Move To destination (PlayerView-blind routing uses live `routeStep`). */
+export function classicMoveToStep(
+  game: Game,
+  unit: Unit,
+  routeStep: (game: Game, unit: Unit, destination: Coord) => Coord | null,
+): Coord | null {
+  if (unit.order.kind !== 'move-to') return null;
+  if (unit.position.x === unit.order.destination.x && unit.position.y === unit.order.destination.y) return null;
+  return routeStep(game, unit, unit.order.destination);
+}
