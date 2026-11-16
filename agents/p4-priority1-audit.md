@@ -59,10 +59,10 @@
 
 | ID | Gap | Severity | Suggested fix |
 |----|-----|----------|---------------|
-| G1 | No automated pinch/pan/tap regression | Medium | Extract pure `pinchTileScale(prev,next,...)` helper + unit tests; optional Playwright pinch simulation |
+| G1 | ~~No automated pinch/pan/tap regression~~ | — | **Closed** — `gestures.ts` + `ui-gestures.test.mjs` (#123) |
 | G2 | `Escape` did not close Game menu (only click-outside) | Low | Close `#gameMenu` when open on Escape (before clearing selection) — **fixed in P4 audit PR** |
-| G3 | Full a11y audit (focus trap, roles, SR labels on menu) | Low | Manual checklist or follow-up UX PR |
-| G4 | Overview-scale tile tap targets | Low | Manual verify; optional “tap to zoom” if user reports misses |
+| G3 | ~~Full a11y audit (focus trap, roles, SR labels on menu)~~ | — | **Closed** — menu/panel labels, toolbar `aria-label`, focus on menu open (#G3/G4 PR) |
+| G4 | ~~Overview-scale tile tap targets~~ | — | **Closed** — `isOverviewTileScale` / tap-to-zoom in `main.ts` + `camera.ts` |
 | G5 | Default CI lacks HTML load smoke | Low | `smoke/ui-load.mjs` in verify — **added in P4 audit PR** |
 | G6 | Playwright capture-production remains opt-in | Info | Document 9A in `TEST_STRATEGY.md`; time job before promoting to default CI |
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {clampTileSize,fitTileSize,maxTileSize} from '../dist/ui/camera.js';
+import {clampTileSize,fitTileSize,isOverviewTileScale,maxTileSize,zoomInForMapTap} from '../dist/ui/camera.js';
 
 test('fitTileSize shows entire 100×60 world in representative viewports',()=>{
   assert.ok(fitTileSize(1024,768,100,60)<=768/60);
@@ -23,4 +23,20 @@ test('clampTileSize never goes below fit or above max',()=>{
   assert.equal(clampTileSize(1000,w,h,ww,wh),max);
   const mid=(fit+max)/2;
   assert.equal(clampTileSize(mid,w,h,ww,wh),mid);
+});
+
+test('isOverviewTileScale at fit-world but not at readable zoom',()=>{
+  const w=834,h=1194,ww=100,wh=60;
+  const fit=fitTileSize(w,h,ww,wh);
+  assert.ok(isOverviewTileScale(fit,w,h,ww,wh));
+  assert.ok(!isOverviewTileScale(30,w,h,ww,wh));
+});
+
+test('zoomInForMapTap lifts fit-world scale toward readable cells',()=>{
+  const w=834,h=1194,ww=100,wh=60;
+  const fit=fitTileSize(w,h,ww,wh);
+  const next=zoomInForMapTap(fit,w,h,ww,wh);
+  assert.ok(next>fit);
+  assert.ok(next>=22);
+  assert.ok(!isOverviewTileScale(next,w,h,ww,wh));
 });
