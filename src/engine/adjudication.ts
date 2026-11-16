@@ -133,10 +133,18 @@ export function adjudicateCityCapture(game:Game, record:CaptureRecord,mutable=fa
     city.production=null;city.progress=0;city.firstCycle=true;
     log(g,army.owner,`${city.id} captured. ${unitLabel(army)} joined its permanent garrison. Assign production.`);
     if(previousOwner){
+      // Correct every faction that remembered the previous owner, not only the
+      // loser. Otherwise neutral observers keep stale friendly/enemy ownership in
+      // evaluation and AI planning (round-764 class bugs).
+      for(const faction of ['blue','red','green'] as const){
+        const store=g.knowledge[faction];
+        if(!store)continue;
+        const prior=store.cities[city.id];
+        if(!prior||prior.owner!==previousOwner)continue;
+        store.cities[city.id]={id:city.id,owner:army.owner,
+          production:null,productionKnown:false};
+      }
       // The loss notification is known even when the city's sight is removed.
-      // Do not retain friendly ownership or reveal the conqueror's production.
-      g.knowledge[previousOwner].cities[city.id]={id:city.id,owner:army.owner,
-        production:null,productionKnown:false};
       log(g,previousOwner,`${city.id} was captured by an enemy army.`);
     }
   }

@@ -1633,7 +1633,11 @@ export function playAiOpponent(game:Game,faction:FactionId):Game {
     }
   }
   // Captures happen after the production pass; activate their factories now.
-  for(const city of view.ownCities)if(city.production===null){selectProduction(g,city.id,'army',true);syncView();}
+  syncView();
+  for(const city of g.cities.filter(c=>c.owner===faction&&c.production===null)){
+    selectProduction(g,city.id,'army',true);
+    syncView();
+  }
   return g;
 }
 
