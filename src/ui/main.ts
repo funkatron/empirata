@@ -688,7 +688,11 @@ document.addEventListener('keydown',ev=>{
   if(target.matches('input,textarea,select,button,[contenteditable="true"]'))return;
   const moves:Record<string,Coord>={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},
     q:{x:-1,y:-1},e:{x:1,y:-1},z:{x:-1,y:1},c:{x:1,y:1}};
-  if(ev.key==='Escape'){choosingDestination=false;selectedUnit=null;selectedCity=null;spectatorContact=null;spectatorCity=null;refresh();return;}
+  if(ev.key==='Escape'){
+    const menu=el('gameMenu') as HTMLDetailsElement;
+    if(menu.open){menu.open=false;return;}
+    choosingDestination=false;selectedUnit=null;selectedCity=null;spectatorContact=null;spectatorCity=null;refresh();return;
+  }
   if(ev.key==='+'||ev.key==='='){zoom(3);return;}if(ev.key==='-'){zoom(-3);return;}
   const delta=moves[ev.key];if(!delta||!selectedUnit)return;
   const u=view.ownUnits.find(u=>u.id===selectedUnit);if(!u)return;

@@ -108,15 +108,11 @@ Related spec: [Priority 1 — Map navigation and semantic UI architecture](../do
 
 ## Act (ordered steps)
 
-1. Merge this plan (`agents/p4-ooda-plan.md`) if not already on `main`.
-2. Branch `cursor/p4-audit-85b7` from `main`.
-3. Run local `npm run build && npm start` (or static `dist/`) for desktop sanity.
-4. Execute Priority 1 checklist against live UI; record matrix.
-5. Run or dispatch **capture-production** for iPad + desktop screenshots; attach to audit doc.
-6. Open audit PR (docs only); review gap list with user.
-7. **Stop until gaps approved** — then phase 1 per gap (one or more PRs).
-8. Time opt-in Playwright; decide 9A/9B/9C; implement in separate commit/PR.
-9. Close P4 in roadmap + workstream.
+1. ~~Merge plan~~ — on `main`.
+2. **Phase 0 done (2026-11-16):** [`agents/p4-priority1-audit.md`](p4-priority1-audit.md) + browser screenshots (`p4-audit-*.png`).
+3. Shipped with audit: Escape closes Game menu (G2), `smoke/ui-load.mjs` (G5 / option 9B).
+4. **Stop for gap approval** before G1 pinch tests / G3 a11y / G4 overview taps.
+5. Time opt-in Playwright; document 9A; close P4 in roadmap when G1 waived or done.
 
 ## Risks
 
