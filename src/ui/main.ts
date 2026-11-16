@@ -103,8 +103,10 @@ function invalidateMapLayer():void {
 }
 function invalidateKnowledgeLayer():void {
   knowledgeLayerGeneration++;
-  terrainLayerKey='';
   fogLayerKey='';
+  // Reveal-on CvC terrain is true geography; only fog tracks PlayerView visibility.
+  const revealMap=game.scenario==='ai-vs-ai'&&revealSpectatorTerrain;
+  if(!revealMap)terrainLayerKey='';
 }
 function blitWorldLayer(
   target:CanvasRenderingContext2D,layer:HTMLCanvasElement,
