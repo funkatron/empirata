@@ -1,9 +1,8 @@
-# Empirata engine status — v0.4
+# Empirata engine status — milestone archive (v0.4 snapshot)
 
-> Historical milestone record. Introductory claims below are stale, including RNG,
-> AI scope and outstanding transport work. For the 2026-10-30 baseline and remaining
-> work, use the [technical implementation plan](TECHNICAL_IMPLEMENTATION_PLAN.md)
-> and [manual findings](manual/findings.md).
+> **Do not use this file for current priorities.** Product is at **v0.5.1** with campaigns, mapgen, logistics, and observer mode beyond this snapshot.
+> For what to build next, read [ROADMAP.md — Current status](ROADMAP.md#current-status-2026-11-15) and [WORKSTREAM_STATUS.md](WORKSTREAM_STATUS.md).
+> The narrative below is retained for history. For baseline and remaining technical work, see [TECHNICAL_IMPLEMENTATION_PLAN.md](TECHNICAL_IMPLEMENTATION_PLAN.md) and [manual findings](manual/findings.md).
 
 **Rules target:** Interstel *Empire: Wargame of the Century*, DOS 2.05, classic edition. All implementation work should use the same reference edition.
 

@@ -1,15 +1,15 @@
 # Empirata parallel workstream ledger
 
-Updated 2026-11-09. This ledger tracks independent areas of work and their CI gates. **These are workstreams, not claims that separate autonomous subagents have been launched.**
+Updated 2026-11-15. This ledger tracks independent areas of work and their CI gates. **These are workstreams, not claims that separate autonomous subagents have been launched.** For day-to-day priorities see [ROADMAP.md](ROADMAP.md#current-status-2026-11-15).
 
 | Stream | Scope | Status | Dependency / gate | Evidence |
 |---|---|---|---|---|
-| A — CI and reliability | Green verify, reproducible installs, replay/screenshot tooling | **Stable; verify each new PR independently** | Baseline for engine and eval PRs | `main` verify green; #58 `package-lock.json` + Node 24.22.2; #53 replay Action; #57 map-screenshots workflow |
+| A — CI and reliability | Green verify, reproducible installs, replay/screenshot tooling | **Stable; verify each new PR independently** | Baseline for engine and eval PRs | `main` verify green; Node 24.22.2; `dist/` + root `index.html` untracked (#111); `.cursor/` Cloud Agent install/start; replay and map-screenshot workflows |
 | B — Reconnaissance AI | Frontier scouting, stale sightings, held-out policy comparison | **Active; opt-in evaluation available** | Smoke artifact and incomplete-shard diagnosis before any full rerun | #51 scout targeting; #50 stale sightings/idle transports; #52 evaluation runner; #60 opt-in smoke/full evaluation and incomplete-status reporting |
 | C — Manual/DOS conformance | Unit/rules audit, detection/combat, 2.05C comparisons | **In progress** | Independent of AI tuning | `docs/MANUAL_CONFORMANCE_AUDIT.md`, `tests/manual-unit-roster.test.mjs` |
 | D — Campaign outcomes | Baseline study + follow-on telemetry on holdout maps | **Baseline complete; tuning pending** | Do not mutate raw 42-campaign archive | #45 baseline + `STRATEGY_AND_TACTICS_PLAN.md`; `tests/ai-campaign.test.mjs`, `ai-vs-ai` |
-| E — UI / graphics | Fit world, Game menu, screenshot baselines, G1–U1 plan | **Grass/ocean artwork merged; visual refinements open** | Review actual desktop/iPad captures; separate deployment verification | #47–49 map/campaign UI; #57 screenshot harness; #62 camera and iPad profiles; #65 seamless grassland/ocean atlas (verify and desktop capture green); #69 evidence PR closed unmerged |
-| F — Gameplay defects | Lost ports, post-capture production, ownership memory | **Open** | Regression tests before strategy work | `docs/ROADMAP.md` 2026-10-27 issues |
+| E — UI / graphics | Fit world, Game menu, screenshot baselines, G1–U1 plan | **Core chrome in source; iPad acceptance open** | Review actual desktop/iPad captures; separate deployment verification | Game menu + map toolbar + pinch/fit in `src/ui/main.ts`; #62 camera; #65 terrain atlas; roadmap Priority 1 acceptance checklist |
+| F — Gameplay defects | Lost ports, post-capture production, ownership memory | **Open — engine tests; UI repro unconfirmed** | Close P0 or reclassify with evidence before strategy tuning | `tests/adjudication.test.mjs` A-015/A-016; `docs/ROADMAP.md` P0 queue |
 | G — Independent review | Adversarial testing and wargaming second pass | **Pending** | Manual audit + campaign evidence | `docs/ROADMAP.md` Priority 3A |
 
 ## Coordination rules
