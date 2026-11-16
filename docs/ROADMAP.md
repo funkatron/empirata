@@ -14,7 +14,7 @@ Use this section for **what to work on now**. Older dated sections below are his
 
 **Product (v0.5.1):** Campaign and lab scenarios, organic/ellipse mapgen, map recipes, unit/city names, troop transport and carrier logistics, computer-vs-computer observer mode, and JSON save/export are in active use. The shipped default opponent remains **modern (experimental)** until classic migration step (4) is complete.
 
-**Engine queue (authoritative):** Follow the [review-driven execution queue](#review-driven-execution-queue-2026-11-09) — **P0** capture knowledge/production contamination **closed** (see P0 status note), **P1** modern AI modularization **closed** (`modern-planners.ts` + `modern-executor.ts` wired from `game.ts`), **P2** cargo rule-surface accuracy and `ai*` field documentation, **P3** reconcile `ENGINE_STATUS.md` and `TEST_STRATEGY.md` with source.
+**Engine queue (authoritative):** Follow the [review-driven execution queue](#review-driven-execution-queue-2026-11-09) — **P0** capture knowledge/production contamination **closed** (see P0 status note), **P1** modern AI modularization **closed** (`modern-planners.ts` + `modern-executor.ts` wired from `game.ts`), **P2** **closed** (cargo rule-surface error + [`MODERN_AI_UNIT_FIELDS.md`](MODERN_AI_UNIT_FIELDS.md)), **P3** reconcile `ENGINE_STATUS.md` and `TEST_STRATEGY.md` with source.
 
 **Evaluation discipline:** The frozen [42-campaign baseline](evaluation/strategy-baseline/BASELINE_INTERPRETATION.md) and [held-out manifest audit](../agents/evaluation/held-out-manifest-audit.json) are screening tools, not optimization targets. Long campaigns stay opt-in (`npm run evaluate:ai`, held-out workflow).
 
@@ -69,8 +69,8 @@ Source: external Codex project-review handoff (2026-11-09). These are **review f
 
 ### P2: Remove misleading behavior and clarify model ownership
 
-5. Inspect the embarked-unit `moveUnit` path for `RuleNotImplemented('CARGO', ...)` despite existing `disembarkArmy` / `launchFighter` APIs. Route supported actions through legal APIs or return an accurate error; add a minimal regression. Verify the current code path before changing it.
-6. Document experimental `Unit` fields (`aiObjective`, `aiPickup`, `aiBeachhead`, `aiAssembly`, `aiMissionProgress`, `aiAvoidObjective`) and their save-schema semantics. **Do not** move them to a separate `AiUnitState` map without explicit approval.
+5. **Closed (2026-11-16):** Embarked units already directed to `disembarkArmy` / `launchFighter` (`tests/embarked-move-guidance.test.mjs`). Friendly same-square stacking without a city now throws an explicit `Error` (not `RuleNotImplemented('CARGO')`); regression in `tests/p2-cargo-rule-surface.test.mjs`.
+6. **Closed (2026-11-16):** [`MODERN_AI_UNIT_FIELDS.md`](MODERN_AI_UNIT_FIELDS.md) documents save validation and semantics; types cross-link. No `AiUnitState` map.
 
 ### P3: Documentation accuracy
 
