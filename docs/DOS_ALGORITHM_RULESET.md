@@ -567,7 +567,7 @@ Then set `4F8[p]=1`, dialog “The computer wishes|to resign!|Do you accept?”.
 | ALG-011 overload | `src/engine/cargo-overload.ts`, `tests/alg-011-overload.test.mjs` | deterministic survivor policy tested |
 | ALG-012 detection | `src/engine/knowledge.ts`, `tests/alg-012-detection.test.mjs` | matrix tested; sentry/patrol/wait wake needs separate audit |
 | ALG-013 docking | `stayUnit`, `dockShip`, `tests/alg-013-docking.test.mjs` | explicit stay/arrival repair tested; turn-phase trace pending |
-| ALG-AI-001 move/order | `src/engine/ai/classic-executor.ts`, `classic-order-tick.ts`, `classic-path.ts`, `classic-passability.ts`; `tests/alg-ai-001-*.test.mjs` | **staged partial**: sentry/random/go-home/move-to/patrol, budgeted path, legalization; full glyph masks/escort/load not claimed |
+| ALG-AI-001 move/order | `classic-executor.ts`, `classic-mask.ts`, `classic-escort.ts`, path/passability; `tests/alg-ai-001-*.test.mjs` | **staged partial**: escort stationing, ship-B coastal-sea mask, load-ship hold, transport sanitize; full 34-byte glyph tables still not claimed |
 | ALG-AI-002 production | `classic-production.ts` + `chooseClassicCityProduction`; `tests/alg-ai-002-*.test.mjs` | **staged partial**: `0x3490` heuristic tree; reachability threat branches incomplete |
 | ALG-AI-003 setup grades | `classic-grades.ts`, campaign Game menu → `Game.aiPolicy`; `tests/alg-ai-003-grades.test.mjs`, `campaign-ai-policy.test.mjs` | grades selectable on new campaigns; combat `840` factors not fully wired in play |
 | ALG-AI-004 resign offer | `classic-resign.ts`, resign modal + `respondClassicResign`; `tests/alg-ai-004-resign.test.mjs` | predicates + accept/decline UX; not DOS elimination trace parity |

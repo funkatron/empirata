@@ -1,12 +1,14 @@
 import type { Coord, FactionId, Game, Unit, UnitType } from '../types.js';
 import type { AiPolicy } from './classic-grades.js';
 import { chooseClassicCityProduction } from './classic-production.js';
+import { classicEscortStep } from './classic-escort.js';
 import { classicHomeRepairStep, classicMoveToStep, classicPatrolStep, embarkedCargoCount } from './classic-move.js';
 import { classicLegalDirectionStep } from './classic-path.js';
 import {
   classicDamagedShipSeeksPort,
   classicFighterMoveToExhausted,
   classicRandomOrderTick,
+  classicSanitizeTransportOrder,
   classicSentryEngageTarget,
   classicStandingOrderTick,
 } from './classic-order-tick.js';
@@ -65,32 +67,38 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
       const hadMoveTo = moveToDestination !== null;
       const cargo = embarkedCargoCount(g, unit.id);
       const grade = policy.grade;
+      const sanitized = classicSanitizeTransportOrder(fresh, cargo);
+      if (sanitized) g = ops.setOrder(g, unit.id, sanitized, true);
+      const current = g.units.find(u => u.id === unit.id);
+      if (!current) continue;
+      if (current.order.kind === 'load-ship') continue;
       let step: Coord | null = null;
-      if (classicFighterMoveToExhausted(fresh)) {
+      if (classicFighterMoveToExhausted(current)) {
         g = ops.setOrder(g, unit.id, { kind: 'go-home' }, true);
       }
-      if (classicDamagedShipSeeksPort(fresh, cargo)) {
+      if (classicDamagedShipSeeksPort(current, cargo)) {
         g = ops.setOrder(g, unit.id, { kind: 'go-home' }, true);
         const ship = g.units.find(u => u.id === unit.id);
         if (ship) step = classicHomeRepairStep(g, ship, ops.routeStep, grade);
       } else {
-        step = classicSentryEngageTarget(view, fresh);
+        step = classicSentryEngageTarget(view, current);
         if (step) g = ops.setOrder(g, unit.id, { kind: 'none' }, true);
         if (!step) {
           const ship = g.units.find(u => u.id === unit.id);
           if (ship?.order.kind === 'go-home') step = classicHomeRepairStep(g, ship, ops.routeStep, grade);
+          else if (ship?.order.kind === 'escort') step = classicEscortStep(g, ship, grade);
           else if (ship?.order.kind === 'patrol') step = classicPatrolStep(g, ship, grade);
           else if (ship) step = classicMoveToStep(g, ship, ops.routeStep, grade);
         }
         if (!step) {
-          if (fresh.order.kind === 'random') {
-            const rotated = classicRandomOrderTick(g, fresh);
+          if (current.order.kind === 'random') {
+            const rotated = classicRandomOrderTick(g, current);
             g = rotated.game;
             g = ops.setOrder(g, unit.id, { kind: 'go-direction', direction: { ...directions[rotated.directionIndex]! } }, true);
             const positioned = g.units.find(u => u.id === unit.id);
             if (positioned) step = classicLegalDirectionStep(g, positioned, rotated.directionIndex, grade);
           } else {
-            const tick = classicStandingOrderTick(fresh.order);
+            const tick = classicStandingOrderTick(current.order);
             if (tick?.kind === 'bear') {
               g = ops.setOrder(g, unit.id, { kind: 'go-direction', direction: { ...tick.direction } }, true);
               const positioned = g.units.find(u => u.id === unit.id);

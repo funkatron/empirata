@@ -67,6 +67,15 @@ export function classicFighterMoveToExhausted(unit: Unit): boolean {
   return (unit.fuel ?? 0) <= threshold;
 }
 
+/** ALG-AI-001 `0x3D76`: empty transport clears non-load tactical orders. */
+export function classicSanitizeTransportOrder(unit: Unit, cargo: number): import('../types.js').UnitOrder | null {
+  if (unit.kind !== 'transport' && unit.kind !== 'carrier') return null;
+  if (cargo > 0) return null;
+  const order = unit.order;
+  if (order.kind === 'load-ship' || order.kind === 'none' || order.kind === 'skip') return null;
+  return { kind: 'none' };
+}
+
 export function classicSentryEngageTarget(view: PlayerView, unit: Unit): Coord | null {
   if (unit.order.kind !== 'sentry') return null;
   const adjacent = view.enemies
