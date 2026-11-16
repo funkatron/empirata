@@ -38,3 +38,10 @@ test('CvC observer has a checked-by-default full-map fog toggle',()=>{
   assert.match(html,/Show entire map beneath fog \(75%\)/);
   assert.match(html,/Unexplored terrain has 75% fog; explored but unseen terrain has 52%/);
 });
+
+test('Game menu and map toolbar expose screen-reader labels',()=>{
+  assert.match(html,/id="gameMenu"[^>]*>[\s\S]*?aria-label="Game menu, campaigns and saved games"/);
+  assert.match(html,/class="game-menu-panel" role="region" aria-label="Campaign setup, test scenarios, and save files"/);
+  assert.match(html,/id="recenter" aria-label="Focus selection or home city"/);
+  assert.match(html,/class="toolbar-right" role="toolbar" aria-label="Map zoom and recenter"/);
+});

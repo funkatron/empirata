@@ -14,7 +14,7 @@ Use this section for **what to work on now**. Older dated sections below are his
 
 **Product (v0.5.1):** Campaign and lab scenarios, organic/ellipse mapgen, map recipes, unit/city names, troop transport and carrier logistics, computer-vs-computer observer mode, and JSON save/export are in active use. The shipped default opponent remains **modern (experimental)** until classic migration step (4) is complete.
 
-**Engine queue (authoritative):** Follow the [review-driven execution queue](#review-driven-execution-queue-2026-11-09) — **P0**–**P3** **closed**; **P4** **closed** (Priority 1 audit, gesture unit tests, `ui-load` smoke; G3/G4 a11y/overview optional); next: roadmap **P4 item 9** policy documented (Playwright opt-in).
+**Engine queue (authoritative):** Follow the [review-driven execution queue](#review-driven-execution-queue-2026-11-09) — **P0**–**P3** **closed**; **P4** **closed** (Priority 1 audit, gesture unit tests, `ui-load` smoke, G3 menu a11y, G4 overview tap-to-zoom); next: roadmap **P4 item 9** policy documented (Playwright opt-in).
 
 **Evaluation discipline:** The frozen [42-campaign baseline](evaluation/strategy-baseline/BASELINE_INTERPRETATION.md) and [held-out manifest audit](../agents/evaluation/held-out-manifest-audit.json) are screening tools, not optimization targets. Long campaigns stay opt-in (`npm run evaluate:ai`, held-out workflow).
 
@@ -78,8 +78,8 @@ Source: external Codex project-review handoff (2026-11-09). These are **review f
 
 ### P4: Remaining UI confidence
 
-8. Audit Priority 1 map UX against already merged #62/#63 work; implement only demonstrably missing behavior.
-9. Consider one inexpensive real-browser smoke check in default CI if measured runtime is acceptable; otherwise retain observer Playwright checks as opt-in.
+8. **Closed (2026-11-16):** Audit [`agents/p4-priority1-audit.md`](../agents/p4-priority1-audit.md); G2/G5/G1 shipped; fit/menu pass browser screenshots.
+9. **Closed (policy):** Default verify includes `smoke/ui-load.mjs`; Playwright remains opt-in (G6 / 9A). No default Playwright until budget proves acceptable.
 
 ### Fast tactical verification policy
 

@@ -1,4 +1,4 @@
-import {clampTileSize,fitTileSize} from './camera.js';
+import {clampTileSize,fitTileSize,isOverviewTileScale,zoomInForMapTap} from './camera.js';
 import {
   exceedsPanThreshold,
   panCamera,
@@ -205,6 +205,20 @@ function focus(p:Coord):void{
   cameraY=p.y*tileSize-canvas.clientHeight/2;
   clamp();paint();
 }
+/** At fit-world scale, zoom toward the tapped cell instead of imprecise selection. */
+function zoomToCellForTap(pos:Coord):boolean{
+  const w=canvas.clientWidth,h=canvas.clientHeight;
+  if(!isOverviewTileScale(tileSize,w,h,game.width,game.height))return false;
+  const old=tileSize;
+  tileSize=zoomInForMapTap(tileSize,w,h,game.width,game.height);
+  cameraX=(cameraX+w/2)*(tileSize/old)-w/2;
+  cameraY=(cameraY+h/2)*(tileSize/old)-h/2;
+  cameraX=pos.x*tileSize-w/2;
+  cameraY=pos.y*tileSize-h/2;
+  clamp();paint();
+  uiMessage('Zoomed in on that area — tap again to select a unit or city.');
+  return true;
+}
 function zoom(change:number):void {
   const old=tileSize,w=canvas.clientWidth,h=canvas.clientHeight;
   tileSize=clampTileSize(tileSize+change,w,h,game.width,game.height);
@@ -390,6 +404,7 @@ function showCityStack(pos:Coord):boolean {
   return true;
 }
 function tapTile(pos:Coord,allowPicker=true):void {
+  if(allowPicker&&zoomToCellForTap(pos))return;
   if(game.scenario==='ai-vs-ai'){
     if(allowPicker&&showCityStack(pos))return;
     if(pos.x<0||pos.y<0||pos.x>=view.width||pos.y>=view.height)return;
@@ -693,13 +708,15 @@ el('fitWorld').addEventListener('click',fitWorld);
 canvas.addEventListener('wheel',ev=>{ev.preventDefault();zoom(ev.deltaY<0?2:-2);},{passive:false});
 document.addEventListener('keydown',ev=>{
   if(stackDialog.open||(el('endgameDialog') as HTMLDialogElement).open||ev.ctrlKey||ev.metaKey||ev.altKey)return;
+  if(ev.key==='Escape'){
+    const menu=el('gameMenu') as HTMLDetailsElement;
+    if(menu.open){menu.open=false;ev.preventDefault();return;}
+  }
   const target=ev.target as HTMLElement;
   if(target.matches('input,textarea,select,button,[contenteditable="true"]'))return;
   const moves:Record<string,Coord>={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},
     q:{x:-1,y:-1},e:{x:1,y:-1},z:{x:-1,y:1},c:{x:1,y:1}};
   if(ev.key==='Escape'){
-    const menu=el('gameMenu') as HTMLDetailsElement;
-    if(menu.open){menu.open=false;return;}
     choosingDestination=false;selectedUnit=null;selectedCity=null;spectatorContact=null;spectatorCity=null;refresh();return;
   }
   if(ev.key==='+'||ev.key==='='){zoom(3);return;}if(ev.key==='-'){zoom(-3);return;}
@@ -791,7 +808,19 @@ el('recipeFile').addEventListener('change',async()=>{
   }catch(error){uiMessage(error instanceof Error?error.message:'Map recipe could not be loaded.');}
   finally{input.value='';}
 });
+let gameMenuReturnFocus:HTMLElement|null=null;
 function closeGameMenu():void{(el('gameMenu') as HTMLDetailsElement).open=false;}
+const gameMenuEl=el('gameMenu') as HTMLDetailsElement;
+gameMenuEl.addEventListener('toggle',()=>{
+  if(gameMenuEl.open){
+    gameMenuReturnFocus=document.activeElement as HTMLElement;
+    const first=gameMenuEl.querySelector<HTMLElement>('.game-menu-panel button, .game-menu-panel select, .game-menu-panel input');
+    first?.focus();
+  }else if(gameMenuReturnFocus){
+    gameMenuReturnFocus.focus();
+    gameMenuReturnFocus=null;
+  }
+});
 function startScenario(kind:'close-quarters'|'classic-lab'|'ai-invasion'|'ai-vs-ai'|'ai-skirmish'):void{
   if(!window.confirm('Start a new test scenario? This will replace the current local autosave. Export JSON first if you want to keep it.'))return;
   closeGameMenu();
