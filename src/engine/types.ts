@@ -47,6 +47,8 @@ export type Game = {
   aiPolicy?: AiPolicy;
   /** Classic ALG-AI-004: resign dialog already offered per computer faction. */
   classicResignOffered?: Partial<Record<FactionId, boolean>>;
+  /** Classic ALG-AI-004: awaiting human accept/decline (`human` responds for `computer`). */
+  classicResignPending?: { computer: FactionId; human: FactionId; round: number };
   campaignMap?: {
     layout: 'continents' | 'islands' | 'archipelago';
     seed: number;

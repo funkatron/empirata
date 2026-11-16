@@ -14,11 +14,12 @@ import {
   fogLayerCacheKey,observerFogOpacity,observerTerrain,refreshShouldInvalidateKnowledgeLayer,terrainLayerCacheKey,
 } from './observer-map.js';
 import {endgameModal} from './endgame.js';
+import {resignModal} from './resign.js';
 import {advanceLabRound,labRoundPhases,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,makeCampaignMap,
   moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
   STATS,UNIT_TYPES,isCoastal,unitName,cityName,gameOutcome,readableReport,
   formatMapSeedLine,mapRecipeFromCampaign,parseCampaignSeed,parseMapRecipe,randomCampaignSeed,serializeMapRecipe,
-  isCampaignLayout,isCityDensity,isMapAlgorithm} from '../engine/index.js';
+  isCampaignLayout,isCityDensity,isMapAlgorithm,classicResignPendingFor,respondClassicResign,hasBlockingClassicResign} from '../engine/index.js';
 import type {CampaignLayout,CampaignMode,City,CityDensity,Coord,Game,MapAlgorithm,MapRecipe,Unit,UnitType,PlayerView} from '../engine/index.js';
 type SeedSource='custom'|'random';
 
@@ -28,6 +29,17 @@ const context=canvas.getContext('2d');
 if(!context)throw new Error('Canvas 2D is unavailable.');
 const ctx=context;
 const resultModal=endgameModal(el('endgameDialog') as HTMLDialogElement,el('endgameTitle'),el('endgameDetail'),el('endgameInspect') as HTMLButtonElement,canvas);
+const resignOffer=resignModal(
+  el('resignDialog') as HTMLDialogElement,
+  el('resignAccept') as HTMLButtonElement,
+  el('resignDecline') as HTMLButtonElement,
+  el('resignTitle'),
+  canvas,
+  accept=>{
+    if(!dispatch(()=>respondClassicResign(game,accept)))return;
+    uiMessage(accept?'Resignation accepted. Cities transferred.':'Resignation declined.');
+  },
+);
 let game:Game=makeCloseQuartersLab();
 let observer:'blue'|'red'='blue';
 let spectatorMode:'alternate'|'blue'|'red'='alternate';
@@ -694,7 +706,13 @@ function refresh():void {
     el('gameResultDetail').textContent=outcome.winner===null?'No faction has any cities or surviving units.':'Only the winning faction has cities or surviving units.';
   }
   resultModal.update(finished,el('gameResultTitle').textContent??'Game over',`${el('gameResultDetail').textContent} Finished in round ${game.round}. Inspect the final map, export this game, or start a new one.`);
-  for(const id of ['autoPlay','advanceRounds','nextRound']) (el(id) as HTMLButtonElement).disabled=finished;
+  const resignBlocked=hasBlockingClassicResign(game)&&game.scenario!=='ai-vs-ai';
+  const pendingComputer=classicResignPendingFor(game,observer);
+  if(resignBlocked&&pendingComputer){
+    const label=game.players.find(p=>p.id===pendingComputer)?.label??pendingComputer.toUpperCase();
+    resignOffer.open(label);
+  }else resignOffer.close();
+  for(const id of ['autoPlay','advanceRounds','nextRound']) (el(id) as HTMLButtonElement).disabled=finished||resignBlocked;
   if(finished)inspector.querySelectorAll<HTMLButtonElement|HTMLSelectElement>('button,select').forEach(control=>{if(!control.classList.contains('cargoButton'))control.disabled=true;});
   paint();
 }
@@ -758,7 +776,7 @@ canvas.addEventListener('pointercancel',ev=>finishPointer(ev,true));
 el('fitWorld').addEventListener('click',fitWorld);
 canvas.addEventListener('wheel',ev=>{ev.preventDefault();beginZoomGesture();zoom(ev.deltaY<0?2:-2);},{passive:false});
 document.addEventListener('keydown',ev=>{
-  if(stackDialog.open||(el('endgameDialog') as HTMLDialogElement).open||gameMenuDialog.open||ev.ctrlKey||ev.metaKey||ev.altKey)return;
+  if(stackDialog.open||resignOffer.isOpen()||(el('endgameDialog') as HTMLDialogElement).open||gameMenuDialog.open||ev.ctrlKey||ev.metaKey||ev.altKey)return;
   const target=ev.target as HTMLElement;
   if(target.matches('input,textarea,select,button,[contenteditable="true"]'))return;
   const moves:Record<string,Coord>={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},

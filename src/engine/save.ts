@@ -38,6 +38,11 @@ export function importSave(json:string):Game {
     }
   }
   const finiteInt=(value:unknown)=>Number.isSafeInteger(value)&&Number.isFinite(value);
+  if(g.classicResignPending!==undefined&&g.classicResignPending!==null){
+    const p=g.classicResignPending;
+    if(!p||typeof p!=='object'||!validFaction(p.computer)||!validFaction(p.human)||!finiteInt(p.round)||p.round<1)
+      throw new Error('Invalid classic resign pending state.');
+  }
   const validPosition=(pos:any)=>pos&&finiteInt(pos.x)&&finiteInt(pos.y)&&playable(g as Game,pos);
   if(!finiteInt(g.round)||g.round!<1||!finiteInt(g.nextId)||g.nextId!<1||
     !finiteInt(g.nextEventId)||g.nextEventId!<1)throw new Error('Invalid counters.');

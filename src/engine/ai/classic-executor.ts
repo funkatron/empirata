@@ -122,13 +122,18 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
 
   function maybeOfferClassicResign(game: Game, computer: FactionId): Game {
     if (!shouldOfferClassicResign(game, computer)) return game;
+    if (game.classicResignPending) return game;
     const g = clone(game);
     g.classicResignOffered = { ...g.classicResignOffered, [computer]: true };
-    const message = 'The computer wishes to resign. (Accept/decline UI not yet wired.)';
-    for (const recipient of humanRecipients(g, computer)) {
+    const humans = humanRecipients(g, computer);
+    const human = humans[0];
+    if (!human) return g;
+    g.classicResignPending = { computer, human, round: g.round };
+    const message = 'The computer wishes to resign! Accept or decline when prompted.';
+    for (const recipient of humans) {
       ops.log(g, recipient, 'system', message);
     }
-  return g;
+    return g;
   }
 
   return { playAiOpponent };

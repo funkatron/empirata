@@ -86,6 +86,15 @@
   <div id="stackChoices"></div>
   <form method="dialog"><button>Cancel</button></form>
 </dialog>
+<dialog id="resignDialog" class="endgame-dialog resign-dialog" aria-labelledby="resignTitle" aria-describedby="resignDetail">
+  <p class="endgame-eyebrow">Computer resignation</p>
+  <h1 id="resignTitle">The computer wishes to resign</h1>
+  <p id="resignDetail">Do you accept? Accepting transfers all of that faction’s cities to you and removes their units from play. Declining keeps the offer closed for the rest of this game.</p>
+  <div class="endgame-actions">
+    <button id="resignAccept" class="primary" type="button">Accept resignation</button>
+    <button id="resignDecline" type="button">Continue fighting</button>
+  </div>
+</dialog>
 <dialog id="endgameDialog" class="endgame-dialog" aria-labelledby="endgameTitle" aria-describedby="endgameDetail">
   <p class="endgame-eyebrow">Campaign complete</p>
   <h1 id="endgameTitle">Game over</h1>

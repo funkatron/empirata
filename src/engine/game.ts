@@ -502,6 +502,7 @@ export {
 } from './ai/modern-planners.js';
 import { createModernAiExecutor } from './ai/modern-executor.js';
 import { createClassicAiExecutor } from './ai/classic-executor.js';
+import { hasBlockingClassicResign } from './ai/classic-resign.js';
 import { isClassicDosPolicy, resolveAiPolicy } from './ai/policy.js';
 
 const modernAi = createModernAiExecutor({
@@ -542,6 +543,7 @@ export function playBlueOpponent(game:Game):Game {
 /** Advance one blue-player round, allowing a rules-bound Red opponent to act. */
 export function advanceLabRound(game:Game):Game {
   if(gameOutcome(game).state==='finished')return game;
+  if(hasBlockingClassicResign(game))throw new Error('Resolve the computer resignation offer before advancing.');
   if(game.mode!=='rules-lab'||game.active!=='blue')throw new Error('Lab round advance requires blue player.');
   let g=game;
   for(const phase of labRoundPhases(game))g=phase(g);

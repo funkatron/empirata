@@ -5,6 +5,7 @@ import {
   importSave,
   makeRulesLab,
   playRedOpponent,
+  respondClassicResign,
   shouldOfferClassicResign,
 } from '../dist/engine/index.js';
 
@@ -42,7 +43,27 @@ test('Classic turn emits one resign notice and persists classicResignOffered', (
   const next = playRedOpponent(g);
   assert.equal(next.classicResignOffered?.red, true);
   assert.ok(next.events.some(e => e.recipient === 'blue' && e.message.includes('resign')));
+  assert.deepEqual(next.classicResignPending, { computer: 'red', human: 'blue', round: next.round });
   const again = playRedOpponent(next);
   assert.equal(again.events.filter(e => e.message.includes('resign')).length, next.events.filter(e => e.message.includes('resign')).length);
   assert.deepEqual(importSave(exportSave(next)).classicResignOffered, { red: true });
+  assert.deepEqual(importSave(exportSave(next)).classicResignPending, next.classicResignPending);
+});
+
+test('respondClassicResign accept transfers cities and clears units', () => {
+  const g = playRedOpponent(classicCvC(101, 0));
+  const accepted = respondClassicResign(g, true);
+  assert.equal(accepted.classicResignPending, undefined);
+  assert.ok(accepted.cities.every(c => c.owner !== 'red'));
+  assert.equal(accepted.units.filter(u => u.owner === 'red').length, 0);
+});
+
+test('respondClassicResign decline keeps computer in play', () => {
+  const base = classicCvC(101, 1);
+  assert.ok(shouldOfferClassicResign(base, 'red'));
+  const g = playRedOpponent(base);
+  const declined = respondClassicResign(g, false);
+  assert.equal(declined.classicResignPending, undefined);
+  assert.ok(declined.cities.some(c => c.owner === 'red'));
+  assert.ok(declined.units.some(u => u.owner === 'red'));
 });
