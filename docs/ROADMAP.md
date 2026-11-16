@@ -12,7 +12,7 @@
 
 Use this section for **what to work on now**. Older dated sections below are historical context and detailed specifications.
 
-**Product (v0.5.2):** Same campaign/lab surface as v0.5.1, plus classic **resign** UX, deeper classic **ALG-AI-001** pathing, and expanded **ALG-AI-002** production when classic policy is selected. The shipped default opponent remains **modern (experimental)** until classic migration step (4) is complete.
+**Product (v0.5.3):** Campaign Game menu selects **Modern (experimental)** or **Classic DOS** grade 1/2 (`aiPolicy` on saves). v0.5.2 classic resign/pathing/production apply when classic is selected. Lab fixtures still default to modern. Default campaign opponent remains **modern** until migration step (4).
 
 **Engine queue (authoritative):** Follow the [review-driven execution queue](#review-driven-execution-queue-2026-11-09) — **P0**–**P3** **closed**; **P4** **closed** (Priority 1 audit, gesture unit tests, `ui-load` smoke, G3 menu a11y, G4 overview tap-to-zoom); next: roadmap **P4 item 9** policy documented (Playwright opt-in).
 

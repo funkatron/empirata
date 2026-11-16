@@ -11,12 +11,16 @@ export type CampaignLayout = 'continents' | 'islands' | 'archipelago';
 export type MapAlgorithm = 'ellipse-v1' | 'organic-v1';
 export type CityDensity = 'sparse' | 'standard';
 
+import type { AiPolicy } from './ai/classic-grades.js';
+
 export type MapgenOptions = {
   algorithm?: MapAlgorithm;
   density?: CityDensity;
   cityCount?: number;
   minSpacing?: number;
   requireStartPortOpportunity?: boolean;
+  /** ALG-AI-003: computer policy for campaign starts (default modern experimental). */
+  aiPolicy?: AiPolicy;
 };
 
 export type PlayabilityReport = {

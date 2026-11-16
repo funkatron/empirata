@@ -6,6 +6,7 @@
  * results. Red opponent uses a preliminary rules-bound AI.
  */
 import type { Game, Unit } from './types.js';
+import { DEFAULT_AI_POLICY, formatAiPolicyLabel } from './ai/policy.js';
 import {makeRulesLab} from './game.js';
 import {emptyKnowledge,updateAllKnowledge} from './knowledge.js';
 import {
@@ -57,9 +58,17 @@ export function makeCampaignMap(
     algorithm: resolved.algorithm,
     density: resolved.density,
   };
+  g.aiPolicy = options.aiPolicy ?? DEFAULT_AI_POLICY;
   g.rng = {seed: (seed ^ 0x9e3779b9) >>> 0, draws: 0};
   g.events = [];
   g.nextEventId = 1;
+  g.events.push({
+    id: g.nextEventId++,
+    round: g.round,
+    recipient: null,
+    kind: 'system',
+    message: `Computer policy: ${formatAiPolicyLabel(g.aiPolicy)} (ALG-AI-003). Classic mode is staged; incompleteness is expected.`,
+  });
   for (const faction of ['blue', 'red', 'green'] as const) g.knowledge[faction] = emptyKnowledge(g);
   updateAllKnowledge(g);
   return g;
