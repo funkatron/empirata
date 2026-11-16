@@ -39,6 +39,8 @@ async function inspectCity(page,position){
     return {x:(p.x+0.5)*tile,y:(p.y+0.5)*tile};
   },position);
   await page.locator('#map').click({position:click});
+  if(/Zoomed in on that area/i.test(await page.locator('#toast').innerText()))
+    await page.locator('#map').click({position:click});
   if(await page.locator('#stackDialog').isVisible()){
     await page.locator('#stackChoices button').filter({hasText:'Inspect '}).first().click();
   }

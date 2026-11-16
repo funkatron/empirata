@@ -57,6 +57,8 @@ async function captureScenario(page,prefix){
     return {x:(p.x+0.5)*tile,y:(p.y+0.5)*tile};
   },home);
   await page.locator('#map').click({position:click});
+  if(/Zoomed in on that area/i.test(await page.locator('#toast').innerText()))
+    await page.locator('#map').click({position:click});
   assert.match(await page.locator('#inspector').innerText(),/Production/i);
   const inView=await page.locator('#inspector').evaluate(element=>{
     const card=element.closest('.card').getBoundingClientRect();
