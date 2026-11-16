@@ -515,7 +515,11 @@ const modernAi = createModernAiExecutor({
   log,
 });
 
-const classicAi = createClassicAiExecutor({ log });
+const classicAi = createClassicAiExecutor({
+  moveUnit,
+  setOrder,
+  log,
+});
 
 export function playAiOpponent(game: Game, faction: FactionId): Game {
   const policy = resolveAiPolicy(game);
