@@ -30,7 +30,7 @@ test('Coastal computer city commissions transport when fleet is below two', () =
   assert.equal(chooseClassicCityProduction(g, 'red', city, 1), 'transport');
 });
 
-test('Grade B coastal city picks destroyer once a transport exists', () => {
+test('Grade B coastal city prioritizes battleship before destroyer when capital ships are missing', () => {
   const g = endTurn(makeRulesLab());
   const city = g.cities.find(c => c.id === 'c-red');
   const army = g.units.find(u => u.owner === 'red');
@@ -49,8 +49,25 @@ test('Grade B coastal city picks destroyer once a transport exists', () => {
     position: { x: 83, y: 36 },
     aboard: null,
   });
+  assert.equal(chooseClassicCityProduction(g, 'red', city, 2), 'battleship');
+  g.units.push(
+    {
+      ...structuredClone(army),
+      id: 'red-bb',
+      kind: 'battleship',
+      position: { x: 84, y: 36 },
+      aboard: null,
+    },
+    {
+      ...structuredClone(army),
+      id: 'red-cv',
+      kind: 'carrier',
+      position: { x: 85, y: 36 },
+      aboard: null,
+    },
+  );
   assert.equal(chooseClassicCityProduction(g, 'red', city, 2), 'destroyer');
-  assert.equal(chooseClassicCityProduction(g, 'red', city, 1), 'army');
+  assert.equal(chooseClassicCityProduction(g, 'red', city, 1), 'fighter');
 });
 
 test('Coastal city commissions fighter when armies outnumber fighter wing three to one', () => {
@@ -74,6 +91,13 @@ test('Coastal city commissions fighter when armies outnumber fighter wing three 
       id: 'tr2',
       kind: 'transport',
       position: { x: 85, y: 36 },
+      aboard: null,
+    },
+    {
+      ...structuredClone(army),
+      id: 'cv',
+      kind: 'carrier',
+      position: { x: 86, y: 36 },
       aboard: null,
     },
   );
