@@ -4,9 +4,11 @@ import { chooseClassicCityProduction } from './classic-production.js';
 import { classicHomeRepairStep, embarkedCargoCount } from './classic-move.js';
 import {
   classicDamagedShipSeeksPort,
+  classicRandomOrderTick,
   classicSentryEngageTarget,
   classicStandingOrderTick,
 } from './classic-order-tick.js';
+import { directions } from '../world.js';
 import { getPlayerView } from '../knowledge.js';
 import { resolveAiPolicy } from './policy.js';
 
@@ -53,6 +55,7 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
       const view = getPlayerView(g, faction);
       const fresh = g.units.find(u => u.id === unit.id);
       if (!fresh) continue;
+      const hadRandom = fresh.order.kind === 'random';
       const cargo = embarkedCargoCount(g, unit.id);
       let step: Coord | null = null;
       if (classicDamagedShipSeeksPort(fresh, cargo)) {
@@ -63,15 +66,26 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
         step = classicSentryEngageTarget(view, fresh);
         if (step) g = ops.setOrder(g, unit.id, { kind: 'none' }, true);
         if (!step) {
-          const tick = classicStandingOrderTick(fresh.order);
-          if (tick?.kind === 'bear') {
-            g = ops.setOrder(g, unit.id, { kind: 'go-direction', direction: { ...tick.direction } }, true);
+          if (fresh.order.kind === 'random') {
+            const rotated = classicRandomOrderTick(g, fresh);
+            g = rotated.game;
+            g = ops.setOrder(g, unit.id, { kind: 'go-direction', direction: { ...directions[rotated.directionIndex]! } }, true);
             const positioned = g.units.find(u => u.id === unit.id);
             if (positioned) {
-              step = {
-                x: positioned.position.x + tick.direction.x,
-                y: positioned.position.y + tick.direction.y,
-              };
+              const bearing = directions[rotated.directionIndex]!;
+              step = { x: positioned.position.x + bearing.x, y: positioned.position.y + bearing.y };
+            }
+          } else {
+            const tick = classicStandingOrderTick(fresh.order);
+            if (tick?.kind === 'bear') {
+              g = ops.setOrder(g, unit.id, { kind: 'go-direction', direction: { ...tick.direction } }, true);
+              const positioned = g.units.find(u => u.id === unit.id);
+              if (positioned) {
+                step = {
+                  x: positioned.position.x + tick.direction.x,
+                  y: positioned.position.y + tick.direction.y,
+                };
+              }
             }
           }
         }
@@ -79,6 +93,7 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
       if (!step) continue;
       try {
         g = ops.moveUnit(g, unit.id, step, protectedCargo, true);
+        if (hadRandom) g = ops.setOrder(g, unit.id, { kind: 'random' }, true);
       } catch {
         /* Illegal classic step — leave bearing for standing-order phase. */
       }
