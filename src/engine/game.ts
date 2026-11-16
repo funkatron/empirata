@@ -281,7 +281,8 @@ export function moveUnit(game:Game,id:string,to:Coord,protectedCargo:ReadonlySet
     throw new Error('Only armies may capture a neutral or enemy city.');
   }
   if(enemy)return resolveCombat(g,id,enemy.id,mutable);
-  if(occupants.some(u=>u.owner===unit.owner)&&!city) throw new RuleNotImplemented('CARGO','Loading and same-cell stacking require verified original mechanics.');
+  if(occupants.some(u=>u.owner===unit.owner)&&!city)
+    throw new Error('Only friendly city ports may host multiple units on one square; use embarkArmy, boardFighter, or a port.');
   // ALG-011: overload destroys surplus cargo instead of blocking ship movement.
   for(const cargoId of resolveCargoOverload(g,unit))
     log(g,unit.owner,'movement',`Cargo ${cargoId} was lost when ${unitLabel(unit)} exceeded capacity.`);

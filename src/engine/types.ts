@@ -12,12 +12,13 @@ export type Unit = {
   id: string; owner: FactionId; kind: UnitType; position: Coord;
   damage: number; spent: number; fuel: number | null; order: UnitOrder;
   aboard: string | null;
+  /** Modern AI only — see docs/MODERN_AI_UNIT_FIELDS.md */
   aiMissionProgress?: {round:number; bestDistance:number; metric:'sea'|'city'; cargo:number};
   aiAvoidObjective?: {id:string; until:number};
   aiPickup?: {armies:string[];startedRound:number};
-  aiBeachhead?: string; // City objective attached to AI-delivered assault troops.
+  aiBeachhead?: string;
   aiAssembly?: {objective:string;startedRound:number;staging?:Coord;gathered?:boolean};
-  aiObjective?: string; // Experimental AI city mission, independent of player orders.
+  aiObjective?: string;
 };
 export type Sight = { id: string; kind: UnitType; owner: FactionId; position: Coord; observedRound: number };
 export type CityIntel = { id: string; owner: FactionId | null; production: UnitType | null; productionKnown: boolean };
