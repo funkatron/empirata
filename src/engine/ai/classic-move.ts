@@ -1,4 +1,6 @@
 import type { Coord, FactionId, Game, Unit } from '../types.js';
+import type { DosComputerGrade } from './classic-grades.js';
+import { classicRouteStep } from './classic-path.js';
 import { getPlayerView } from '../knowledge.js';
 
 function distance(a: Coord, b: Coord): number {
@@ -10,6 +12,7 @@ export function classicHomeRepairStep(
   game: Game,
   unit: Unit,
   routeStep: (game: Game, unit: Unit, destination: Coord) => Coord | null,
+  grade?: DosComputerGrade,
 ): Coord | null {
   const homes = game.cities
     .filter(c => c.owner === unit.owner)
@@ -18,7 +21,8 @@ export function classicHomeRepairStep(
         distance(a.position, unit.position) - distance(b.position, unit.position) || a.id.localeCompare(b.id),
     );
   for (const home of homes) {
-    const step = routeStep(game, unit, home.position);
+    const step =
+      grade !== undefined ? classicRouteStep(game, unit, home.position, grade) : routeStep(game, unit, home.position);
     if (step) return step;
   }
   return null;
@@ -37,8 +41,21 @@ export function classicMoveToStep(
   game: Game,
   unit: Unit,
   routeStep: (game: Game, unit: Unit, destination: Coord) => Coord | null,
+  grade?: DosComputerGrade,
 ): Coord | null {
   if (unit.order.kind !== 'move-to') return null;
   if (unit.position.x === unit.order.destination.x && unit.position.y === unit.order.destination.y) return null;
+  if (grade !== undefined) return classicRouteStep(game, unit, unit.order.destination, grade);
   return routeStep(game, unit, unit.order.destination);
+}
+
+export function classicPatrolStep(
+  game: Game,
+  unit: Unit,
+  grade: DosComputerGrade,
+): Coord | null {
+  if (unit.order.kind !== 'patrol') return null;
+  const dest = unit.order.outbound ? unit.order.to : unit.order.from;
+  if (unit.position.x === dest.x && unit.position.y === dest.y) return null;
+  return classicRouteStep(game, unit, dest, grade);
 }
