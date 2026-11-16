@@ -13,9 +13,11 @@ test('Legacy saves without aiPolicy still run the modern opponent', () => {
 test('Classic DOS policy routes to the classic executor without modern production heuristics', () => {
   const before = endTurn(makeRulesLab());
   before.aiPolicy = { kind: 'classic-dos', grade: 1 };
+  const city = before.cities.find(c => c.id === 'c-red');
+  before.units.find(u => u.owner === 'red').position = { ...city.position };
   const after = playRedOpponent(structuredClone(before));
-  assert.equal(after.cities.find(c => c.id === 'c-red').production, before.cities.find(c => c.id === 'c-red').production);
-  assert.ok(after.events.some(e => e.kind === 'system' && e.message.includes('ALG-AI-001')));
+  assert.equal(after.cities.find(c => c.id === 'c-red').production, 'transport');
+  assert.ok(after.events.some(e => e.kind === 'system' && e.message.includes('ALG-AI-002')));
   assert.deepEqual(playRedOpponent(importSave(exportSave(before))), after);
 });
 
