@@ -10,13 +10,13 @@ Updated 2026-11-16. Target ruleset: Interstel DOS v2.05C. Historical DOS binary 
 
 ## Current coverage (local, Node 24)
 
-Measured on `main` after `npm ci` + `npm test` (2026-11-16, commit `8f3b2f1`; reconcile with latest `main` if counts drift):
+Measured on `main` after `npm ci` + `npm test` (2026-11-16, commit `41bf9fe`; reconcile with latest `main` if counts drift):
 
 | Metric | Value |
 |--------|--------|
-| Tests | **445** pass, 0 fail (`tests/*.test.mjs`, 85 files) |
-| Line coverage | **~94.8%** (`dist/engine/*.js`) |
-| Branch coverage | **~91.5%** |
+| Tests | **483** pass, 0 fail (`tests/*.test.mjs`, 96 files) |
+| Line coverage | **~94.9%** (`dist/engine/*.js`) |
+| Branch coverage | **~91.3%** |
 | Function coverage | **~96.5%** |
 | Typical wall time | ~100 s engine suite (includes build; target remains “fast enough for every PR”) |
 
@@ -54,7 +54,7 @@ Pages deploy runs on `main` after verify; a green verify on a PR does not by its
 4. **Fog of war:** knowledge isolation, stale sightings, route planning on `PlayerView`.
 5. **Logistics:** embark/disembark, carriers, load/unload ship, cargo combat, overload (**implemented** — `transport.test.mjs`, `carrier.test.mjs`, `cargo-combat.test.mjs`, `alg-011-overload.test.mjs`, …).
 6. **Save files:** schema 1 validation, illegal AI fields, cargo links (`save.ts` + `tests/hardening.test.mjs`, `p0-capture-contamination.test.mjs`).
-7. **Modern AI (experimental):** deterministic fixtures under `tests/ai-*.test.mjs`; planners in `src/engine/ai/`; field semantics in [`MODERN_AI_UNIT_FIELDS.md`](MODERN_AI_UNIT_FIELDS.md). Classic AI grades stub: `tests/alg-ai-003-grades.test.mjs`.
+7. **Computer AI:** Modern (experimental) fixtures under `tests/ai-*.test.mjs`; classic DOS staging under `tests/alg-ai-001-*.test.mjs`, `alg-ai-002-*.test.mjs`, `alg-ai-004-resign.test.mjs`, `campaign-ai-policy.test.mjs`, and `alg-ai-003-grades.test.mjs`. Policy switch: `Game.aiPolicy` + campaign Game menu (v0.5.3).
 8. **Cargo rule surface:** embarked `moveUnit` guidance + friendly stacking errors (`embarked-move-guidance.test.mjs`, `p2-cargo-rule-surface.test.mjs`).
 
 ## Remaining high-priority gaps
@@ -76,4 +76,4 @@ Use **failing red test → smallest rule change → green test**. Prefer exact e
 - **Growth control:** table-driven cases, small seeds; long campaigns and `evaluate:ai` stay opt-in.
 - **Fixture labels:** executable-verified, manual-derived, or provisional — see `docs/manual/README.md`.
 
-For product priorities use [ROADMAP.md](ROADMAP.md#current-status-2026-11-15), not this file alone.
+For product priorities use [ROADMAP.md](ROADMAP.md#current-status-2026-11-16), not this file alone.

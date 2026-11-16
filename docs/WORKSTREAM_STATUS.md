@@ -4,7 +4,7 @@ Updated 2026-11-16. This ledger tracks independent areas of work and their CI ga
 
 | Stream | Scope | Status | Dependency / gate | Evidence |
 |---|---|---|---|---|
-| A — CI and reliability | Green verify, reproducible installs, replay/screenshot tooling | **Stable; verify each new PR independently** | Baseline for engine and eval PRs | `main` verify green; Node 24; **445** engine tests (`docs/TEST_STRATEGY.md`); replay and map-screenshot workflows |
+| A — CI and reliability | Green verify, reproducible installs, replay/screenshot tooling | **Stable; verify each new PR independently** | Baseline for engine and eval PRs | `main` verify green; Node 24; **483** engine tests (`docs/TEST_STRATEGY.md`); replay and map-screenshot workflows |
 | B — Reconnaissance AI | Frontier scouting, stale sightings, held-out policy comparison | **Active; opt-in evaluation available** | Smoke artifact and incomplete-shard diagnosis before any full rerun | #51 scout targeting; #50 stale sightings/idle transports; #52 evaluation runner; #60 opt-in smoke/full evaluation and incomplete-status reporting |
 | C — Manual/DOS conformance | Unit/rules audit, detection/combat, 2.05C comparisons | **In progress** | Independent of AI tuning | `docs/MANUAL_CONFORMANCE_AUDIT.md`, `tests/manual-unit-roster.test.mjs` |
 | D — Campaign outcomes | Baseline study + follow-on telemetry on holdout maps | **Baseline complete; tuning pending** | Do not mutate raw 42-campaign archive | #45 baseline + `STRATEGY_AND_TACTICS_PLAN.md`; `tests/ai-campaign.test.mjs`, `ai-vs-ai` |
