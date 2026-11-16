@@ -28,7 +28,23 @@ export function makeReconnaissanceFixture(engine,{layout='continents',seed=83,sw
  const scout=unit('fixture-scout','army',land);
  const transport=unit('fixture-transport','transport',sea);
  const cargo=unit('fixture-cargo','army',sea,transport.id);
- g.units.push(destroyer,scout,transport,cargo);
+ // Empty hull away from the convoy — mirrors #50 idle transport reassignment evaluation.
+ const seen=new Set(),queue=[secondSea];
+ for(let h=0;h<queue.length;h++){
+  const p=queue[h],key=p.y*g.width+p.x;
+  if(seen.has(key))continue;
+  seen.add(key);
+  for(const d of [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}]){
+   const q={x:p.x+d.x,y:p.y+d.y};
+   if(q.x<2||q.y<2||q.x>=g.width-2||q.y>=g.height-2||at(q)!=='sea')continue;
+   const nk=q.y*g.width+q.x;
+   if(!seen.has(nk))queue.push(q);
+  }
+ }
+ const idleSea=queue.find((p,i)=>i>=3&&Math.max(Math.abs(p.x-transport.position.x),Math.abs(p.y-transport.position.y))>=2);
+ if(!idleSea)throw Error('Idle transport placement unavailable');
+ const idleTransport=unit('fixture-idle-transport','transport',idleSea);
+ g.units.push(destroyer,scout,transport,cargo,idleTransport);
  g.nextId=Math.max(g.nextId,10000);
  engine.updateAllKnowledge(g);
  // A previous enemy observation is retained only as faction-private memory.
