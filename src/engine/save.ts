@@ -28,8 +28,7 @@ export function importSave(json:string):Game {
       !(policy.kind==='modern-experimental'||
         (policy.kind==='classic-dos'&&(policy.grade===1||policy.grade===2))))
       throw new Error('Invalid AI policy.');
-    // Classic behavior is not yet implemented: reject saves claiming an active classic opponent.
-    if(policy.kind==='classic-dos')throw new Error('Classic DOS AI is not yet playable.');
+    // Classic gameplay is staged: policy metadata is valid, but the classic executor does not issue orders yet.
   }
   const validFaction=(id:unknown)=>id==='blue'||id==='red'||id==='green';
   const finiteInt=(value:unknown)=>Number.isSafeInteger(value)&&Number.isFinite(value);

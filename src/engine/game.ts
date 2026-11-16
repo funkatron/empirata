@@ -501,6 +501,8 @@ export {
   updateAiTransportMission,
 } from './ai/modern-planners.js';
 import { createModernAiExecutor } from './ai/modern-executor.js';
+import { createClassicAiExecutor } from './ai/classic-executor.js';
+import { isClassicDosPolicy, resolveAiPolicy } from './ai/policy.js';
 
 const modernAi = createModernAiExecutor({
   moveUnit,
@@ -513,7 +515,13 @@ const modernAi = createModernAiExecutor({
   log,
 });
 
-export const playAiOpponent = modernAi.playAiOpponent;
+const classicAi = createClassicAiExecutor({ log });
+
+export function playAiOpponent(game: Game, faction: FactionId): Game {
+  const policy = resolveAiPolicy(game);
+  if (isClassicDosPolicy(policy)) return classicAi.playAiOpponent(game, faction);
+  return modernAi.playAiOpponent(game, faction);
+}
 
 /** @deprecated use playAiOpponent — kept during refactor boundary */
 export function playRedOpponent(game:Game):Game {
