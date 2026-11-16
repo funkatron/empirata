@@ -75,6 +75,7 @@ let lastEventsKey='';
 /** CI / smoke timing probe — presentation only; never feeds gameplay. */
 const mapPaintStats={terrainRebuilds:0,lastEnsureMs:0,lastPaintMs:0,lastRebuild:false};
 const stackDialog=el('stackDialog') as HTMLDialogElement;
+const gameMenuDialog=el('gameMenuDialog') as HTMLDialogElement;
 const colors={blue:'#68c4f1',red:'#f47c73',green:'#a4dc8b',neutral:'#e2c37c'};
 function uiMessage(message:string):void {el('toast').textContent=message;}
 function invalidateMapLayer():void {
@@ -707,11 +708,7 @@ canvas.addEventListener('pointercancel',ev=>finishPointer(ev,true));
 el('fitWorld').addEventListener('click',fitWorld);
 canvas.addEventListener('wheel',ev=>{ev.preventDefault();zoom(ev.deltaY<0?2:-2);},{passive:false});
 document.addEventListener('keydown',ev=>{
-  if(stackDialog.open||(el('endgameDialog') as HTMLDialogElement).open||ev.ctrlKey||ev.metaKey||ev.altKey)return;
-  if(ev.key==='Escape'){
-    const menu=el('gameMenu') as HTMLDetailsElement;
-    if(menu.open){menu.open=false;ev.preventDefault();return;}
-  }
+  if(stackDialog.open||(el('endgameDialog') as HTMLDialogElement).open||gameMenuDialog.open||ev.ctrlKey||ev.metaKey||ev.altKey)return;
   const target=ev.target as HTMLElement;
   if(target.matches('input,textarea,select,button,[contenteditable="true"]'))return;
   const moves:Record<string,Coord>={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},
@@ -809,17 +806,15 @@ el('recipeFile').addEventListener('change',async()=>{
   finally{input.value='';}
 });
 let gameMenuReturnFocus:HTMLElement|null=null;
-function closeGameMenu():void{(el('gameMenu') as HTMLDetailsElement).open=false;}
-const gameMenuEl=el('gameMenu') as HTMLDetailsElement;
-gameMenuEl.addEventListener('toggle',()=>{
-  if(gameMenuEl.open){
-    gameMenuReturnFocus=document.activeElement as HTMLElement;
-    const first=gameMenuEl.querySelector<HTMLElement>('.game-menu-panel button, .game-menu-panel select, .game-menu-panel input');
-    first?.focus();
-  }else if(gameMenuReturnFocus){
-    gameMenuReturnFocus.focus();
-    gameMenuReturnFocus=null;
-  }
+function openGameMenu():void{
+  gameMenuReturnFocus=document.activeElement as HTMLElement;
+  if(!gameMenuDialog.open)gameMenuDialog.showModal();
+  el('campaignMode').focus();
+}
+function closeGameMenu():void{if(gameMenuDialog.open)gameMenuDialog.close();}
+el('gameMenu').addEventListener('click',()=>openGameMenu());
+gameMenuDialog.addEventListener('close',()=>{
+  if(gameMenuReturnFocus){gameMenuReturnFocus.focus();gameMenuReturnFocus=null;}
 });
 function startScenario(kind:'close-quarters'|'classic-lab'|'ai-invasion'|'ai-vs-ai'|'ai-skirmish'):void{
   if(!window.confirm('Start a new test scenario? This will replace the current local autosave. Export JSON first if you want to keep it.'))return;
@@ -880,10 +875,6 @@ const closeMenuIds=['exportSave','importSave','copyMapSeed','exportMapRecipe'];
 for(let i=0;i<closeMenuIds.length;i++){
   el(closeMenuIds[i]!).addEventListener('click',()=>closeGameMenu());
 }
-document.addEventListener('pointerdown',event=>{
-  const menu=el('gameMenu') as HTMLDetailsElement;
-  if(menu.open&&!menu.contains(event.target as Node))menu.open=false;
-});
 el('classicGame').addEventListener('click',()=>startScenario('classic-lab'));
 el('invasionGame').addEventListener('click',()=>startScenario('ai-invasion'));
 el('aiSkirmishGame').addEventListener('click',()=>startScenario('ai-skirmish'));

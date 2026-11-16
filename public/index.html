@@ -5,7 +5,7 @@
 <link rel="stylesheet" href="./styles.css"/></head>
 <body><div class="app">
   <header class="topbar"><div class="brand"><span class="brand-mark">✦</span><div><strong>EMPIRATA</strong><small>CLASSIC RULES LAB · v0.5.1</small></div></div>
-   <details class="game-menu" id="gameMenu"><summary aria-label="Game menu, campaigns and saved games">Game <span aria-hidden="true">▾</span></summary><div class="game-menu-panel" role="region" aria-label="Campaign setup, test scenarios, and save files"><h2>New campaign</h2><p>Choose who plays, a generator, and a seed. Random seeds are chosen when you start. Starting a game replaces the current autosave.</p><label for="campaignMode">Players</label><select id="campaignMode"><option value="user-vs-computer">User vs computer</option><option value="ai-vs-ai">Computer vs computer</option></select><label for="campaignAlgorithm">Generator</label><select id="campaignAlgorithm"><option value="ellipse-v1">Ellipse · study baseline</option><option value="organic-v1">Organic · noise coasts</option></select><label for="campaignDensity">City density</label><select id="campaignDensity"><option value="sparse">Sparse · ~12 cities</option><option value="standard">Standard · ~64 cities</option></select><label for="campaignLayout">Layout</label><select id="campaignLayout"><option value="continents">Continents</option><option value="islands">Islands</option><option value="archipelago">Archipelago</option></select><label for="campaignSeedSource">Seed source</label><select id="campaignSeedSource"><option value="random">Random on start</option><option value="custom">Custom seed</option></select><label for="campaignSeed">Seed value</label><input id="campaignSeed" type="number" inputmode="numeric" min="1" max="4294967295" step="1" value="17" aria-describedby="campaignSeedHint"/><p id="campaignSeedHint" class="menu-hint">Random on start picks a new seed when you press Start. Study seeds and lab fixtures are under Test scenarios. Importing a map recipe fills these fields only.</p><button class="primary" id="startCampaign" type="button">Start campaign</button><hr/><details class="game-submenu" id="testScenariosMenu"><summary aria-label="Test scenarios and study maps">Test scenarios <span aria-hidden="true">▾</span></summary><div class="game-submenu-panel" role="region" aria-label="Lab fixtures and study maps"><h3>Lab fixtures</h3><button id="newGame" type="button">Close Quarters</button><button id="classicGame" type="button">Original test map</button><button id="invasionGame" type="button">AI Invasion</button><button id="aiVsAiGame" type="button">Computer vs computer · clean start</button><button id="aiSkirmishGame" type="button">Computer skirmish · staged test</button><h3>Study maps · ellipse · sparse</h3><p class="menu-hint">Deterministic evaluation seeds (layout × 17 / 83 / 211). Starts with the ellipse study generator.</p><button type="button" class="studyMapButton" data-layout="continents" data-seed="17">Continents · seed 17</button><button type="button" class="studyMapButton" data-layout="continents" data-seed="83">Continents · seed 83</button><button type="button" class="studyMapButton" data-layout="continents" data-seed="211">Continents · seed 211</button><button type="button" class="studyMapButton" data-layout="islands" data-seed="17">Islands · seed 17</button><button type="button" class="studyMapButton" data-layout="islands" data-seed="83">Islands · seed 83</button><button type="button" class="studyMapButton" data-layout="islands" data-seed="211">Islands · seed 211</button><button type="button" class="studyMapButton" data-layout="archipelago" data-seed="17">Archipelago · seed 17</button><button type="button" class="studyMapButton" data-layout="archipelago" data-seed="83">Archipelago · seed 83</button><button type="button" class="studyMapButton" data-layout="archipelago" data-seed="211">Archipelago · seed 211</button></div></details><hr/><h2>Saved games</h2><button id="copyMapSeed" type="button">Copy map seed</button><button id="exportMapRecipe" type="button">Export map recipe</button><button id="importMapRecipe" type="button">Import map recipe</button><input id="recipeFile" type="file" accept="application/json,.json" hidden/><button id="exportSave" type="button">Export JSON</button><button id="importSave" type="button">Import JSON</button><input id="saveFile" type="file" accept="application/json,.json" hidden/></div></details><div class="topstate"><span id="round">ROUND 1</span><span class="separator"></span><span class="faction"><span class="dot"></span>BLUE</span></div>
+   <button type="button" class="game-menu-trigger" id="gameMenu" aria-haspopup="dialog" aria-controls="gameMenuDialog" aria-label="Game menu, campaigns and saved games">Game</button><div class="topstate"><span id="round">ROUND 1</span><span class="separator"></span><span class="faction"><span class="dot"></span>BLUE</span></div>
    <button id="nextRound" class="primary">Next round <span aria-hidden="true">→</span></button>
   </header>
   <main class="content">
@@ -25,6 +25,43 @@
   </main>
   <footer><span id="toast" role="status" aria-live="polite">Movement, combat, and capture are available. Red has a basic opponent AI; troop loading remains under development.</span><span>INTERSTEL 2.05 RULES TARGET</span></footer>
 </div>
+<dialog id="gameMenuDialog" class="game-dialog" aria-labelledby="gameMenuTitle">
+  <div class="game-dialog-layout">
+    <header class="game-dialog-header">
+      <h2 id="gameMenuTitle">Game</h2>
+      <form method="dialog"><button type="submit" class="game-dialog-dismiss" aria-label="Close game menu">×</button></form>
+    </header>
+    <div class="game-dialog-body" role="region" aria-label="Campaign setup, test scenarios, and save files">
+      <h3 class="game-dialog-section">New campaign</h3>
+      <p class="menu-hint">Choose who plays, a generator, and a seed. Starting a game replaces the current autosave.</p>
+      <label for="campaignMode">Players</label>
+      <select id="campaignMode"><option value="user-vs-computer">User vs computer</option><option value="ai-vs-ai">Computer vs computer</option></select>
+      <label for="campaignAlgorithm">Generator</label>
+      <select id="campaignAlgorithm"><option value="organic-v1" selected>Organic · noise coasts</option><option value="ellipse-v1">Ellipse · study baseline</option></select>
+      <label for="campaignDensity">City density</label>
+      <select id="campaignDensity"><option value="sparse">Sparse · ~12 cities</option><option value="standard">Standard · ~64 cities</option></select>
+      <label for="campaignLayout">Layout</label>
+      <select id="campaignLayout"><option value="continents">Continents</option><option value="islands">Islands</option><option value="archipelago">Archipelago</option></select>
+      <label for="campaignSeedSource">Seed source</label>
+      <select id="campaignSeedSource"><option value="random">Random on start</option><option value="custom">Custom seed</option></select>
+      <label for="campaignSeed">Seed value</label>
+      <input id="campaignSeed" type="number" inputmode="numeric" min="1" max="4294967295" step="1" value="17" aria-describedby="campaignSeedHint"/>
+      <p id="campaignSeedHint" class="menu-hint">Random on start picks a new seed when you press Start. Study seeds and lab fixtures are below.</p>
+      <details class="game-submenu" id="testScenariosMenu"><summary aria-label="Test scenarios and study maps">Test scenarios <span aria-hidden="true">▾</span></summary><div class="game-submenu-panel" role="region" aria-label="Lab fixtures and study maps"><h3>Lab fixtures</h3><button id="newGame" type="button">Close Quarters</button><button id="classicGame" type="button">Original test map</button><button id="invasionGame" type="button">AI Invasion</button><button id="aiVsAiGame" type="button">Computer vs computer · clean start</button><button id="aiSkirmishGame" type="button">Computer skirmish · staged test</button><h3>Study maps · ellipse · sparse</h3><p class="menu-hint">Deterministic evaluation seeds (layout × 17 / 83 / 211). Study buttons still use the ellipse generator.</p><button type="button" class="studyMapButton" data-layout="continents" data-seed="17">Continents · seed 17</button><button type="button" class="studyMapButton" data-layout="continents" data-seed="83">Continents · seed 83</button><button type="button" class="studyMapButton" data-layout="continents" data-seed="211">Continents · seed 211</button><button type="button" class="studyMapButton" data-layout="islands" data-seed="17">Islands · seed 17</button><button type="button" class="studyMapButton" data-layout="islands" data-seed="83">Islands · seed 83</button><button type="button" class="studyMapButton" data-layout="islands" data-seed="211">Islands · seed 211</button><button type="button" class="studyMapButton" data-layout="archipelago" data-seed="17">Archipelago · seed 17</button><button type="button" class="studyMapButton" data-layout="archipelago" data-seed="83">Archipelago · seed 83</button><button type="button" class="studyMapButton" data-layout="archipelago" data-seed="211">Archipelago · seed 211</button></div></details>
+      <h3 class="game-dialog-section">Saved games</h3>
+      <button id="copyMapSeed" type="button">Copy map seed</button>
+      <button id="exportMapRecipe" type="button">Export map recipe</button>
+      <button id="importMapRecipe" type="button">Import map recipe</button>
+      <input id="recipeFile" type="file" accept="application/json,.json" hidden/>
+      <button id="exportSave" type="button">Export JSON</button>
+      <button id="importSave" type="button">Import JSON</button>
+      <input id="saveFile" type="file" accept="application/json,.json" hidden/>
+    </div>
+    <footer class="game-dialog-footer">
+      <button class="primary" id="startCampaign" type="button">Start campaign</button>
+    </footer>
+  </div>
+</dialog>
 <dialog id="stackDialog" class="endgame-dialog stack-dialog" aria-labelledby="stackTitle">
   <h2 id="stackTitle"></h2>
   <p>Choose a unit or the city to inspect.</p>
