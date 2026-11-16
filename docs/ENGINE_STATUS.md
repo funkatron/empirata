@@ -1,22 +1,22 @@
 # Empirata engine status — milestone archive (v0.4 snapshot)
 
-> **Do not use this file for current priorities.** Product is at **v0.5.1** with campaigns, mapgen, logistics, and observer mode beyond this snapshot.
+> **Do not use this file for current priorities.** Product is at **v0.5.2** with campaigns, mapgen, logistics, observer mode, and staged classic DOS AI beyond this snapshot.
 > For what to build next, read [ROADMAP.md — Current status](ROADMAP.md#current-status-2026-11-15) and [WORKSTREAM_STATUS.md](WORKSTREAM_STATUS.md).
 > The narrative below is retained for history. For baseline and remaining technical work, see [TECHNICAL_IMPLEMENTATION_PLAN.md](TECHNICAL_IMPLEMENTATION_PLAN.md) and [manual findings](manual/findings.md).
 
 **Rules target:** Interstel *Empire: Wargame of the Century*, DOS 2.05, classic edition. All implementation work should use the same reference edition.
 
-## Alignment snapshot (2026-11-16, v0.5.1)
+## Alignment snapshot (2026-11-16, v0.5.2)
 
 Facts on current `main`; see [TEST_STRATEGY.md](TEST_STRATEGY.md) for CI and counts.
 
 | Area | Status (high level) |
 |------|---------------------|
-| **Engine tests** | 445 Node tests; Node 24; coverage gates 85% line / 80% branch |
+| **Engine tests** | 480 Node tests; Node 24; coverage gates 85% line / 80% branch |
 | **Scenarios** | Rules lab, Close Quarters, campaigns, `ai-vs-ai` observer, mapgen/recipes |
 | **Logistics** | Troop transport embark/disembark, carriers/fighters, load & unload ship, cargo combat, overload |
 | **Modern AI** | Experimental opponent: `src/engine/ai/modern-planners.ts`, `modern-executor.ts`; save fields in [MODERN_AI_UNIT_FIELDS.md](MODERN_AI_UNIT_FIELDS.md) |
-| **Classic AI** | Policy/difficulty scaffolding (`classic-grades.ts`); DOS parity track separate per [ROADMAP.md](ROADMAP.md) |
+| **Classic AI** | Policy + executor: resign UI, ALG-AI-001 pathing tranche, ALG-AI-002 `0x3490` production tree; default still modern |
 | **Not claimed** | Byte-for-byte DOS RNG/AI parity; full historical `.MAP` loading |
 
 ## Working systems (v0.4 snapshot — historical table)
