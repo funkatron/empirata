@@ -4,6 +4,10 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.5.2 — Classic resign UI and staged DOS AI
+
+Classic-policy games can show a **resignation** accept/decline dialog; accepting transfers computer cities and removes their units. Staged **classic DOS** AI gains deeper order pathing and expanded computer production heuristics when `aiPolicy` is `classic-dos` (default opponent remains modern).
+
 ## Version 0.5.1 — Random seeds and map recipes
 
 The Game menu can start campaigns with **preset**, **custom**, or **random-on-start** seeds. Copy / export / import a small **map recipe** JSON to reuse a layout+generator+density+seed without a mid-game save. Full **Export JSON** still saves the entire game (filenames include the seed when present).

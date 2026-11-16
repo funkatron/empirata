@@ -12,7 +12,7 @@
 
 Use this section for **what to work on now**. Older dated sections below are historical context and detailed specifications.
 
-**Product (v0.5.1):** Campaign and lab scenarios, organic/ellipse mapgen, map recipes, unit/city names, troop transport and carrier logistics, computer-vs-computer observer mode, and JSON save/export are in active use. The shipped default opponent remains **modern (experimental)** until classic migration step (4) is complete.
+**Product (v0.5.2):** Same campaign/lab surface as v0.5.1, plus classic **resign** UX, deeper classic **ALG-AI-001** pathing, and expanded **ALG-AI-002** production when classic policy is selected. The shipped default opponent remains **modern (experimental)** until classic migration step (4) is complete.
 
 **Engine queue (authoritative):** Follow the [review-driven execution queue](#review-driven-execution-queue-2026-11-09) — **P0**–**P3** **closed**; **P4** **closed** (Priority 1 audit, gesture unit tests, `ui-load` smoke, G3 menu a11y, G4 overview tap-to-zoom); next: roadmap **P4 item 9** policy documented (Playwright opt-in).
 
