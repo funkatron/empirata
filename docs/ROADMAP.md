@@ -8,7 +8,7 @@
 
 **Migration:** (1) reconcile recovered ALG claims with actual engine/tests, since the ruleset mapping table contains stale pre-implementation statuses; (2) add a game-level policy/difficulty setting and original grade parameters with save/replay coverage; (3) implement classic production and movement in bounded deterministic steps; (4) make Classic DOS the default once the minimum classic policy is usable and visibly distinguish incomplete features until then. Keep both factions symmetrical and verify CI/Copilot before merge. No merge or deployment without authorization.
 
-## Current status (2026-11-15)
+## Current status (2026-11-16)
 
 Use this section for **what to work on now**. Older dated sections below are historical context and detailed specifications.
 
@@ -74,7 +74,7 @@ Source: external Codex project-review handoff (2026-11-09). These are **review f
 
 ### P3: Documentation accuracy
 
-7. **Closed (2026-11-16):** [TEST_STRATEGY.md](TEST_STRATEGY.md) matches Node 24, 432-test CI, and verify workflow; [ENGINE_STATUS.md](ENGINE_STATUS.md) adds v0.5.1 alignment snapshot and marks the working-systems table as historical.
+7. **Closed (2026-11-16):** [TEST_STRATEGY.md](TEST_STRATEGY.md) matches Node 24, **483**-test CI, and verify workflow; [ENGINE_STATUS.md](ENGINE_STATUS.md) alignment snapshot at v0.5.3; [DOS_ALGORITHM_RULESET.md](DOS_ALGORITHM_RULESET.md) §2 classic AI rows reconciled.
 
 ### P4: Remaining UI confidence
 

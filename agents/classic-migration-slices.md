@@ -4,7 +4,7 @@ Authoritative **order** for post–v0.5.2 classic work. Update status as PRs lan
 
 | Slice | Deliverable | Status |
 |-------|-------------|--------|
-| **A** | Doc reconcile: ALG §2 mapping, TEST_STRATEGY 480 tests, roadmap dates | open |
+| **A** | Doc reconcile: ALG §2 mapping, TEST_STRATEGY 483 tests, roadmap dates | done (Q15) |
 | **B** | Campaign **AI policy + grade** UI (ALG-AI-003 selectors, saves) | done (Q14 → v0.5.3) |
 | **C** | ALG-AI-001 depth: escort/load, glyph passability, ship set B | open |
 | **D** | ALG-AI-002 threat / `0x3ADC` reachability refinements | open |
