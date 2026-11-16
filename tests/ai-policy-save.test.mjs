@@ -13,11 +13,11 @@ test('Modern experimental policy survives save roundtrip',()=>{
   assert.deepEqual(importSave(exportSave(game)).aiPolicy,game.aiPolicy);
 });
 
-test('Classic DOS policy cannot be activated before the AI is implemented',()=>{
+test('Classic DOS policy survives save roundtrip while behavior remains staged',()=>{
   const game=makeRulesLab();
   for(const grade of [1,2]){
     game.aiPolicy={kind:'classic-dos',grade};
-    assert.throws(()=>importSave(exportSave(game)),/not yet playable/);
+    assert.deepEqual(importSave(exportSave(game)).aiPolicy,{kind:'classic-dos',grade});
   }
 });
 
