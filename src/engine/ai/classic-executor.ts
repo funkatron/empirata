@@ -1,13 +1,20 @@
-import type { Coord, FactionId, Game, UnitType } from '../types.js';
+import type { Coord, FactionId, Game, Unit, UnitType } from '../types.js';
 import type { AiPolicy } from './classic-grades.js';
 import { chooseClassicCityProduction } from './classic-production.js';
-import { classicStandingOrderTick } from './classic-order-tick.js';
+import { classicHomeRepairStep, embarkedCargoCount } from './classic-move.js';
+import {
+  classicDamagedShipSeeksPort,
+  classicSentryEngageTarget,
+  classicStandingOrderTick,
+} from './classic-order-tick.js';
+import { getPlayerView } from '../knowledge.js';
 import { resolveAiPolicy } from './policy.js';
 
 export type ClassicAiGameOps = {
   moveUnit: (game: Game, id: string, to: Coord, protectedCargo: ReadonlySet<string>, mutable: boolean) => Game;
   setOrder: (game: Game, unitId: string, order: import('../types.js').UnitOrder, mutable?: boolean) => Game;
   selectProduction: (game: Game, cityId: string, kind: UnitType, mutable?: boolean) => Game;
+  routeStep: (game: Game, unit: Unit, destination: Coord) => Coord | null;
   log: (g: Game, recipient: FactionId | null, kind: Game['events'][number]['kind'], message: string) => void;
 };
 
@@ -41,16 +48,35 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
   function runAlgAi001Tranche(game: Game, faction: FactionId, policy: Extract<AiPolicy, { kind: 'classic-dos' }>): Game {
     let g = clone(game);
     const protectedCargo = new Set<string>();
-  for (const unit of g.units.filter(u => u.owner === faction && !u.aboard)) {
-      const tick = classicStandingOrderTick(unit.order);
-      if (!tick || tick.kind === 'hold') continue;
-      g = ops.setOrder(g, unit.id, { kind: 'go-direction', direction: { ...tick.direction } }, true);
+    const actives = () => g.units.filter(u => u.owner === faction && !u.aboard).sort((a, b) => a.id.localeCompare(b.id));
+    for (const unit of actives()) {
+      const view = getPlayerView(g, faction);
       const fresh = g.units.find(u => u.id === unit.id);
       if (!fresh) continue;
-      const step: Coord = {
-        x: fresh.position.x + tick.direction.x,
-        y: fresh.position.y + tick.direction.y,
-      };
+      const cargo = embarkedCargoCount(g, unit.id);
+      let step: Coord | null = null;
+      if (classicDamagedShipSeeksPort(fresh, cargo)) {
+        g = ops.setOrder(g, unit.id, { kind: 'go-home' }, true);
+        const ship = g.units.find(u => u.id === unit.id);
+        if (ship) step = classicHomeRepairStep(g, ship, ops.routeStep);
+      } else {
+        step = classicSentryEngageTarget(view, fresh);
+        if (step) g = ops.setOrder(g, unit.id, { kind: 'none' }, true);
+        if (!step) {
+          const tick = classicStandingOrderTick(fresh.order);
+          if (tick?.kind === 'bear') {
+            g = ops.setOrder(g, unit.id, { kind: 'go-direction', direction: { ...tick.direction } }, true);
+            const positioned = g.units.find(u => u.id === unit.id);
+            if (positioned) {
+              step = {
+                x: positioned.position.x + tick.direction.x,
+                y: positioned.position.y + tick.direction.y,
+              };
+            }
+          }
+        }
+      }
+      if (!step) continue;
       try {
         g = ops.moveUnit(g, unit.id, step, protectedCargo, true);
       } catch {
@@ -61,7 +87,7 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
       g,
       faction,
       'system',
-      `Classic DOS AI (grade ${policy.grade}): ALG-AI-002 production + ALG-AI-001 order-none bearing.`,
+      `Classic DOS AI (grade ${policy.grade}): ALG-AI-002 production + ALG-AI-001 activation pass.`,
     );
     return g;
   }

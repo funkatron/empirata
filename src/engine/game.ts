@@ -519,6 +519,7 @@ const classicAi = createClassicAiExecutor({
   moveUnit,
   setOrder,
   selectProduction,
+  routeStep,
   log,
 });
 
