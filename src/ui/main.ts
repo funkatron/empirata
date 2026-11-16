@@ -11,7 +11,7 @@ import {
 } from './gestures.js';
 import {drawCity,drawCoast,drawTerrain,drawUnit} from './map-art.js';
 import {
-  observerFogOpacity,observerTerrain,refreshShouldInvalidateKnowledgeLayer,terrainLayerCacheKey,
+  fogLayerCacheKey,observerFogOpacity,observerTerrain,refreshShouldInvalidateKnowledgeLayer,terrainLayerCacheKey,
 } from './observer-map.js';
 import {endgameModal} from './endgame.js';
 import {advanceLabRound,labRoundPhases,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,makeCampaignMap,
@@ -70,6 +70,11 @@ let tilesRevision=0;
 let knowledgeLayerGeneration=0;
 let terrainLayer:HTMLCanvasElement|null=null;
 let terrainLayerKey='';
+let fogLayer:HTMLCanvasElement|null=null;
+let fogLayerKey='';
+/** While pinching or wheel-zooming, stamp layers once at this scale and blit with live tileSize. */
+let zoomGestureLayerTileSize:number|null=null;
+let zoomGestureCommitTimer:ReturnType<typeof setTimeout>|null=null;
 let lastInspectorKey='';
 let lastEventsKey='';
 /** CI / smoke timing probe — presentation only; never feeds gameplay. */
@@ -82,10 +87,31 @@ function invalidateMapLayer():void {
   tilesRevision++;
   knowledgeLayerGeneration++;
   terrainLayerKey='';
+  fogLayerKey='';
 }
 function invalidateKnowledgeLayer():void {
   knowledgeLayerGeneration++;
   terrainLayerKey='';
+  fogLayerKey='';
+}
+function blitWorldLayer(
+  target:CanvasRenderingContext2D,layer:HTMLCanvasElement,
+  layerTileSize:number,viewTileSize:number,cameraX:number,cameraY:number,viewW:number,viewH:number,
+):void{
+  if(layerTileSize===viewTileSize){target.drawImage(layer,-cameraX,-cameraY);return;}
+  const scale=viewTileSize/layerTileSize;
+  target.drawImage(layer,cameraX/scale,cameraY/scale,viewW/scale,viewH/scale,0,0,viewW,viewH);
+}
+function commitZoomGestureLayers():void{
+  if(zoomGestureCommitTimer!==null){clearTimeout(zoomGestureCommitTimer);zoomGestureCommitTimer=null;}
+  if(zoomGestureLayerTileSize===null)return;
+  zoomGestureLayerTileSize=null;
+  paint();
+}
+function beginZoomGesture():void{
+  if(zoomGestureLayerTileSize===null)zoomGestureLayerTileSize=tileSize;
+  if(zoomGestureCommitTimer!==null)clearTimeout(zoomGestureCommitTimer);
+  zoomGestureCommitTimer=setTimeout(commitZoomGestureLayers,150);
 }
 function publishMapPaintProbe():void {
   // observer-batching.mjs evaluates a slice of this file in vm without `window`.
@@ -241,16 +267,16 @@ function fitWorld():void {
   clamp();paint();
 }
 window.addEventListener('empirata-terrain-ready',()=>{invalidateMapLayer();paint();});
-function ensureTerrainLayer(revealMap:boolean):HTMLCanvasElement {
-  const key=terrainLayerCacheKey(tilesRevision,tileSize,revealMap,knowledgeLayerGeneration);
+function ensureTerrainLayer(revealMap:boolean,layerTileSize:number):HTMLCanvasElement {
+  const key=terrainLayerCacheKey(tilesRevision,layerTileSize,revealMap,knowledgeLayerGeneration);
   if(terrainLayer&&terrainLayerKey===key){
     mapPaintStats.lastEnsureMs=0;
     mapPaintStats.lastRebuild=false;
     return terrainLayer;
   }
   const started=performance.now();
-  const width=Math.max(1,Math.ceil(game.width*tileSize));
-  const height=Math.max(1,Math.ceil(game.height*tileSize));
+  const width=Math.max(1,Math.ceil(game.width*layerTileSize));
+  const height=Math.max(1,Math.ceil(game.height*layerTileSize));
   if(!terrainLayer)terrainLayer=document.createElement('canvas');
   if(terrainLayer.width!==width)terrainLayer.width=width;
   if(terrainLayer.height!==height)terrainLayer.height=height;
@@ -263,17 +289,37 @@ function ensureTerrainLayer(revealMap:boolean):HTMLCanvasElement {
     observerTerrain(game,view,y*view.width+x,revealSpectatorTerrain):null;
   for(let y=0;y<view.height;y++)for(let x=0;x<view.width;x++){
     const terrain=displayTerrain(x,y);
-    const px=x*tileSize,py=y*tileSize;
+    const px=x*layerTileSize,py=y*layerTileSize;
     const seaAt=(dx:number,dy:number)=>displayTerrain(x+dx,y+dy)==='sea';
-    drawTerrain(layer,terrain,px,py,tileSize,x,y);
-    if(terrain==='land')drawCoast(layer,px,py,tileSize,seaAt(0,-1),seaAt(1,0),seaAt(0,1),seaAt(-1,0));
-    if(tileSize>=9){layer.strokeStyle='rgba(120,159,166,.12)';layer.lineWidth=.65;layer.strokeRect(px+.3,py+.3,tileSize-.6,tileSize-.6);}
+    drawTerrain(layer,terrain,px,py,layerTileSize,x,y);
+    if(terrain==='land')drawCoast(layer,px,py,layerTileSize,seaAt(0,-1),seaAt(1,0),seaAt(0,1),seaAt(-1,0));
+    if(layerTileSize>=9){layer.strokeStyle='rgba(120,159,166,.12)';layer.lineWidth=.65;layer.strokeRect(px+.3,py+.3,layerTileSize-.6,layerTileSize-.6);}
   }
   terrainLayerKey=key;
   mapPaintStats.terrainRebuilds++;
   mapPaintStats.lastRebuild=true;
   mapPaintStats.lastEnsureMs=performance.now()-started;
   return terrainLayer;
+}
+function ensureFogLayer(revealMap:boolean,layerTileSize:number):HTMLCanvasElement|null{
+  const key=fogLayerCacheKey(tilesRevision,layerTileSize,revealMap,knowledgeLayerGeneration);
+  if(fogLayer&&fogLayerKey===key)return fogLayer;
+  const width=Math.max(1,Math.ceil(game.width*layerTileSize));
+  const height=Math.max(1,Math.ceil(game.height*layerTileSize));
+  if(!fogLayer)fogLayer=document.createElement('canvas');
+  if(fogLayer.width!==width)fogLayer.width=width;
+  if(fogLayer.height!==height)fogLayer.height=height;
+  const layer=fogLayer.getContext('2d')!;
+  layer.setTransform(1,0,0,1,0,0);
+  layer.clearRect(0,0,width,height);
+  for(let y=0;y<view.height;y++)for(let x=0;x<view.width;x++){
+    const fog=observerFogOpacity(game,view,y*view.width+x,revealSpectatorTerrain);
+    if(fog===0)continue;
+    layer.fillStyle=`rgba(3,13,22,${fog})`;
+    layer.fillRect(x*layerTileSize,y*layerTileSize,layerTileSize,layerTileSize);
+  }
+  fogLayerKey=key;
+  return fogLayer;
 }
 function paintFrame():void {
   const paintStarted=performance.now();
@@ -295,6 +341,7 @@ function paintFrame():void {
   const neighbors=[[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]] as const;
   const cellAt=(x:number,y:number)=>x>=0&&x<view.width&&y>=0&&y<view.height?view.cells[y*view.width+x]:undefined;
   const revealMap=game.scenario==='ai-vs-ai'&&revealSpectatorTerrain;
+  const layerTileSize=zoomGestureLayerTileSize??tileSize;
   const displayTerrain=(x:number,y:number)=>x>=0&&x<view.width&&y>=0&&y<view.height?
     observerTerrain(game,view,y*view.width+x,revealSpectatorTerrain):null;
   // Map landmarks are shown as neutral silhouettes until the observed faction
@@ -303,8 +350,8 @@ function paintFrame():void {
     !cellAt(c.position.x,c.position.y)?.city).map(c=>c.position.y*view.width+c.position.x):[]);
   const fitSize=Math.min(w/view.width,h/view.height);
   const fitWeight=Math.max(0,Math.min(1,(Math.max(30,fitSize+8)-tileSize)/(Math.max(30,fitSize+8)-fitSize)));
-  const layer=ensureTerrainLayer(revealMap);
-  ctx.drawImage(layer,-cameraX,-cameraY);
+  const layer=ensureTerrainLayer(revealMap,layerTileSize);
+  blitWorldLayer(ctx,layer,layerTileSize,tileSize,cameraX,cameraY,w,h);
   // Paint symbols after terrain so a large icon can cross its tile edge.
   for(let y=sy;y<ey;y++)for(let x=sx;x<ex;x++){
     const i=y*view.width+x,c=view.cells[i]!;
@@ -345,15 +392,8 @@ function paintFrame():void {
     }
     if(u.id===selectedUnit||u.id===spectatorContact){ctx.strokeStyle='#fff0a4';ctx.lineWidth=2.3;ctx.strokeRect(px+1,py+1,Math.max(1,tileSize-2),Math.max(1,tileSize-2));}
   }
-  // Shroud unexplored tiles at 75% and previously explored but unseen at 52%.
-  // Always overlay (never bake into the geography cache) so reveal-on CvC can
-  // reuse stamped terrain across observer refreshes. Symbols stay under fog.
-  for(let y=sy;y<ey;y++)for(let x=sx;x<ex;x++){
-    const fog=observerFogOpacity(game,view,y*view.width+x,revealSpectatorTerrain);
-    if(fog===0)continue;
-    ctx.fillStyle=`rgba(3,13,22,${fog})`;
-    ctx.fillRect(x*tileSize-cameraX,y*tileSize-cameraY,tileSize,tileSize);
-  }
+  const fog=ensureFogLayer(revealMap,layerTileSize);
+  if(fog)blitWorldLayer(ctx,fog,layerTileSize,tileSize,cameraX,cameraY,w,h);
   mapPaintStats.lastPaintMs=performance.now()-paintStarted;
 }
 function cellFromPointer(ev:PointerEvent):Coord {
@@ -664,6 +704,7 @@ function beginPinch():void {
   const rect=canvas.getBoundingClientRect();
   const anchor=pinchWorldAnchor(p.x,p.y,rect.left,rect.top,cameraX,cameraY,tileSize);
   pinch={distance:p.distance,scale:tileSize,worldX:anchor.worldX,worldY:anchor.worldY};
+  beginZoomGesture();
   suppressTap=true;down=null;
 }
 canvas.addEventListener('pointerdown',ev=>{
@@ -701,8 +742,10 @@ function finishPointer(ev:PointerEvent,cancelled:boolean):void {
   if(!touches.has(ev.pointerId))return;
   touches.delete(ev.pointerId);
   if(pinch||suppressTap){
+    const endedPinch=!!pinch;
     pinch=null;down=null;
     if(touches.size===0)suppressTap=false;
+    if(endedPinch)commitZoomGestureLayers();
     return;
   }
   if(down?.id===ev.pointerId){
@@ -713,7 +756,7 @@ function finishPointer(ev:PointerEvent,cancelled:boolean):void {
 canvas.addEventListener('pointerup',ev=>finishPointer(ev,false));
 canvas.addEventListener('pointercancel',ev=>finishPointer(ev,true));
 el('fitWorld').addEventListener('click',fitWorld);
-canvas.addEventListener('wheel',ev=>{ev.preventDefault();zoom(ev.deltaY<0?2:-2);},{passive:false});
+canvas.addEventListener('wheel',ev=>{ev.preventDefault();beginZoomGesture();zoom(ev.deltaY<0?2:-2);},{passive:false});
 document.addEventListener('keydown',ev=>{
   if(stackDialog.open||(el('endgameDialog') as HTMLDialogElement).open||gameMenuDialog.open||ev.ctrlKey||ev.metaKey||ev.altKey)return;
   const target=ev.target as HTMLElement;
@@ -723,13 +766,15 @@ document.addEventListener('keydown',ev=>{
   if(ev.key==='Escape'){
     choosingDestination=false;selectedUnit=null;selectedCity=null;spectatorContact=null;spectatorCity=null;refresh();return;
   }
-  if(ev.key==='+'||ev.key==='='){zoom(3);return;}if(ev.key==='-'){zoom(-3);return;}
+  if(ev.key==='+'||ev.key==='='){beginZoomGesture();zoom(3);return;}
+  if(ev.key==='-'){beginZoomGesture();zoom(-3);return;}
   const delta=moves[ev.key];if(!delta||!selectedUnit)return;
   const u=view.ownUnits.find(u=>u.id===selectedUnit);if(!u)return;
   ev.preventDefault();tapTile({x:u.position.x+delta.x,y:u.position.y+delta.y},false);
 });
 el('nextRound').addEventListener('click',()=>{dispatch(()=>advanceLabRound(game));uiMessage(`Round ${game.round}. Red has completed its response turn.`);});
-el('zoomIn').addEventListener('click',()=>zoom(4));el('zoomOut').addEventListener('click',()=>zoom(-4));
+el('zoomIn').addEventListener('click',()=>{beginZoomGesture();zoom(4);});
+el('zoomOut').addEventListener('click',()=>{beginZoomGesture();zoom(-4);});
 el('recenter').addEventListener('click',()=>focus(view.ownUnits.find(u=>u.id===selectedUnit)?.position??view.ownCities[0]?.position??{x:8,y:25}));
 function downloadText(filename:string,text:string):void{
   const data=new Blob([text],{type:'application/json'}),url=URL.createObjectURL(data);
