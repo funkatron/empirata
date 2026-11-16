@@ -10,6 +10,7 @@ import {
 } from './classic-order-tick.js';
 import { directions } from '../world.js';
 import { getPlayerView } from '../knowledge.js';
+import { humanRecipients, shouldOfferClassicResign } from './classic-resign.js';
 import { resolveAiPolicy } from './policy.js';
 
 export type ClassicAiGameOps = {
@@ -31,6 +32,7 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
     if (policy.kind !== 'classic-dos') throw new Error('Classic executor invoked for a non-classic policy.');
     let g = runAlgAi002Production(game, faction, policy);
     g = runAlgAi001Tranche(g, faction, policy);
+    g = maybeOfferClassicResign(g, faction);
     return g;
   }
 
@@ -116,6 +118,17 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
       `Classic DOS AI (grade ${policy.grade}): ALG-AI-002 production + ALG-AI-001 activation pass.`,
     );
     return g;
+  }
+
+  function maybeOfferClassicResign(game: Game, computer: FactionId): Game {
+    if (!shouldOfferClassicResign(game, computer)) return game;
+    const g = clone(game);
+    g.classicResignOffered = { ...g.classicResignOffered, [computer]: true };
+    const message = 'The computer wishes to resign. (Accept/decline UI not yet wired.)';
+    for (const recipient of humanRecipients(g, computer)) {
+      ops.log(g, recipient, 'system', message);
+    }
+  return g;
   }
 
   return { playAiOpponent };

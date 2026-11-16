@@ -45,6 +45,8 @@ export type Game = {
   scenario?: 'classic-lab' | 'close-quarters' | 'ai-invasion' | 'ai-vs-ai' | 'user-vs-computer';
   /** Staged policy selection; omitted saves continue to use the existing modern AI. */
   aiPolicy?: AiPolicy;
+  /** Classic ALG-AI-004: resign dialog already offered per computer faction. */
+  classicResignOffered?: Partial<Record<FactionId, boolean>>;
   campaignMap?: {
     layout: 'continents' | 'islands' | 'archipelago';
     seed: number;
