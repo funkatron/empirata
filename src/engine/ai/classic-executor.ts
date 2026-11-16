@@ -1,7 +1,7 @@
 import type { Coord, FactionId, Game, Unit, UnitType } from '../types.js';
 import type { AiPolicy } from './classic-grades.js';
 import { chooseClassicCityProduction } from './classic-production.js';
-import { classicHomeRepairStep, embarkedCargoCount } from './classic-move.js';
+import { classicHomeRepairStep, classicMoveToStep, embarkedCargoCount } from './classic-move.js';
 import {
   classicDamagedShipSeeksPort,
   classicRandomOrderTick,
@@ -56,6 +56,9 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
       const fresh = g.units.find(u => u.id === unit.id);
       if (!fresh) continue;
       const hadRandom = fresh.order.kind === 'random';
+      const hadGoHome = fresh.order.kind === 'go-home';
+      const moveToDestination = fresh.order.kind === 'move-to' ? fresh.order.destination : null;
+      const hadMoveTo = moveToDestination !== null;
       const cargo = embarkedCargoCount(g, unit.id);
       let step: Coord | null = null;
       if (classicDamagedShipSeeksPort(fresh, cargo)) {
@@ -65,6 +68,11 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
       } else {
         step = classicSentryEngageTarget(view, fresh);
         if (step) g = ops.setOrder(g, unit.id, { kind: 'none' }, true);
+        if (!step) {
+          const ship = g.units.find(u => u.id === unit.id);
+          if (ship?.order.kind === 'go-home') step = classicHomeRepairStep(g, ship, ops.routeStep);
+          else if (ship) step = classicMoveToStep(g, ship, ops.routeStep);
+        }
         if (!step) {
           if (fresh.order.kind === 'random') {
             const rotated = classicRandomOrderTick(g, fresh);
@@ -94,6 +102,9 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
       try {
         g = ops.moveUnit(g, unit.id, step, protectedCargo, true);
         if (hadRandom) g = ops.setOrder(g, unit.id, { kind: 'random' }, true);
+        else if (hadGoHome) g = ops.setOrder(g, unit.id, { kind: 'go-home' }, true);
+        else if (hadMoveTo && moveToDestination)
+          g = ops.setOrder(g, unit.id, { kind: 'move-to', destination: moveToDestination }, true);
       } catch {
         /* Illegal classic step — leave bearing for standing-order phase. */
       }
