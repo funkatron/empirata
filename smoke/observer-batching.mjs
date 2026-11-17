@@ -11,6 +11,7 @@ function observer(count,finish=Infinity){
  // yields between real labRoundPhases in the browser.
  const c=vm.createContext({game:{scenario:'ai-vs-ai',round:1,nextEventId:0},observer:'blue',spectatorMode:'blue',
  gameOutcome:g=>({state:g.round>=finish?'finished':'ongoing'}),el,document:{getElementById:el},getPlayerView:()=>({ownUnits:[],events:[]}),
+ mergeSpectatorPlayerViews:(blue,red)=>({ownUnits:[...blue.ownUnits,...red.ownUnits],events:[...blue.events,...red.events]}),
  advanceLabRound:g=>({...g,round:g.round+1}),
  labRoundPhases:()=>[g=>({...g,round:g.round+1})],
  refresh:()=>{paints++;},saveLocally:g=>{saves.push(g.round);return Promise.resolve();},
@@ -30,10 +31,10 @@ test('Pause flushes a partial batch and cancels pending advancement',()=>{
  o.run('pausePlayback()');assert.equal(o.paints(),1);assert.deepEqual(o.saves,[4]);assert.equal(o.round(),4);
  o.run('pausePlayback()');assert.equal(o.paints(),1);
 });
-test('Alternate intel redraws each round during a multi-round batch',()=>{
- const o=observer(10);o.run("spectatorMode='alternate'");o.run('startRoundPlayback(false)');
- for(let i=0;i<10;i++){assert.equal(o.paints(),i);o.step();assert.equal(o.paints(),i+1);}
- assert.equal(o.round(),11);assert.deepEqual(o.saves,[11]);
+test('Both-intelligence mode batches redraw at batch completion',()=>{
+ const o=observer(10);o.run("spectatorMode='both'");o.run('startRoundPlayback(false)');
+ for(let i=0;i<10;i++){assert.equal(o.paints(),0);o.step();}
+ assert.equal(o.round(),11);assert.equal(o.paints(),1);assert.deepEqual(o.saves,[11]);
 });
 test('Repeated playback honors the next selected batch size',()=>{
  const o=observer(1);o.run('startRoundPlayback(true)');o.step();assert.equal(o.paints(),1);

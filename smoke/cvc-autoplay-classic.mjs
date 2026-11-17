@@ -28,7 +28,7 @@ function harness({ repeat = true, roundsPerAdvance = 1, finishRound = Infinity }
   const c = vm.createContext({
     game,
     observer: 'blue',
-    spectatorMode: 'alternate',
+    spectatorMode: 'both',
     revealSpectatorTerrain: true,
     gameOutcome: g =>
       g.round >= finishRound ? { state: 'finished', winner: null } : gameOutcome(g),
