@@ -507,7 +507,7 @@ Nearby-enemy scout `0x383D` counts owned units within distance `<= 6` of the cit
 - **Stale vs fresh [?]:** No conclusive static pass on a missing private image in this environment. **Manual [M]:** chart markers remain as last-known positions until rescanned empty (p. 19). **Working hypothesis (medium confidence):** slots include **stale and fresh** enemy contacts; exclude disproven entries only. **Reject:** hidden live `84E` positions not on the chart.
 - **Runtime proof [T] proposed:** (1) land corridor + stale army marker + no fresh unit → army production if path open; (2) rescanned-empty square clears marker → `0x3ADC` false; (3) compare loop for a fresh-only flag byte before pathfinder.
 
-See `agents/alg-ai-002-3adc-slot-trace-2026-11-17.md`.
+See `agents/alg-ai-002-3adc-slot-trace-2026-11-17.md` (static/DOSBox protocol; run `tools/disasm_alg_ai_002_3adc.py` on the private unpacked image).
 
 **Empirata:** experimental AI production is separate; do not treat current Empirata build orders as DOS-accurate.
 
