@@ -1,4 +1,5 @@
 import type { City, FactionId, Game, UnitType } from '../types.js';
+import { STATS } from '../units.js';
 import { getPlayerView } from '../knowledge.js';
 import { directions, isCoastal, terrainAt } from '../world.js';
 import type { DosComputerGrade } from './classic-grades.js';
@@ -67,6 +68,12 @@ function cityHasDefender(game: Game, faction: FactionId, city: City): boolean {
 
 function ownedCityCount(game: Game, faction: FactionId): number {
   return game.cities.filter(c => c.owner === faction).length;
+}
+
+/** Empirata rejects sea units at inland cities; map DOS inland sealift to army here. */
+export function legalizeClassicProductionForCity(game: Game, city: City, kind: UnitType): UnitType {
+  if (STATS[kind].domain === 'sea' && !isCoastal(game, city.position)) return 'army';
+  return kind;
 }
 
 /** Tracked cells for `0x3ADC` (~20 slots); staging uses fresh + stale sight coordinates. */
@@ -140,7 +147,9 @@ export function chooseClassicCityProduction(
 
   if (cityCount <= 1 && counts.fighter === 0 && counts.transport === 0 && coastal) return 'transport';
 
-  if (neighbors.sea === 0 && neighbors.land > 0 && counts.transport < 2) return 'transport';
+  if (neighbors.sea === 0 && neighbors.land > 0 && counts.transport < 2) {
+    return legalizeClassicProductionForCity(game, city, 'transport');
+  }
 
   if (coastal && counts.transport < 2) return 'transport';
 
@@ -160,7 +169,7 @@ export function chooseClassicCityProduction(
 
   if (coastal && cityCount > 2 && nearEnemies > 2) return 'army';
 
-  if (coastal) return classicShipMixProduction(counts);
+  if (coastal) return legalizeClassicProductionForCity(game, city, classicShipMixProduction(counts));
 
   return 'army';
 }

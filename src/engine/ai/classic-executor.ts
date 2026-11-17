@@ -1,6 +1,6 @@
 import type { Coord, FactionId, Game, Unit, UnitType } from '../types.js';
 import type { AiPolicy } from './classic-grades.js';
-import { chooseClassicCityProduction } from './classic-production.js';
+import { chooseClassicCityProduction, legalizeClassicProductionForCity } from './classic-production.js';
 import { classicEscortStep } from './classic-escort.js';
 import { classicHomeRepairStep, classicMoveToStep, classicPatrolStep, embarkedCargoCount } from './classic-move.js';
 import { classicLegalDirectionStep } from './classic-path.js';
@@ -47,7 +47,11 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
   ): Game {
     let g = clone(game);
     for (const city of g.cities.filter(c => c.owner === faction)) {
-      const pick = chooseClassicCityProduction(g, faction, city, policy.grade);
+      const pick = legalizeClassicProductionForCity(
+        g,
+        city,
+        chooseClassicCityProduction(g, faction, city, policy.grade),
+      );
       if (city.production !== pick) g = ops.selectProduction(g, city.id, pick, true);
     }
     return g;
