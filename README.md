@@ -4,6 +4,10 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.6.0 — Classic DOS default opponent
+
+New campaigns default to **Classic DOS grade 1**; **Modern (experimental)** remains in the Game menu. Saves and rules-lab fixtures without `aiPolicy` still use modern (legacy compatibility).
+
 ## Version 0.5.6 — Classic production invasion threat (`0x3ADC`)
 
 Classic DOS city production checks **path-reachable enemy locations** on the faction chart and commissions **army** when an invasion corridor exists (slice **D** / ALG-AI-002).
@@ -22,7 +26,7 @@ New campaigns can choose **Modern (experimental)** or **Classic DOS** with **gra
 
 ## Version 0.5.2 — Classic resign UI and staged DOS AI
 
-Classic-policy games can show a **resignation** accept/decline dialog; accepting transfers computer cities and removes their units. Staged **classic DOS** AI gains deeper order pathing and expanded computer production heuristics when `aiPolicy` is `classic-dos` (default opponent remains modern).
+Classic-policy games can show a **resignation** accept/decline dialog; accepting transfers computer cities and removes their units. Staged **classic DOS** AI is the **default campaign opponent** (v0.6.0); choose **Modern (experimental)** in the Game menu to use the frozen modern executor.
 
 ## Version 0.5.1 — Random seeds and map recipes
 

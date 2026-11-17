@@ -36,6 +36,7 @@ test('Idle empty transport at sea moves toward a friendly port on the rules lab'
 
 test('Reconnaissance fixture idle transport closes on a coastal home within eight AI turns', () => {
   let { state, faction } = makeReconnaissanceFixture(engine, { layout: 'continents', seed: 83 });
+  state.aiPolicy = { kind: 'modern-experimental' };
   const idle = state.units.find(u => u.id === 'fixture-idle-transport');
   const port = homePort(state, faction);
   assert.ok(idle && port, 'fixture ships coastal home and idle transport');
