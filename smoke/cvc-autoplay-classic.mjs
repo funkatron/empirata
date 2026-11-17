@@ -8,6 +8,7 @@ import {
   getPlayerView,
   labRoundPhases,
   makeCampaignMap,
+  mergeSpectatorPlayerViews,
 } from '../dist/engine/index.js';
 
 const makeCampaignMapExport = makeCampaignMap;
@@ -35,6 +36,7 @@ function harness({ repeat = true, roundsPerAdvance = 1, finishRound = Infinity }
     el,
     document: { getElementById: el, hidden: false },
     getPlayerView,
+    mergeSpectatorPlayerViews,
     endTurn,
     makeCampaignMap: makeCampaignMapExport,
     labRoundPhases,
