@@ -4,6 +4,10 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.6.4 — Classic offshore sealift
+
+Classic transports stage at friendly ports, sail toward **charted** neutrals/enemies that armies cannot reach over land, and **disembark** for existing conquest logic (`classic-amphibious.ts`).
+
 ## Version 0.6.3 — Spectator alternate intel + classic city capture
 
 **Alternate each round** now updates fog/intel after every round during multi-round **Play** / **Advance**, not only at batch end. Classic armies path to charted neutral/enemy cities (ALG-AI-001 expansion staging) instead of wandering with **None** forever.

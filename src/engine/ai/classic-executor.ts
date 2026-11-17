@@ -9,6 +9,14 @@ import {
   classicPatrolStep,
   embarkedCargoCount,
 } from './classic-move.js';
+import {
+  classicArmyPortEmbarkStep,
+  classicEmptyTransportPortStep,
+  classicOffshoreObjectives,
+  classicTransportLandingChoice,
+  classicTransportObjective,
+  classicTransportSeaStep,
+} from './classic-amphibious.js';
 import { classicLegalDirectionStep } from './classic-path.js';
 import {
   classicDamagedShipSeeksPort,
@@ -25,6 +33,7 @@ import { resolveAiPolicy } from './policy.js';
 
 export type ClassicAiGameOps = {
   moveUnit: (game: Game, id: string, to: Coord, protectedCargo: ReadonlySet<string>, mutable: boolean) => Game;
+  disembarkArmy: (game: Game, armyId: string, to: Coord, mutable?: boolean) => Game;
   setOrder: (game: Game, unitId: string, order: import('../types.js').UnitOrder, mutable?: boolean) => Game;
   selectProduction: (game: Game, cityId: string, kind: UnitType, mutable?: boolean) => Game;
   routeStep: (game: Game, unit: Unit, destination: Coord) => Coord | null;
@@ -82,6 +91,15 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
       const current = g.units.find(u => u.id === unit.id);
       if (!current) continue;
       if (current.order.kind === 'load-ship') continue;
+      const landing = current.kind === 'transport' ? classicTransportLandingChoice(g, view, current) : null;
+      if (landing?.kind === 'disembark') {
+        try {
+          g = ops.disembarkArmy(g, landing.armyId, landing.to, true);
+          continue;
+        } catch {
+          /* Try sea movement this activation. */
+        }
+      }
       let step: Coord | null = null;
       if (classicFighterMoveToExhausted(current)) {
         g = ops.setOrder(g, unit.id, { kind: 'go-home' }, true);
@@ -98,8 +116,19 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
           if (ship?.order.kind === 'go-home') step = classicHomeRepairStep(g, ship, ops.routeStep, grade);
           else if (ship?.order.kind === 'escort') step = classicEscortStep(g, ship, grade);
           else if (ship?.order.kind === 'patrol') step = classicPatrolStep(g, ship, grade);
-          else if (current.kind === 'army') step = classicArmyConquestStep(g, view, faction, current, grade);
-          else if (ship) step = classicMoveToStep(g, ship, ops.routeStep, grade);
+          else if (current.kind === 'army') {
+            step = classicArmyPortEmbarkStep(g, view, current);
+            if (!step) step = classicArmyConquestStep(g, view, faction, current, grade);
+          } else if (current.kind === 'transport') {
+            const cargo = embarkedCargoCount(g, current.id);
+            const objective =
+              cargo > 0 ? classicTransportObjective(g, view, faction, current) : null;
+            if (cargo > 0 && objective) {
+              step = classicTransportSeaStep(g, view, faction, current, grade, objective);
+            } else if (cargo === 0 && classicOffshoreObjectives(g, view, faction).length) {
+              step = classicEmptyTransportPortStep(g, faction, current, grade);
+            }
+          } else if (ship) step = classicMoveToStep(g, ship, ops.routeStep, grade);
         }
         if (!step) {
           if (current.order.kind === 'random') {

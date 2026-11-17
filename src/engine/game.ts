@@ -518,6 +518,7 @@ const modernAi = createModernAiExecutor({
 
 const classicAi = createClassicAiExecutor({
   moveUnit,
+  disembarkArmy,
   setOrder,
   selectProduction,
   routeStep,
