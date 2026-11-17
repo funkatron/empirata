@@ -13,6 +13,7 @@
     "test:observer": "npm run build && node --test smoke/observer.mjs",
     "test:map-paint-timing": "npm run build && node --test smoke/map-paint-timing.mjs",
     "evaluate:ai": "npm run build && node scripts/evaluate-ai.mjs",
+    "evaluate:held-out-capture": "npm run build && node scripts/held-out-capture-eval.mjs",
     "start": "node scripts/server.mjs",
     "dev": "npm run build && npm run start",
     "test:coverage": "npm run build && node --experimental-test-coverage --test --test-coverage-include='dist/engine/*.js' --test-coverage-lines=85 --test-coverage-branches=80 tests/*.test.mjs"

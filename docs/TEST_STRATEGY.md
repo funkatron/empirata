@@ -14,7 +14,7 @@ Measured on `main` after `npm ci` + `npm test` (2026-11-16, commit `41bf9fe`; re
 
 | Metric | Value |
 |--------|--------|
-| Tests | **507** pass, 0 fail (`tests/*.test.mjs`, 101 files) |
+| Tests | **508** pass, 0 fail (`tests/*.test.mjs`, 102 files) |
 | Line coverage | **~94.9%** (`dist/engine/*.js`) |
 | Branch coverage | **~91.3%** |
 | Function coverage | **~96.5%** |
@@ -31,6 +31,7 @@ On every PR and on `main` pushes that touch non-`docs/**` paths:
 3. **Focused scope:** `npm run build` + `tests/unit-names`, `presentation`, `ui-camera`, `ui-structure`.
 4. `node scripts/build-single-file.cjs` → standalone `index.html`.
 5. `smoke/bundle.mjs`, `smoke/observer-batching.mjs`, and `smoke/ui-load.mjs` (HTML contract smoke; no browser download).
+6. **`npm run evaluate:held-out-capture`** — opt-in held-out seeds (`104729`, `130363`); not default CI.
 
 Pages deploy runs on `main` after verify; a green verify on a PR does not by itself prove production Pages freshness.
 
