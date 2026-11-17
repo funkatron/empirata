@@ -65,7 +65,7 @@ function chebyshev(a: Coord, b: Coord): number {
   return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 }
 
-/** Known neutral or enemy cities on the faction chart (ALG-AI-001 / `0x4462` expansion staging). */
+/** Charted cities that are not owned by `view.active`: neutral (`null`) and enemy factions. */
 export function classicKnownHostileCityTiles(view: PlayerView): Coord[] {
   const out: Coord[] = [];
   for (let i = 0; i < view.cells.length; i++) {
