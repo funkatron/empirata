@@ -14,7 +14,7 @@ Measured on `main` after `npm ci` + `npm test` (2026-11-16, commit `41bf9fe`; re
 
 | Metric | Value |
 |--------|--------|
-| Tests | **505** pass, 0 fail (`tests/*.test.mjs`, 100 files) |
+| Tests | **507** pass, 0 fail (`tests/*.test.mjs`, 101 files) |
 | Line coverage | **~94.9%** (`dist/engine/*.js`) |
 | Branch coverage | **~91.3%** |
 | Function coverage | **~96.5%** |

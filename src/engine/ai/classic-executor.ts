@@ -17,6 +17,7 @@ import {
   classicTransportObjective,
   classicTransportSeaStep,
 } from './classic-amphibious.js';
+import { classicTacticalReissueOrder } from './classic-reissue.js';
 import { classicLegalDirectionStep } from './classic-path.js';
 import {
   classicDamagedShipSeeksPort,
@@ -77,7 +78,6 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
     const protectedCargo = new Set<string>();
     const actives = () => g.units.filter(u => u.owner === faction && !u.aboard).sort((a, b) => a.id.localeCompare(b.id));
     for (const unit of actives()) {
-      const view = getPlayerView(g, faction);
       const fresh = g.units.find(u => u.id === unit.id);
       if (!fresh) continue;
       const hadRandom = fresh.order.kind === 'random';
@@ -88,9 +88,15 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
       const grade = policy.grade;
       const sanitized = classicSanitizeTransportOrder(fresh, cargo);
       if (sanitized) g = ops.setOrder(g, unit.id, sanitized, true);
-      const current = g.units.find(u => u.id === unit.id);
+      let current = g.units.find(u => u.id === unit.id);
       if (!current) continue;
-      if (current.order.kind === 'load-ship') continue;
+      const reissue = classicTacticalReissueOrder(g, getPlayerView(g, faction), faction, current);
+      if (reissue) {
+        g = ops.setOrder(g, unit.id, reissue, true);
+        current = g.units.find(u => u.id === unit.id);
+      }
+      if (!current || current.order.kind === 'load-ship') continue;
+      const view = getPlayerView(g, faction);
       const landing = current.kind === 'transport' ? classicTransportLandingChoice(g, view, current) : null;
       if (landing?.kind === 'disembark') {
         try {
