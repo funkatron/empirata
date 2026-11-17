@@ -10,6 +10,8 @@ import {
   makeCampaignMap,
 } from '../dist/engine/index.js';
 
+const makeCampaignMapExport = makeCampaignMap;
+
 const source = await readFile(new URL('../dist/ui/main.js', import.meta.url), 'utf8');
 
 function harness({ repeat = true, roundsPerAdvance = 1, finishRound = Infinity } = {}) {
@@ -34,6 +36,7 @@ function harness({ repeat = true, roundsPerAdvance = 1, finishRound = Infinity }
     document: { getElementById: el, hidden: false },
     getPlayerView,
     endTurn,
+    makeCampaignMap: makeCampaignMapExport,
     labRoundPhases,
     refresh: () => {
       paints++;
@@ -69,6 +72,18 @@ function harness({ repeat = true, roundsPerAdvance = 1, finishRound = Infinity }
     saves: () => [...saves],
   };
 }
+
+test('Classic campaign CvC survives through first production waves (seed 42)', () => {
+  const h = harness({ repeat: true, roundsPerAdvance: 1 });
+  h.run('game=makeCampaignMap("continents", 42, "ai-vs-ai", false, { density: "sparse" });');
+  h.run('startRoundPlayback(true)');
+  for (let i = 0; i < 200 && h.game().round < 10; i++) {
+    if (h.timers() === 0) break;
+    h.step();
+  }
+  assert.ok(h.game().round >= 10, `stopped early at round ${h.game().round}`);
+  assert.ok(h.game().units.length > 0);
+});
 
 test('Classic campaign CvC repeat autoplay advances past round 2', () => {
   const h = harness({ repeat: true, roundsPerAdvance: 1 });
