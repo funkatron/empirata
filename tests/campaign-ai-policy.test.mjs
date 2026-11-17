@@ -5,14 +5,23 @@ import {
   exportSave,
   formatAiPolicyLabel,
   importSave,
+  LEGACY_IMPLICIT_AI_POLICY,
   makeCampaignMap,
+  makeRulesLab,
   resolveAiPolicy,
 } from '../dist/engine/index.js';
 
-test('makeCampaignMap defaults to modern experimental policy', () => {
+test('makeCampaignMap defaults to classic DOS grade 1', () => {
   const g = makeCampaignMap('continents', 17, 'user-vs-computer', false, { density: 'sparse' });
   assert.deepEqual(g.aiPolicy, DEFAULT_AI_POLICY);
-  assert.equal(resolveAiPolicy(g).kind, 'modern-experimental');
+  assert.equal(resolveAiPolicy(g).kind, 'classic-dos');
+  assert.equal(resolveAiPolicy(g).grade, 1);
+});
+
+test('Rules lab without aiPolicy still resolves legacy modern', () => {
+  const g = makeRulesLab();
+  assert.equal(g.aiPolicy, undefined);
+  assert.deepEqual(resolveAiPolicy(g), LEGACY_IMPLICIT_AI_POLICY);
 });
 
 test('makeCampaignMap stores classic grade and round-trips in saves', () => {

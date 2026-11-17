@@ -19,7 +19,7 @@ import {advanceLabRound,labRoundPhases,capacity,exportSave,getPlayerView,importS
   moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
   STATS,UNIT_TYPES,isCoastal,unitName,cityName,gameOutcome,readableReport,
   formatMapSeedLine,mapRecipeFromCampaign,parseCampaignSeed,parseMapRecipe,randomCampaignSeed,serializeMapRecipe,
-  isCampaignLayout,isCityDensity,isMapAlgorithm,classicResignPendingFor,respondClassicResign,hasBlockingClassicResign,formatAiPolicyLabel,resolveAiPolicy} from '../engine/index.js';
+  isCampaignLayout,isCityDensity,isMapAlgorithm,classicResignPendingFor,respondClassicResign,hasBlockingClassicResign,DEFAULT_AI_POLICY,formatAiPolicyLabel,resolveAiPolicy} from '../engine/index.js';
 import type {AiPolicy,CampaignLayout,CampaignMode,City,CityDensity,Coord,Game,MapAlgorithm,MapRecipe,Unit,UnitType,PlayerView} from '../engine/index.js';
 type SeedSource='custom'|'random';
 
@@ -822,7 +822,7 @@ function readCampaignAiPolicy():AiPolicy{
   return {kind:'modern-experimental'};
 }
 function applyAiPolicyToMenu(policy:AiPolicy|undefined):void{
-  const resolved=policy??{kind:'modern-experimental'};
+  const resolved=policy??DEFAULT_AI_POLICY;
   (el('campaignAiPolicy') as HTMLSelectElement).value=resolved.kind;
   (el('campaignClassicGrade') as HTMLSelectElement).value=String(resolved.kind==='classic-dos'?resolved.grade:1);
   syncCampaignClassicGrade();

@@ -16,7 +16,7 @@ Facts on current `main`; see [TEST_STRATEGY.md](TEST_STRATEGY.md) for CI and cou
 | **Scenarios** | Rules lab, Close Quarters, campaigns, `ai-vs-ai` observer, mapgen/recipes |
 | **Logistics** | Troop transport embark/disembark, carriers/fighters, load & unload ship, cargo combat, overload |
 | **Modern AI** | Experimental opponent: `src/engine/ai/modern-planners.ts`, `modern-executor.ts`; save fields in [MODERN_AI_UNIT_FIELDS.md](MODERN_AI_UNIT_FIELDS.md) |
-| **Classic AI** | Campaign menu policy/grade; resign UI; staged ALG-AI-001/002/004 executors + tests; default opponent still modern |
+| **Classic AI** | Default campaign opponent (v0.6.0); menu policy/grade; staged ALG-AI-001/002/004; lab fixtures legacy-modern when `aiPolicy` omitted |
 | **Not claimed** | Byte-for-byte DOS RNG/AI parity; full historical `.MAP` loading |
 
 ## Working systems (v0.4 snapshot — historical table)

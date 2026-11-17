@@ -1,11 +1,15 @@
 import type { Game } from '../types.js';
 import type { AiPolicy } from './classic-grades.js';
 
-export const DEFAULT_AI_POLICY: AiPolicy = { kind: 'modern-experimental' };
+/** Default for new campaigns (slice E): Classic DOS grade A. */
+export const DEFAULT_AI_POLICY: AiPolicy = { kind: 'classic-dos', grade: 1 };
 
-/** Effective opponent policy. Omitted saves keep the modern experimental executor. */
+/** Pre-0.6 saves and rules-lab fixtures that omit `aiPolicy` keep modern behavior. */
+export const LEGACY_IMPLICIT_AI_POLICY: AiPolicy = { kind: 'modern-experimental' };
+
+/** Effective opponent policy for play/saves. */
 export function resolveAiPolicy(game: Game): AiPolicy {
-  return game.aiPolicy ?? DEFAULT_AI_POLICY;
+  return game.aiPolicy ?? LEGACY_IMPLICIT_AI_POLICY;
 }
 
 export function isClassicDosPolicy(policy: AiPolicy): policy is Extract<AiPolicy, { kind: 'classic-dos' }> {
