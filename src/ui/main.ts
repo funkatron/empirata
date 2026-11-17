@@ -59,8 +59,19 @@ function normalizeSpectatorPlaybackTurn():void {
 }
 function flushObserverBatch():void {
   if(!observerRefreshPending)return;
-  observerRefreshPending=false;refresh();
+  observerRefreshPending=false;
+  view=getPlayerView(game,observer);
+  if(selectedUnit&&!view.ownUnits.some(u=>u.id===selectedUnit))selectedUnit=null;
+  refresh();
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; use Export JSON.'));
+}
+/** When alternating intel, paint each completed round — not only the batch boundary. */
+function syncSpectatorAlternateView():void {
+  if(game.scenario!=='ai-vs-ai'||spectatorMode!=='alternate')return;
+  view=getPlayerView(game,observer);
+  if(selectedUnit&&!view.ownUnits.some(u=>u.id===selectedUnit))selectedUnit=null;
+  refresh();
+  observerRefreshPending=false;
 }
 /** Finish any in-flight cooperative round so Pause always lands on a blue turn. */
 function finishOpenLabRound():void {
@@ -223,9 +234,12 @@ function startRoundPlayback(repeat:boolean):void {
     openRoundPhaseIndex++;
     if(openRoundPhaseIndex<openRoundPhases.length){playback=setTimeout(tick,0);return;}
     openRoundPhases=[];openRoundPhaseIndex=0;completed++;progress();
+    syncSpectatorAlternateView();
     if(gameOutcome(game).state==='finished'){pausePlayback();return;}
     if(completed===target){
+      if(spectatorMode!=='alternate')observerRefreshPending=true;
       flushObserverBatch();
+      if(spectatorMode==='alternate')void saveLocally(game).catch(()=>uiMessage('Local save unavailable; use Export JSON.'));
       if(!repeat){pausePlayback();uiMessage(`Advanced ${completed} ${completed===1?'round':'rounds'} to round ${game.round}.`);return;}
       completed=0;
       progress();
