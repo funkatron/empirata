@@ -4,13 +4,25 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.6.7 — Classic `0x3ADC` tracked threats (stale contacts)
+
+Documentation and tests affirm that invasion-threat production uses **chart last-known enemy cells** (stale markers included until rescanned empty), not live hidden unit positions. See `docs/DOS_ALGORITHM_RULESET.md` and `agents/alg-ai-002-3adc-slot-trace-2026-11-17.md`.
+
+## Version 0.6.6 — Spectator Blue + Red intelligence
+
+Computer-vs-computer observer mode defaults to **Blue + Red intelligence** (union of both private charts on one map). Per-round viewpoint alternation removed.
+
+## Version 0.6.5 — Classic move-to reissue (`0x4462`)
+
+Classic armies, fighters, and ships reissue **Move-To** before direction pick per DOS step 4 staging.
+
 ## Version 0.6.4 — Classic offshore sealift
 
 Classic transports stage at friendly ports, sail toward **charted** neutrals/enemies that armies cannot reach over land, and **disembark** for existing conquest logic (`classic-amphibious.ts`).
 
-## Version 0.6.3 — Spectator alternate intel + classic city capture
+## Version 0.6.3 — Classic land conquest staging
 
-**Alternate each round** now updates fog/intel after every round during multi-round **Play** / **Advance**, not only at batch end. Classic armies path to charted neutral/enemy cities (ALG-AI-001 expansion staging) instead of wandering with **None** forever.
+Classic armies path to charted neutral/enemy cities (ALG-AI-001 expansion staging) instead of wandering with **None** forever.
 
 ## Version 0.6.2 — Classic inland production + spectator Play
 

@@ -90,11 +90,20 @@ test('Tracked threat list caps at 20 and dedupes by coordinate', () => {
 });
 
 test('Tracked threat list includes stale last-known coordinates', () => {
-  const { game, city } = landCorridorGame();
-  game.units.find(u => u.id === 'b-inv').position = { x: 5, y: 1 };
-  updateAllKnowledge(game);
+  const { game, city } = landCorridorGame({ blockApproach: false });
+  game.units = game.units.filter(u => u.id !== 'b-inv');
+  const k = game.knowledge.red;
+  k.sightings.push({
+    id: 'stale-inv',
+    owner: 'blue',
+    kind: 'army',
+    position: { x: 12, y: 1 },
+    observedRound: 1,
+  });
+  k.freshEnemies = k.freshEnemies.filter(id => id !== 'stale-inv');
   const view = getPlayerView(game, 'red');
-  assert.ok(view.enemies.some(e => e.stale && e.position.x === 12));
+  const marker = view.enemies.find(e => e.id === 'stale-inv');
+  assert.ok(marker?.stale);
   const locs = classicTrackedThreatLocations(game, 'red', city);
   assert.ok(locs.some(p => p.x === 12 && p.y === 1));
   assert.equal(classicCityPathInvasionThreat(game, 'red', city, 1), true);

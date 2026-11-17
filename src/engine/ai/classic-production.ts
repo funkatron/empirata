@@ -76,20 +76,37 @@ export function legalizeClassicProductionForCity(game: Game, city: City, kind: U
   return kind;
 }
 
+/** Rank chart contacts for the ~20 tracked threat slots (fresh beats stale when capped). */
+function trackedThreatRank(
+  stale: boolean,
+  position: { x: number; y: number },
+  city: City,
+): [number, number] {
+  return [stale ? 1 : 0, chebyshev(position, city.position)];
+}
+
 /**
  * Tracked cells for `0x3ADC` (~20 slots).
- * Staging: deduped chart coordinates from all sightings (stale + fresh) — see ALG-AI-002 fill [?].
+ * Includes stale last-known coordinates until knowledge clears them (ALG-AI-002; manual [M]).
  */
 export function classicTrackedThreatLocations(game: Game, faction: FactionId, city: City) {
   const view = getPlayerView(game, faction);
-  const dedupe = new Map<string, { x: number; y: number }>();
+  const dedupe = new Map<string, { x: number; y: number; stale: boolean }>();
   for (const enemy of view.enemies) {
     const key = `${enemy.position.x},${enemy.position.y}`;
-    if (!dedupe.has(key)) dedupe.set(key, { ...enemy.position });
+    const prev = dedupe.get(key);
+    if (!prev || (prev.stale && !enemy.stale)) {
+      dedupe.set(key, { ...enemy.position, stale: enemy.stale });
+    }
   }
   return [...dedupe.values()]
-    .sort((a, b) => chebyshev(a, city.position) - chebyshev(b, city.position))
-    .slice(0, MAX_TRACKED_THREATS);
+    .sort((a, b) => {
+      const ra = trackedThreatRank(a.stale, a, city);
+      const rb = trackedThreatRank(b.stale, b, city);
+      return ra[0] - rb[0] || ra[1] - rb[1];
+    })
+  .slice(0, MAX_TRACKED_THREATS)
+    .map(({ x, y }) => ({ x, y }));
 }
 
 /** `0x3ADC`: any tracked enemy location army-reachable to this city on the faction chart. */

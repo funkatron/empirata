@@ -9,6 +9,15 @@
 - **Semver (0.x):** Bump the **patch** (e.g. 0.5.1 → 0.5.2) when shipped user-visible behavior or UI changes land—even small ones. Reserve **minor** bumps for broader feature themes. Keep `package.json`, `public/index.html` banner/title, and README “Version” section in sync.
 - Do not push commits straight to `main`. Use a feature branch and open a PR (`gh pr create`); merge only when asked.
 
+## UI layout stability (product priority)
+
+Empirata is a **tool**, not a marketing page. Users build muscle memory for control locations.
+
+- **Toggling visibility must not reflow sibling UI.** Showing or hiding panels, rows, or controls must not move other controls vertically or horizontally.
+- Prefer keeping layout slots reserved: `visibility: hidden` + `pointer-events: none` (and `inert` where appropriate), fixed-height regions, or opacity — not `display: none` / `[hidden]{display:none}` on blocks in the **persistent shell** (sidebar, topbar, map toolbar) unless the slot is explicitly reserved elsewhere.
+- Exceptions: truly non-visual inputs (file pickers), ephemeral overlays (dialogs, toasts), and content that is intentionally collapsible **only** when the user expects layout change (document in PR).
+- UI PRs that show/hide chrome require a **before/after screenshot** or short recording demonstrating stable positions of unchanged controls.
+
 ## Planning (OODA)
 
 Before **non-simple** work (roadmap items, multi-file engine/UI changes, new tests/fixtures, DOS parity), sketch an **OODA** loop and record it under `agents/` when the task spans more than one PR or touches gameplay rules:
