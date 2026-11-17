@@ -21,6 +21,7 @@ export * from './ai/classic-order-tick.js';
 export * from './ai/classic-production.js';
 export * from './ai/classic-move.js';
 export * from './ai/classic-amphibious.js';
+export * from './ai/classic-reissue.js';
 export * from './ai/classic-passability.js';
 export * from './ai/classic-path.js';
 export * from './ai/classic-mask.js';
