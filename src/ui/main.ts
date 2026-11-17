@@ -15,7 +15,7 @@ import {
 } from './observer-map.js';
 import {endgameModal} from './endgame.js';
 import {resignModal} from './resign.js';
-import {advanceLabRound,labRoundPhases,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,makeCampaignMap,
+import {advanceLabRound,endTurn,labRoundPhases,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,makeCampaignMap,
   moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
   STATS,UNIT_TYPES,isCoastal,unitName,cityName,gameOutcome,readableReport,
   formatMapSeedLine,mapRecipeFromCampaign,parseCampaignSeed,parseMapRecipe,randomCampaignSeed,serializeMapRecipe,
@@ -50,6 +50,13 @@ let playbackGeneration=0,roundsPerAdvance=1;
 let observerRefreshPending=false;
 let openRoundPhases:Array<(state:Game)=>Game>=[];
 let openRoundPhaseIndex=0;
+/** Co-op CvC must open labRoundPhases on a blue turn after pause or partial dispatch. */
+function normalizeSpectatorPlaybackTurn():void {
+  if(game.scenario!=='ai-vs-ai'||gameOutcome(game).state==='finished'||game.active==='blue')return;
+  for(let i=0;i<8&&game.active!=='blue';i++){
+    try{game=endTurn(game);}catch{break;}
+  }
+}
 function flushObserverBatch():void {
   if(!observerRefreshPending)return;
   observerRefreshPending=false;refresh();
@@ -63,6 +70,7 @@ function finishOpenLabRound():void {
     openRoundPhaseIndex++;
   }
   openRoundPhases=[];openRoundPhaseIndex=0;
+  normalizeSpectatorPlaybackTurn();
 }
 let view:PlayerView=getPlayerView(game,observer);
 let selectedUnit:string|null='u1',selectedCity:string|null=null;
@@ -197,12 +205,21 @@ function startRoundPlayback(repeat:boolean):void {
     if(completed===0&&openRoundPhaseIndex===0){target=roundsPerAdvance;progress();}
     if(game.scenario!=='ai-vs-ai'){pausePlayback();return;}
     if(openRoundPhaseIndex===0){
+      normalizeSpectatorPlaybackTurn();
       try{openRoundPhases=labRoundPhases(game);}
-      catch{pausePlayback();return;}
+      catch(error){
+        uiMessage(error instanceof Error?error.message:'Could not advance spectator round.');
+        pausePlayback();
+        return;
+      }
       if(!openRoundPhases.length){pausePlayback();return;}
     }
     const phase=openRoundPhases[openRoundPhaseIndex]!;
-    if(!dispatch(()=>phase(game),true)){pausePlayback();return;}
+    if(!dispatch(()=>phase(game),true)){
+      uiMessage('Playback paused: a computer turn step failed.');
+      pausePlayback();
+      return;
+    }
     openRoundPhaseIndex++;
     if(openRoundPhaseIndex<openRoundPhases.length){playback=setTimeout(tick,0);return;}
     openRoundPhases=[];openRoundPhaseIndex=0;completed++;progress();
@@ -211,7 +228,7 @@ function startRoundPlayback(repeat:boolean):void {
       flushObserverBatch();
       if(!repeat){pausePlayback();uiMessage(`Advanced ${completed} ${completed===1?'round':'rounds'} to round ${game.round}.`);return;}
       completed=0;
-      el('roundProgress').hidden=true;
+      progress();
       playback=setTimeout(tick,750);
     }else playback=setTimeout(tick,0);
   };

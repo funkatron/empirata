@@ -47,7 +47,7 @@ jobs:
       - name: Build standalone browser application
         run: node scripts/build-single-file.cjs
       - name: Smoke test the generated browser bundle
-        run: node --test smoke/bundle.mjs smoke/observer-batching.mjs smoke/ui-load.mjs
+        run: node --test smoke/bundle.mjs smoke/observer-batching.mjs smoke/cvc-autoplay-classic.mjs smoke/ui-load.mjs
       - name: Preserve verified browser bundle
         uses: actions/upload-artifact@v7
         with:
