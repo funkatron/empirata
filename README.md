@@ -4,6 +4,10 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.6.1 — Spectator autoplay recovery
+
+Computer-vs-computer **Play** resumes correctly after an interrupted turn (for example tab switch or pause mid-round) and no longer stops silently on the next round.
+
 ## Version 0.6.0 — Classic DOS default opponent
 
 New campaigns default to **Classic DOS grade 1**; **Modern (experimental)** remains in the Game menu. Saves and rules-lab fixtures without `aiPolicy` still use modern (legacy compatibility).

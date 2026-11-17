@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   exportSave,
   importSave,
+  makeCampaignMap,
   makeRulesLab,
   playRedOpponent,
   respondClassicResign,
@@ -24,6 +25,13 @@ function classicCvC(round, redCities) {
   }
   return g;
 }
+
+test('shouldOfferClassicResign never applies to computer-vs-computer spectators', () => {
+  const g = makeCampaignMap('continents', 17, 'ai-vs-ai', false, { density: 'sparse' });
+  g.round = 200;
+  for (const c of g.cities) c.owner = 'blue';
+  assert.equal(shouldOfferClassicResign(g, 'red'), false);
+});
 
 test('shouldOfferClassicResign enforces ALG-AI-004 threshold table', () => {
   assert.equal(shouldOfferClassicResign(classicCvC(50, 0), 'red'), false);

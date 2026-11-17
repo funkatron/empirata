@@ -19,6 +19,7 @@ export function livingFactions(game: Game): FactionId[] {
 }
 
 export function humanFactionCount(game: Game): number {
+  if (game.scenario === 'ai-vs-ai') return 0;
   if (resolveAiPolicy(game).kind !== 'classic-dos') return game.players.length;
   return Math.max(0, game.players.length - 1);
 }
@@ -30,6 +31,7 @@ export function classicResignCityShare(game: Game, faction: FactionId): number {
 
 /** ALG-AI-004 predicate table (no UI accept/decline yet). */
 export function shouldOfferClassicResign(game: Game, computer: FactionId): boolean {
+  if (game.scenario === 'ai-vs-ai') return false;
   if (resolveAiPolicy(game).kind !== 'classic-dos') return false;
   if (humanFactionCount(game) !== 1) return false;
   if (livingFactions(game).length !== 2) return false;
