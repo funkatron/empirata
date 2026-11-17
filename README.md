@@ -4,6 +4,10 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.5.6 — Classic production invasion threat (`0x3ADC`)
+
+Classic DOS city production checks **path-reachable enemy locations** on the faction chart and commissions **army** when an invasion corridor exists (slice **D** / ALG-AI-002).
+
 ## Version 0.5.5 — Spectator fog refresh
 
 Computer-vs-computer observer mode with “show entire map beneath fog” now rebuilds the **75% / 52%** fog overlay when units move (visibility still follows the selected faction).

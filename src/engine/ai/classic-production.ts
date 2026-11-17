@@ -3,6 +3,9 @@ import { getPlayerView } from '../knowledge.js';
 import { directions, isCoastal, terrainAt } from '../world.js';
 import type { DosComputerGrade } from './classic-grades.js';
 import { dosAiGradeBFlag } from './classic-grades.js';
+import { classicArmyReachableOnChart } from './classic-path.js';
+
+const MAX_TRACKED_THREATS = 20;
 
 const COUNTABLE: readonly UnitType[] = [
   'army',
@@ -66,6 +69,33 @@ function ownedCityCount(game: Game, faction: FactionId): number {
   return game.cities.filter(c => c.owner === faction).length;
 }
 
+/** Tracked cells for `0x3ADC` (~20 slots); staging uses fresh + stale sight coordinates. */
+export function classicTrackedThreatLocations(game: Game, faction: FactionId, city: City) {
+  const view = getPlayerView(game, faction);
+  const dedupe = new Map<string, { x: number; y: number }>();
+  for (const enemy of view.enemies) {
+    const key = `${enemy.position.x},${enemy.position.y}`;
+    if (!dedupe.has(key)) dedupe.set(key, { ...enemy.position });
+  }
+  return [...dedupe.values()]
+    .sort((a, b) => chebyshev(a, city.position) - chebyshev(b, city.position))
+    .slice(0, MAX_TRACKED_THREATS);
+}
+
+/** `0x3ADC`: any tracked enemy location army-reachable to this city on the faction chart. */
+export function classicCityPathInvasionThreat(
+  game: Game,
+  faction: FactionId,
+  city: City,
+  _grade: DosComputerGrade,
+): boolean {
+  const view = getPlayerView(game, faction);
+  for (const loc of classicTrackedThreatLocations(game, faction, city)) {
+    if (classicArmyReachableOnChart(game, view, faction, loc, city.position)) return true;
+  }
+  return false;
+}
+
 /** Scout analogue `0x383D`: enemy units within 6 tiles of the city. */
 export function nearbyEnemyCount(game: Game, faction: FactionId, city: City): number {
   let count = 0;
@@ -120,6 +150,8 @@ export function chooseClassicCityProduction(
   if (coastal && counts.destroyer === 0 && counts.transport > 0 && dosAiGradeBFlag(grade) === 1) {
     return 'destroyer';
   }
+
+  if (classicCityPathInvasionThreat(game, faction, city, grade)) return 'army';
 
   if (coastal && counts.fighter * 3 < counts.army && counts.army >= 2) return 'fighter';
   if (coastal && !transportAdjacent && counts.fighter * 3 < counts.army) return 'fighter';

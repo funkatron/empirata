@@ -1,6 +1,8 @@
 # Q5 OODA plan — ALG-AI-002 production slice (2026-11-16)
 
-**Roadmap:** Classic migration step (3) — bounded DOS production policy behind `classic-dos`.
+**Status:** **done** — shipped via merged PRs Q5 / Q9 / Q13 (`classic-production.ts`, `alg-ai-002-*.test.mjs`, wired in `classic-executor.ts` → v0.5.4).
+
+**Next ALG slice:** **Q17** — `0x3ADC` path invasion threat (`agents/q17-alg-ai-002-3adc-ooda-plan.md`).
 
 ## Observe
 
