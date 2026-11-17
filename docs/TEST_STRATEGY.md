@@ -31,7 +31,8 @@ On every PR and on `main` pushes that touch non-`docs/**` paths:
 3. **Focused scope:** `npm run build` + `tests/unit-names`, `presentation`, `ui-camera`, `ui-structure`.
 4. `node scripts/build-single-file.cjs` → standalone `index.html`.
 5. `smoke/bundle.mjs`, `smoke/observer-batching.mjs`, and `smoke/ui-load.mjs` (HTML contract smoke; no browser download).
-6. **`npm run evaluate:held-out-capture`** — opt-in held-out seeds (`104729`, `130363`); not default CI.
+6. **`npm run evaluate:held-out-capture`** — opt-in held-out seeds (`104729`, `130363`); not default CI. P4 Playwright remains `workflow_dispatch`.
+7. **P4 UI (unit):** `tests/ui-camera.test.mjs`, `tests/ui-gestures.test.mjs`, `tests/ui-structure.test.mjs` cover fit-world and pinch; iPad browser audit opt-in (Q22).
 
 Pages deploy runs on `main` after verify; a green verify on a PR does not by itself prove production Pages freshness.
 
@@ -46,6 +47,7 @@ Pages deploy runs on `main` after verify; a green verify on a PR does not by its
 | `npm run test:observer` | Observer-mode smoke |
 | `npm run test:map-paint-timing` | Map paint timing smoke |
 | `npm run evaluate:ai` | Long AI evaluation (local/opt-in) |
+| `npm run evaluate:held-out-capture` | Held-out manifest seeds; neutral/enemy capture summary (opt-in) |
 
 ## Important regression scenarios
 
