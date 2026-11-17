@@ -87,6 +87,70 @@ export function updateAllKnowledge(game:Game,activateSentries=true):void {
       kind:'system',message:`${unitLabel(unit)}: sentry awakened by adjacent enemy contact.`});
   }
 }
+function mergeCityIntel(a: CityIntel | null, b: CityIntel | null): CityIntel | null {
+  if (!a && !b) return null;
+  if (!a) return b;
+  if (!b) return a;
+  if (a.id !== b.id) return a;
+  const owner =
+    a.owner === b.owner ? a.owner : a.owner === null ? b.owner : b.owner === null ? a.owner : null;
+  const productionKnown = a.productionKnown || b.productionKnown;
+  const production =
+    productionKnown && a.productionKnown && b.productionKnown && a.production !== b.production
+      ? null
+      : a.productionKnown
+        ? a.production
+        : b.productionKnown
+          ? b.production
+          : null;
+  return { id: a.id, owner, production, productionKnown };
+}
+
+/** CvC spectator overlay: union of two factions' private charts (not omniscient). */
+export function mergeSpectatorPlayerViews(blue: PlayerView, red: PlayerView): PlayerView {
+  if (blue.width !== red.width || blue.height !== red.height) {
+    throw new Error('Cannot merge player views with different dimensions.');
+  }
+  const cells: PlayerCell[] = blue.cells.map((left, i) => {
+    const right = red.cells[i]!;
+    return {
+      terrain: left.terrain ?? right.terrain,
+      visible: left.visible || right.visible,
+      city: mergeCityIntel(left.city, right.city),
+    };
+  });
+  const enemiesById = new Map<string, PlayerView['enemies'][number]>();
+  for (const sighting of [...blue.enemies, ...red.enemies]) {
+    const prev = enemiesById.get(sighting.id);
+    if (!prev) {
+      enemiesById.set(sighting.id, structuredClone(sighting));
+      continue;
+    }
+    enemiesById.set(sighting.id, {
+      ...prev,
+      stale: prev.stale && sighting.stale,
+      position: !sighting.stale ? sighting.position : prev.position,
+      kind: !sighting.stale ? sighting.kind : prev.kind,
+      owner: !sighting.stale ? sighting.owner : prev.owner,
+      observedRound: Math.max(prev.observedRound, sighting.observedRound),
+    });
+  }
+  const events = [...blue.events, ...red.events]
+    .sort((a, b) => a.id - b.id)
+    .slice(-30);
+  return {
+    width: blue.width,
+    height: blue.height,
+    active: blue.active,
+    round: blue.round,
+    cells,
+    ownCities: [...blue.ownCities, ...red.ownCities],
+    ownUnits: [...blue.ownUnits, ...red.ownUnits],
+    enemies: Array.from(enemiesById.values()).sort((a, b) => a.id.localeCompare(b.id)),
+    events,
+  };
+}
+
 /** The sole reader contract for player UI and future AI. */
 export function getPlayerView(game:Game,faction:FactionId):PlayerView {
   if(!game.players.some(p=>p.id===faction)) throw new Error('Unknown faction');

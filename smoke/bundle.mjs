@@ -45,9 +45,9 @@ test('Bundled application JavaScript is syntactically valid and self-contained',
   assert.match(match[1],/__load\('ui\/main\.js'\)/);
 });
 
-test('AI spectator controls support automatic viewpoint alternation and dual scorecards',()=>{
+test('AI spectator controls support dual intelligence and scorecards',()=>{
   assert.match(html,/id="spectatorSide"/);
-  assert.match(html,/<option value="alternate">Alternate each round<\/option>/);
+  assert.match(html,/<option value="both">Blue \+ Red intelligence<\/option>/);
   assert.match(html,/id="spectatorNow"/);
   assert.match(html,/id="spectatorBlue"/);
   assert.match(html,/id="spectatorRed"/);
@@ -56,7 +56,9 @@ test('AI spectator controls support automatic viewpoint alternation and dual sco
   assert.match(html,/id="roundSpeed"/);
   for(const speed of [1,10,50,100])assert.match(html,new RegExp(`<option value="${speed}">${speed} rounds?<\\/option>`));
   assert.match(html,/id="roundProgress"[^>]*role="status"[^>]*hidden/);
-  assert.match(html,/spectatorMode\s*===\s*['"]alternate['"]/);
+  const mainSource=readFileSync(new URL('../src/ui/main.ts',import.meta.url),'utf8');
+  assert.match(mainSource,/mergeSpectatorPlayerViews/);
+  assert.match(mainSource,/spectatorMode\s*===\s*['"]both['"]/);
   assert.match(html,/spectatorBlue/);
   assert.match(html,/spectatorRed/);
 });

@@ -8,6 +8,7 @@ import {
   getPlayerView,
   labRoundPhases,
   makeCampaignMap,
+  mergeSpectatorPlayerViews,
 } from '../dist/engine/index.js';
 
 const makeCampaignMapExport = makeCampaignMap;
@@ -28,13 +29,14 @@ function harness({ repeat = true, roundsPerAdvance = 1, finishRound = Infinity }
   const c = vm.createContext({
     game,
     observer: 'blue',
-    spectatorMode: 'alternate',
+    spectatorMode: 'both',
     revealSpectatorTerrain: true,
     gameOutcome: g =>
       g.round >= finishRound ? { state: 'finished', winner: null } : gameOutcome(g),
     el,
     document: { getElementById: el, hidden: false },
     getPlayerView,
+    mergeSpectatorPlayerViews,
     endTurn,
     makeCampaignMap: makeCampaignMapExport,
     labRoundPhases,

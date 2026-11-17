@@ -15,7 +15,7 @@ import {
 } from './observer-map.js';
 import {endgameModal} from './endgame.js';
 import {resignModal} from './resign.js';
-import {advanceLabRound,endTurn,labRoundPhases,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,makeCampaignMap,
+import {advanceLabRound,endTurn,labRoundPhases,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,makeCampaignMap,mergeSpectatorPlayerViews,
   moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
   STATS,UNIT_TYPES,isCoastal,unitName,cityName,gameOutcome,readableReport,
   formatMapSeedLine,mapRecipeFromCampaign,parseCampaignSeed,parseMapRecipe,randomCampaignSeed,serializeMapRecipe,
@@ -42,7 +42,7 @@ const resignOffer=resignModal(
 );
 let game:Game=makeCloseQuartersLab();
 let observer:'blue'|'red'='blue';
-let spectatorMode:'alternate'|'blue'|'red'='alternate';
+let spectatorMode:'both'|'blue'|'red'='both';
 // Observer-only preference; not part of game state or either AI's knowledge.
 let revealSpectatorTerrain=true;
 let playback:ReturnType<typeof setTimeout>|null=null;
@@ -57,21 +57,20 @@ function normalizeSpectatorPlaybackTurn():void {
     try{game=endTurn(game);}catch{break;}
   }
 }
+function spectatorView():PlayerView {
+  if(game.scenario==='ai-vs-ai'&&spectatorMode==='both'){
+    return mergeSpectatorPlayerViews(getPlayerView(game,'blue'),getPlayerView(game,'red'));
+  }
+  const faction=spectatorMode==='red'?'red':'blue';
+  return getPlayerView(game,faction);
+}
 function flushObserverBatch():void {
   if(!observerRefreshPending)return;
   observerRefreshPending=false;
-  view=getPlayerView(game,observer);
+  view=spectatorView();
   if(selectedUnit&&!view.ownUnits.some(u=>u.id===selectedUnit))selectedUnit=null;
   refresh();
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; use Export JSON.'));
-}
-/** When alternating intel, paint each completed round — not only the batch boundary. */
-function syncSpectatorAlternateView():void {
-  if(game.scenario!=='ai-vs-ai'||spectatorMode!=='alternate')return;
-  view=getPlayerView(game,observer);
-  if(selectedUnit&&!view.ownUnits.some(u=>u.id===selectedUnit))selectedUnit=null;
-  refresh();
-  observerRefreshPending=false;
 }
 /** Finish any in-flight cooperative round so Pause always lands on a blue turn. */
 function finishOpenLabRound():void {
@@ -83,7 +82,7 @@ function finishOpenLabRound():void {
   openRoundPhases=[];openRoundPhaseIndex=0;
   normalizeSpectatorPlaybackTurn();
 }
-let view:PlayerView=getPlayerView(game,observer);
+let view:PlayerView=spectatorView();
 let selectedUnit:string|null='u1',selectedCity:string|null=null;
 let spectatorContact:string|null=null,spectatorCity:string|null=null;
 let tileSize=30,cameraX=0,cameraY=0;
@@ -234,12 +233,10 @@ function startRoundPlayback(repeat:boolean):void {
     openRoundPhaseIndex++;
     if(openRoundPhaseIndex<openRoundPhases.length){playback=setTimeout(tick,0);return;}
     openRoundPhases=[];openRoundPhaseIndex=0;completed++;progress();
-    syncSpectatorAlternateView();
     if(gameOutcome(game).state==='finished'){pausePlayback();return;}
     if(completed===target){
-      if(spectatorMode!=='alternate')observerRefreshPending=true;
+      observerRefreshPending=true;
       flushObserverBatch();
-      if(spectatorMode==='alternate')void saveLocally(game).catch(()=>uiMessage('Local save unavailable; use Export JSON.'));
       if(!repeat){pausePlayback();uiMessage(`Advanced ${completed} ${completed===1?'round':'rounds'} to round ${game.round}.`);return;}
       completed=0;
       progress();
@@ -254,13 +251,8 @@ function dispatch(operation:()=>Game,deferObserverRefresh=false):boolean {
     const before=game.nextEventId;
     const previousRound=game.round;
     game=operation();
-    if(game.scenario==='ai-vs-ai'&&spectatorMode==='alternate'&&game.round!==previousRound){
-      // One visible perspective per round; never merge both knowledge maps.
-      observer=(game.round-1)%2===0?'blue':'red';
-      selectedUnit=null;selectedCity=null;spectatorContact=null;spectatorCity=null;
-    }
     if(deferObserverRefresh){observerRefreshPending=true;return true;}
-    view=getPlayerView(game,observer);
+    view=spectatorView();
     if(selectedUnit&&!view.ownUnits.some(u=>u.id===selectedUnit))selectedUnit=null;
     refresh();
     const result=view.events.filter(e=>e.id>=before&&e.kind==='combat').at(-1);
@@ -424,7 +416,7 @@ function paintFrame():void {
     });
     const scale=c.city?.66:.82+fitWeight*(isolated?.28:.18);
     const offset=tileSize*(c.city?.28:(1-scale)/2);
-    drawUnit(ctx,u.kind,px+offset,py+offset,tileSize*scale,colors[u.owner],!u.stale&&u.owner===observer&&loadedShips.has(u.id));
+    drawUnit(ctx,u.kind,px+offset,py+offset,tileSize*scale,colors[u.owner],!u.stale&&loadedShips.has(u.id));
     ctx.globalAlpha=1;
     const count=stack.filter(unit=>!unit.stale).length;
     if(count>1&&tileSize>=20){
@@ -673,7 +665,7 @@ function bindInspectorControls(unit:Unit|undefined,city:City|undefined):void {
   }
 }
 function refresh():void {
-  view=getPlayerView(game,observer);
+  view=spectatorView();
   if(refreshShouldInvalidateKnowledgeLayer(game.scenario,revealSpectatorTerrain)){
     invalidateKnowledgeLayer();
   }
@@ -681,11 +673,15 @@ function refresh():void {
   if(spectatorCity&&!view.cells.some(c=>c.city?.id===spectatorCity))spectatorCity=null;
   el('aiSpectator').hidden=game.scenario!=='ai-vs-ai';
   el('spectatorCard').hidden=game.scenario!=='ai-vs-ai';
-  el('viewFaction').textContent=observer==='blue'?'Blue':'Red';
+  el('viewFaction').textContent=
+    game.scenario==='ai-vs-ai'&&spectatorMode==='both'?'Both':spectatorMode==='red'?'Red':'Blue';
   (el('spectatorSide') as HTMLSelectElement).value=spectatorMode;
   (el('spectatorTerrain') as HTMLInputElement).checked=revealSpectatorTerrain;
   if(game.scenario==='ai-vs-ai'){
-    el('spectatorNow').textContent=`Currently viewing ${observer.toUpperCase()} intelligence · Round ${game.round}`;
+    el('spectatorNow').textContent=
+      spectatorMode==='both'
+        ?`Blue + Red intelligence · Round ${game.round}`
+        :`Currently viewing ${spectatorMode.toUpperCase()} intelligence · Round ${game.round}`;
     // Own totals only; never build full PlayerViews just for scorecards.
     const blue=factionTotals('blue'),red=factionTotals('red');
     el('spectatorBlue').textContent=`${blue.cities} cities · ${blue.units} units`;
@@ -943,7 +939,7 @@ gameMenuDialog.addEventListener('close',()=>{
 function startScenario(kind:'close-quarters'|'classic-lab'|'ai-invasion'|'ai-vs-ai'|'ai-skirmish'):void{
   if(!window.confirm('Start a new test scenario? This will replace the current local autosave. Export JSON first if you want to keep it.'))return;
   closeGameMenu();
-  pausePlayback();resultModal.reset();spectatorContact=null;spectatorCity=null;observer='blue';spectatorMode='alternate';choosingDestination=false;game=kind==='ai-skirmish'?makeAiVsAiSkirmishLab():kind==='ai-vs-ai'?makeAiVsAiLab():kind==='ai-invasion'?makeAiInvasionLab():kind==='close-quarters'?makeCloseQuartersLab():makeRulesLab();
+  pausePlayback();resultModal.reset();spectatorContact=null;spectatorCity=null;observer='blue';spectatorMode='both';choosingDestination=false;game=kind==='ai-skirmish'?makeAiVsAiSkirmishLab():kind==='ai-vs-ai'?makeAiVsAiLab():kind==='ai-invasion'?makeAiInvasionLab():kind==='close-quarters'?makeCloseQuartersLab():makeRulesLab();
   selectedUnit=kind==='ai-invasion'||kind==='ai-vs-ai'||kind==='ai-skirmish'?null:'u1';selectedCity=null;invalidateMapLayer();refresh();focus(kind==='ai-invasion'?{x:76,y:29}:{x:9,y:25});
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; export JSON.'));
   uiMessage(game.scenario==='ai-vs-ai'?'Computer vs computer ready. Choose rounds per advance, then use Play or Advance.':kind==='ai-invasion'?'AI Invasion ready: press Next round to watch the Red landing operation.':kind==='close-quarters'?'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.':'Classic rules lab reset.');
@@ -974,7 +970,7 @@ function startCampaign(layout?:CampaignLayout,seed?:number,mode?:CampaignMode,al
   syncCampaignSeedControls();
   const policy=aiPolicy??readCampaignAiPolicy();
   applyAiPolicyToMenu(policy);
-  pausePlayback();resultModal.reset();spectatorContact=null;spectatorCity=null;observer='blue';spectatorMode='alternate';choosingDestination=false;
+  pausePlayback();resultModal.reset();spectatorContact=null;spectatorCity=null;observer='blue';spectatorMode='both';choosingDestination=false;
   game=makeCampaignMap(layoutRaw,chosenSeed,chosenMode,false,{algorithm:chosenAlgorithm,density:chosenDensity,aiPolicy:policy});
   selectedUnit=null;selectedCity=null;invalidateMapLayer();refresh();
   const home=game.cities.find(city=>city.owner==='blue');if(home)focus(home.position);
@@ -1012,13 +1008,17 @@ el('spectatorTerrain').addEventListener('change',()=>{
   revealSpectatorTerrain=(el('spectatorTerrain') as HTMLInputElement).checked;
   invalidateMapLayer();
   paint();
-  uiMessage(revealSpectatorTerrain?'Unexplored terrain is shaded 75%; explored but unseen is shaded 52%. AI intelligence is unchanged.':'Spectator map now shows only the selected faction’s discovered terrain.');
+  uiMessage(revealSpectatorTerrain?'Unexplored terrain is shaded 75%; explored but unseen is shaded 52%. AI intelligence is unchanged.':'Spectator map now shows only the current observe setting’s discovered terrain.');
 });
 el('spectatorSide').addEventListener('change',()=>{
-  spectatorMode=(el('spectatorSide') as HTMLSelectElement).value as 'alternate'|'blue'|'red';
-  observer=spectatorMode==='alternate'?((game.round-1)%2===0?'blue':'red'):spectatorMode;
+  spectatorMode=(el('spectatorSide') as HTMLSelectElement).value as 'both'|'blue'|'red';
+  observer=spectatorMode==='both'?'blue':spectatorMode;
   selectedUnit=null;selectedCity=null;spectatorContact=null;spectatorCity=null;refresh();
-  uiMessage(spectatorMode==='alternate'?'Automatically alternating the spectator view each round.':`Observing ${observer.toUpperCase()} intelligence. Hidden enemy information remains concealed.`);
+  uiMessage(
+    spectatorMode==='both'
+      ? 'Observing the union of Blue and Red intelligence (not omniscient).'
+      : `Observing ${spectatorMode.toUpperCase()} intelligence. Hidden enemy information remains concealed.`,
+  );
 });
 el('roundSpeed').addEventListener('change',()=>{
   const speed=Number((el('roundSpeed') as HTMLSelectElement).value);
