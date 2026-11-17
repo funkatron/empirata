@@ -14,6 +14,6 @@ Authoritative **order** for post–v0.5.2 classic work. Update status as PRs lan
 | **F3** | ALG-AI-001 `0x4462` move-to reissue | done (Q20 → v0.6.5) |
 | **F4** | Held-out capture eval + P4 doc pointers | done (Q21–Q22) |
 | **F5** | Slice F documentation reconcile | done (Q23) |
-| **G1** | ALG-AI-002 `0x3ADC` tracked slots — stale chart contacts | done (Q24 → v0.6.7) |
+| **G1** | ALG-AI-002 `0x3ADC` staging + stale-slot proof path | staging (Q24 → v0.6.7); **[D] high** blocks on disasm/DOSBox |
 
 **Policy:** patch semver (0.5.x) for shipped UI/behavior; **0.6.0** minor when classic became default (slice E). Further 0.6.x patches through 0.6.x classic expansion (F).
