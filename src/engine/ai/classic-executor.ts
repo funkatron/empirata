@@ -2,7 +2,13 @@ import type { Coord, FactionId, Game, Unit, UnitType } from '../types.js';
 import type { AiPolicy } from './classic-grades.js';
 import { chooseClassicCityProduction, legalizeClassicProductionForCity } from './classic-production.js';
 import { classicEscortStep } from './classic-escort.js';
-import { classicHomeRepairStep, classicMoveToStep, classicPatrolStep, embarkedCargoCount } from './classic-move.js';
+import {
+  classicArmyConquestStep,
+  classicHomeRepairStep,
+  classicMoveToStep,
+  classicPatrolStep,
+  embarkedCargoCount,
+} from './classic-move.js';
 import { classicLegalDirectionStep } from './classic-path.js';
 import {
   classicDamagedShipSeeksPort,
@@ -92,6 +98,7 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
           if (ship?.order.kind === 'go-home') step = classicHomeRepairStep(g, ship, ops.routeStep, grade);
           else if (ship?.order.kind === 'escort') step = classicEscortStep(g, ship, grade);
           else if (ship?.order.kind === 'patrol') step = classicPatrolStep(g, ship, grade);
+          else if (current.kind === 'army') step = classicArmyConquestStep(g, view, faction, current, grade);
           else if (ship) step = classicMoveToStep(g, ship, ops.routeStep, grade);
         }
         if (!step) {
