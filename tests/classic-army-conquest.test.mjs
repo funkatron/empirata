@@ -37,7 +37,7 @@ test('Classic army conquest step assaults an adjacent charted neutral city', () 
   assert.deepEqual(classicArmyConquestStep(g, view, 'blue', army, 1), { x: 11, y: 25 });
 });
 
-test('Classic executor captures adjacent charted neutral city', () => {
+test('Classic executor captures an adjacent charted neutral (unowned) city', () => {
   let g = makeAiVsAiLab();
   g.aiPolicy = { kind: 'classic-dos', grade: 1 };
   g.cities.push({
