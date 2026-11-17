@@ -500,6 +500,15 @@ So computer movement is **order-driven pathing toward a stored goal** over these
 
 Nearby-enemy scout `0x383D` counts owned units within distance `<= 6` of the city (with terrain/type filters); production uses thresholds `> 5` and `> 2` as gates.
 
+**`0x3ADC` invasion threat detail [D] partial / fill [?]:**
+
+- **Reachability [D]:** For each of about **20** per-player threat slots (`cmp` loop bound `0x14` at `0x3ADC` — confirm with `tools/disasm_alg_ai_002_3adc.py`), call the same chart path family as ALG-AI-001: army passability mask, glyph `ES:234`, budget `min(0x7D, 2*chebyshev + 0x19)`. Direction is **threat cell → current city**. First reachable slot forces production type **0** (army).
+- **Slot source [?]:** Slots are **not** the `0x383D` live-unit counter; they are a capped intel list of hostile **map cells** (ring / working set — exact `ES:`/`DS:` base still needs xref from the pre-loop at `0x3ADC`).
+- **Stale vs fresh [?]:** No conclusive static pass on a missing private image in this environment. **Manual [M]:** chart markers remain as last-known positions until rescanned empty (p. 19). **Working hypothesis (medium confidence):** slots include **stale and fresh** enemy contacts; exclude disproven entries only. **Reject:** hidden live `84E` positions not on the chart.
+- **Runtime proof [T] proposed:** (1) land corridor + stale army marker + no fresh unit → army production if path open; (2) rescanned-empty square clears marker → `0x3ADC` false; (3) compare loop for a fresh-only flag byte before pathfinder.
+
+See `agents/alg-ai-002-3adc-slot-trace-2026-11-17.md`.
+
 **Empirata:** experimental AI production is separate; do not treat current Empirata build orders as DOS-accurate.
 
 ---
@@ -568,7 +577,7 @@ Then set `4F8[p]=1`, dialog “The computer wishes|to resign!|Do you accept?”.
 | ALG-012 detection | `src/engine/knowledge.ts`, `tests/alg-012-detection.test.mjs` | matrix tested; sentry/patrol/wait wake needs separate audit |
 | ALG-013 docking | `stayUnit`, `dockShip`, `tests/alg-013-docking.test.mjs` | explicit stay/arrival repair tested; turn-phase trace pending |
 | ALG-AI-001 move/order | `classic-executor.ts`, `classic-mask.ts`, `classic-escort.ts`, path/passability; `tests/alg-ai-001-*.test.mjs` | **staged partial**: escort stationing, ship-B coastal-sea mask, load-ship hold, transport sanitize; full 34-byte glyph tables still not claimed |
-| ALG-AI-002 production | `classic-production.ts` + `chooseClassicCityProduction`; `tests/alg-ai-002-*.test.mjs` | **staged partial**: `0x3490` + `0x3ADC` chart reachability; tracked-slot fill `[?]` vs binary |
+| ALG-AI-002 production | `classic-production.ts` + `chooseClassicCityProduction`; `tests/alg-ai-002-*.test.mjs` | **staged partial**: `0x3490` + `0x3ADC` chart reachability; tracked-slot fill **[?]** (hypothesis: stale+fresh coords, cap 20) |
 | ALG-AI-003 setup grades | `classic-grades.ts`, campaign Game menu → `Game.aiPolicy`; `tests/alg-ai-003-grades.test.mjs`, `campaign-ai-policy.test.mjs` | grades selectable on new campaigns; combat `840` factors not fully wired in play |
 | ALG-AI-004 resign offer | `classic-resign.ts`, resign modal + `respondClassicResign`; `tests/alg-ai-004-resign.test.mjs` | predicates + accept/decline UX; not DOS elimination trace parity |
 

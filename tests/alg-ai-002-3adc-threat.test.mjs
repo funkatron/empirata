@@ -89,6 +89,17 @@ test('Tracked threat list caps at 20 and dedupes by coordinate', () => {
   assert.equal(locs[0].x, 12);
 });
 
+test('Tracked threat list includes stale last-known coordinates', () => {
+  const { game, city } = landCorridorGame();
+  game.units.find(u => u.id === 'b-inv').position = { x: 5, y: 1 };
+  updateAllKnowledge(game);
+  const view = getPlayerView(game, 'red');
+  assert.ok(view.enemies.some(e => e.stale && e.position.x === 12));
+  const locs = classicTrackedThreatLocations(game, 'red', city);
+  assert.ok(locs.some(p => p.x === 12 && p.y === 1));
+  assert.equal(classicCityPathInvasionThreat(game, 'red', city, 1), true);
+});
+
 test('0x3ADC reachability follows charted land corridor', () => {
   const { game, city } = landCorridorGame();
   const view = getPlayerView(game, 'red');

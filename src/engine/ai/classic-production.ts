@@ -76,7 +76,10 @@ export function legalizeClassicProductionForCity(game: Game, city: City, kind: U
   return kind;
 }
 
-/** Tracked cells for `0x3ADC` (~20 slots); staging uses fresh + stale sight coordinates. */
+/**
+ * Tracked cells for `0x3ADC` (~20 slots).
+ * Staging: deduped chart coordinates from all sightings (stale + fresh) — see ALG-AI-002 fill [?].
+ */
 export function classicTrackedThreatLocations(game: Game, faction: FactionId, city: City) {
   const view = getPlayerView(game, faction);
   const dedupe = new Map<string, { x: number; y: number }>();
