@@ -323,7 +323,7 @@ Static dump (observer rows → target cols; order army, fighter, destroyer, tran
 
 Order name table near `0x2FD6E`: `None=0`, `Sentry=1`, `Random=2`, `Move To=3`, `Land on=4`, `Escort=5`, `Patrol from=6`, … **Order `0xC`** is written by delayed-order paths (`0x1D7E1`, `0x1DDF1`) — the Wait/sleep standing order (menu string `Wait` at `0x3056F`). Wake set = **Sentry + Patrol-from + Wait**.
 
-**Empirata:** city sub detection now aligns; still **omits sub→sub**; wakes only `sentry`, not patrol/wait. Parity: **partial**.
+**Empirata:** detection matrix + **sentry/patrol/skip** wake on adjacent fresh contact (`updateAllKnowledge`). Sub→sub matrix per tests; parity **partial** on wake timing vs `0x19E2C` helper.
 
 ---
 
@@ -553,7 +553,7 @@ cities[p] < ES:6384 / 4     // holds fewer than 25% of all cities
 
 Then set `4F8[p]=1`, dialog “The computer wishes|to resign!|Do you accept?”. On accept (`ax==1`), zero that player’s city-count local and continue elimination bookkeeping (`bp-10 = 0xD8F1` sentinel). Decline leaves the computer in play (flag stays set so it will not re-ask).
 
-**Empirata:** no classic resign-offer parity yet.
+**Empirata:** `classic-resign.ts` + UI `respondClassicResign`; predicate and accept transfer aligned **[T]** — see `agents/alg-ai-004-resign-bookkeeping-2026-11-18.md`.
 
 ---
 
@@ -580,7 +580,7 @@ Then set `4F8[p]=1`, dialog “The computer wishes|to resign!|Do you accept?”.
 | ALG-AI-001 move/order | `classicEscortStationCandidates`, `classicResolveLegalDirection`, `classicEscortCloseRangeGoal`; `agents/alg-ai-001-4c52-empirata-parity-2026-11-18.md` | **staged partial**: chart (v0.6.9); rim/`0x4C52` (v0.6.10); escort `0x4600` (v0.6.12); station `1D09:03C2` rank **[T]** (v0.6.13) |
 | ALG-AI-002 production | `classic-production.ts` + `chooseClassicCityProduction`; `tests/alg-ai-002-*.test.mjs` | **staged partial**: `0x3ADC` stale+fresh **[D]**; `0x30EB` live recount **[D]**; `0x393A`/`0x3B45` tree order **[D]** Raiden trace |
 | ALG-AI-003 setup grades | `classic-grades.ts`, `combat.ts` (`dosAiCombatFactor`); `tests/alg-ai-003-grades.test.mjs` | grade A/B selectable; **combat `840` factor [D]** when `aiPolicy.kind==='classic-dos'` |
-| ALG-AI-004 resign offer | `classic-resign.ts`, resign modal + `respondClassicResign`; `tests/alg-ai-004-resign.test.mjs` | predicates + accept/decline UX; not DOS elimination trace parity |
+| ALG-AI-004 resign offer | `classic-resign.ts`, `respondClassicResign`, `gameOutcome`; `agents/alg-ai-004-resign-bookkeeping-2026-11-18.md` | predicate + one-shot offer + accept city transfer / unit removal **[T]** (v0.6.14); `0xDF58` crush ordering not traced |
 
 ---
 

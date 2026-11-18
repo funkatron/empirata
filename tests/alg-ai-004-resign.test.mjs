@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   exportSave,
+  gameOutcome,
   importSave,
+  livingFactions,
   makeCampaignMap,
   makeRulesLab,
   playRedOpponent,
@@ -64,6 +66,13 @@ test('respondClassicResign accept transfers cities and clears units', () => {
   assert.equal(accepted.classicResignPending, undefined);
   assert.ok(accepted.cities.every(c => c.owner !== 'red'));
   assert.equal(accepted.units.filter(u => u.owner === 'red').length, 0);
+});
+
+test('respondClassicResign accept eliminates computer from living factions and finishes the game', () => {
+  const g = playRedOpponent(classicCvC(101, 0));
+  const accepted = respondClassicResign(g, true);
+  assert.deepEqual(livingFactions(accepted), ['blue']);
+  assert.deepEqual(gameOutcome(accepted), { state: 'finished', winner: 'blue', eliminated: ['red'] });
 });
 
 test('respondClassicResign decline keeps computer in play', () => {
