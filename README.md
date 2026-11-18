@@ -4,9 +4,13 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
-## Version 0.6.7 — Classic `0x3ADC` tracked threats (proof path)
+## Version 0.6.8 — ALG-AI-002 inventory + production branches
 
-Classic staging treats invasion-threat slots as **chart coordinates** (stale + fresh contacts). **[D] high** confirmation requires the unpacked-image disasm report or DOSBox protocol in `agents/alg-ai-002-3adc-slot-trace-2026-11-17.md` (`tools/disasm_alg_ai_002_3adc.py --report`).
+Classic production uses **`0x30EB`** inventory (`classicInventoryBlock0x30EB`), **`0x3B45`** fighter pressure, and **`0x393A`** early opening (navy guard until binary tree order is traced). See `agents/local-agent-handoff-dos-ai.md`.
+
+## Version 0.6.7 — Classic `0x3ADC` tracked threats **[D]**
+
+Invasion-threat slots are **stale + fresh chart coordinates** (~20 ring). Raiden static pass: `agents/alg-ai-002-3adc-slot-trace-2026-11-17.md`.
 
 ## Version 0.6.6 — Spectator Blue + Red intelligence
 

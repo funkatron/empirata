@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   chooseClassicCityProduction,
-  classicLiveUnitCounts,
+  classicInventoryBlock0x30EB,
   endTurn,
   makeRulesLab,
   playRedOpponent,
@@ -10,7 +10,7 @@ import {
 
 test('Classic inventory counts live owned units', () => {
   const g = makeRulesLab();
-  const counts = classicLiveUnitCounts(g, 'red');
+  const counts = classicInventoryBlock0x30EB(g, 'red');
   assert.equal(counts.army, 1);
   assert.equal(counts.transport, 0);
 });

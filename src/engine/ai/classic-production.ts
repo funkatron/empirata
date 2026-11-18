@@ -19,15 +19,19 @@ const COUNTABLE: readonly UnitType[] = [
   'battleship',
 ];
 
-/** ALG-AI-002 inventory block (living units, including embarked cargo). */
-export function classicLiveUnitCounts(game: Game, faction: FactionId): Record<UnitType, number> {
+/**
+ * ALG-AI-002 inventory block `ES:1810` via helper `0x30EB`.
+ * Living owned units per type (cargo aboard ships still counts).
+ */
+export function classicInventoryBlock0x30EB(game: Game, faction: FactionId): Record<UnitType, number> {
+  const view = getPlayerView(game, faction);
   const counts = Object.fromEntries(COUNTABLE.map(k => [k, 0])) as Record<UnitType, number>;
-  for (const unit of game.units) {
-    if (unit.owner !== faction) continue;
-    counts[unit.kind] += 1;
-  }
+  for (const unit of view.ownUnits) counts[unit.kind] += 1;
   return counts;
 }
+
+/** @deprecated Use `classicInventoryBlock0x30EB`. */
+export const classicLiveUnitCounts = classicInventoryBlock0x30EB;
 
 function chebyshev(a: { x: number; y: number }, b: { x: number; y: number }): number {
   return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
@@ -133,6 +137,44 @@ export function nearbyEnemyCount(game: Game, faction: FactionId, city: City): nu
   return count;
 }
 
+/**
+ * `0x393A` early opening: one city, no fighters in inventory (`15E0` analogue).
+ * Full DOS tree may run this only before navy exists; guarded until trace confirms ordering.
+ */
+export function classicEarlyProduction0x393A(
+  counts: Record<UnitType, number>,
+  coastal: boolean,
+  cityCount: number,
+): UnitType | null {
+  if (cityCount > 1 || counts.fighter > 0) return null;
+  const noNavy =
+    counts.transport === 0 &&
+    counts.destroyer === 0 &&
+    counts.submarine === 0 &&
+    counts.cruiser === 0 &&
+    counts.carrier === 0 &&
+    counts.battleship === 0;
+  if (!noNavy) return null;
+  return coastal ? 'transport' : 'army';
+}
+
+/**
+ * `0x3B45` fighter pressure: `3*fighters < armies` or transport-adjacent (`8AC8==0`).
+ * Coastal branch prefers fighter while `fighters < cityCount/2`.
+ */
+export function classicFighterPressure0x3B45(
+  counts: Record<UnitType, number>,
+  coastal: boolean,
+  cityCount: number,
+  transportAdjacent: boolean,
+): UnitType | null {
+  if (!coastal) return null;
+  const pressure = counts.fighter * 3 < counts.army || transportAdjacent;
+  if (!pressure) return null;
+  if (counts.fighter * 2 < cityCount) return 'fighter';
+  return 'army';
+}
+
 /** `0x39A9` ship-mix pass: default battleship, downgrade while counts are inverted. */
 export function classicShipMixProduction(counts: Record<UnitType, number>): UnitType {
   for (let i = COUNTABLE.length - 2; i >= 2; i--) {
@@ -152,9 +194,10 @@ export function chooseClassicCityProduction(
   faction: FactionId,
   city: City,
   grade: DosComputerGrade,
+  inventory?: Record<UnitType, number>,
 ): UnitType {
   if (city.production !== null && city.progress > 0) return city.production;
-  const counts = classicLiveUnitCounts(game, faction);
+  const counts = inventory ?? classicInventoryBlock0x30EB(game, faction);
   const coastal = isCoastal(game, city.position);
   const neighbors = coastalNeighborCounts(game, city);
   const cityCount = ownedCityCount(game, faction);
@@ -165,7 +208,8 @@ export function chooseClassicCityProduction(
 
   if (nearEnemies > 5) return 'army';
 
-  if (cityCount <= 1 && counts.fighter === 0 && counts.transport === 0 && coastal) return 'transport';
+  const early = classicEarlyProduction0x393A(counts, coastal, cityCount);
+  if (early) return legalizeClassicProductionForCity(game, city, early);
 
   if (neighbors.sea === 0 && neighbors.land > 0 && counts.transport < 2) {
     return legalizeClassicProductionForCity(game, city, 'transport');
@@ -182,8 +226,8 @@ export function chooseClassicCityProduction(
 
   if (classicCityPathInvasionThreat(game, faction, city, grade)) return 'army';
 
-  if (coastal && counts.fighter * 3 < counts.army && counts.army >= 2) return 'fighter';
-  if (coastal && !transportAdjacent && counts.fighter * 3 < counts.army) return 'fighter';
+  const fighterPick = classicFighterPressure0x3B45(counts, coastal, cityCount, transportAdjacent);
+  if (fighterPick) return legalizeClassicProductionForCity(game, city, fighterPick);
 
   if (coastal && counts.carrier === 0 && counts.destroyer > 0 && counts.transport > 0) return 'carrier';
 

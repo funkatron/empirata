@@ -25,6 +25,7 @@ export * from './ai/classic-reissue.js';
 export * from './ai/classic-passability.js';
 export * from './ai/classic-path.js';
 export * from './ai/classic-mask.js';
+export * from './ai/classic-glyph.js';
 export * from './ai/classic-escort.js';
 export * from './ai/classic-resign.js';
 export * from './ai/modern-planners.js';
