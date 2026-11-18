@@ -31,6 +31,12 @@ export function classicRandomRotationBias(unit: Unit): number {
   return parity % 2 === 0 ? 1 : -1;
 }
 
+/** Rotate preferred compass when every neighbor is blocked (`0x4C52` exhaust). */
+export function classicAdvanceBearingWhenBlocked(unit: Unit, preferredIndex: number): number {
+  const bias = classicRandomRotationBias(unit);
+  return (preferredIndex + bias + directions.length) % directions.length;
+}
+
 /** ALG-AI-001 order 2 (Random): `rand%16==0` rotates compass index, else keep bearing. */
 export function classicRandomOrderTick(game: Game, unit: Unit): { game: Game; directionIndex: number } {
   const draw = nextRandom15(game.rng);
