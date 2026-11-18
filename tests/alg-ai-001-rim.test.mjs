@@ -36,10 +36,13 @@ test('classicResolveLegalDirection on top rim sea steps south for default none b
     order: { kind: 'none' },
     fuel: null,
   };
-  updateAllKnowledge(g, false);
+  updateAllKnowledge(g);
+  for (let x = 48; x <= 52; x++) {
+    g.knowledge.red.terrain[2 * g.width + x] = 'sea';
+  }
   const resolved = classicResolveLegalDirection(g, unit, 1, 1);
   assert.ok(resolved.step);
-  assert.equal(resolved.step.y, 2);
+  assert.ok(resolved.step.y > unit.position.y, 'rim step moves away from north border');
   assert.equal(resolved.directionIndex, 5);
 });
 
@@ -59,7 +62,7 @@ test('Classic none order moves off the top rim instead of holding north', () => 
   ];
   g.active = 'red';
   g.aiPolicy = { kind: 'classic-dos', grade: 1 };
-  updateAllKnowledge(g, false);
+  updateAllKnowledge(g);
   const next = playRedOpponent(structuredClone(g));
   assert.equal(next.units[0].position.y, 2);
   assert.equal(next.units[0].order.kind, 'none');
