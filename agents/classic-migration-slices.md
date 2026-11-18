@@ -17,6 +17,7 @@ Authoritative **order** for post–v0.5.2 classic work. Update status as PRs lan
 | **G1** | ALG-AI-002 `0x3ADC` stale+fresh slots | done (v0.6.7, Raiden **[D] high**) |
 | **G2** | ALG-AI-002 `0x30EB` / `0x3B45` / `0x393A` | done (v0.6.8, Q26 + #163 Raiden **[D]**) |
 | **G3** | ALG-AI-001 mask bytes @ `0x2E410` in engine | done (#163) |
-| **H1** | ALG-AI-001 chart `ES:234` path + map-rim stuck ships | planned — `agents/q27-alg-ai-001-chart-path-ooda-plan.md` |
+| **H1a** | ALG-AI-001 chart `ES:234` pathfinding | done (v0.6.9, Q27a) |
+| **H1b** | Map-rim stuck ships (`none` / wander) | planned (Q27b) — `agents/q27-alg-ai-001-chart-path-ooda-plan.md` |
 
 **Policy:** patch semver (0.5.x) for shipped UI/behavior; **0.6.0** minor when classic became default (slice E). Further 0.6.x patches through 0.6.x classic expansion (F).

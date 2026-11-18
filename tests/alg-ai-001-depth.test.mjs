@@ -7,6 +7,7 @@ import {
   classicTilePassable,
   isCoastalSeaTile,
   makeRulesLab,
+  updateAllKnowledge,
 } from '../dist/engine/index.js';
 
 test('classicMaskProfile selects ship-b for grade 2 destroyer', () => {
@@ -43,12 +44,13 @@ test('classicSanitizeTransportOrder clears escort on empty transport', () => {
 test('classicEscortStep moves toward a station tile beside the target', () => {
   const g = makeRulesLab();
   g.tiles.fill('land');
+  const city = g.cities.find(c => c.id === 'c-red');
   const escort = {
     ...g.units[0],
     id: 'escort-army',
     owner: 'red',
     kind: 'army',
-    position: { x: 10, y: 10 },
+    position: { x: city.position.x + 1, y: city.position.y },
     order: { kind: 'escort', targetId: 'ally' },
   };
   const ally = {
@@ -56,10 +58,11 @@ test('classicEscortStep moves toward a station tile beside the target', () => {
     id: 'ally',
     owner: 'red',
     kind: 'army',
-    position: { x: 20, y: 10 },
+    position: { x: city.position.x + 4, y: city.position.y },
     order: { kind: 'none' },
   };
   g.units = [escort, ally];
+  updateAllKnowledge(g, false);
   const step = classicEscortStep(g, escort, 1);
   assert.ok(step);
   assert.equal(Math.max(Math.abs(step.x - escort.position.x), Math.abs(step.y - escort.position.y)), 1);
