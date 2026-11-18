@@ -4,6 +4,10 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.6.15 — ALG-012 patrol / wait wake
+
+Adjacent fresh enemy contact clears **sentry**, **patrol**, and **skip** (wait) to `none`, matching DOS wake-set **[D]**.
+
 ## Version 0.6.14 — ALG-AI-004 resign bookkeeping doc
 
 Documented accept/decline elimination bookkeeping vs `0xDF58`; regression lock on `gameOutcome` after resign accept.
