@@ -480,7 +480,9 @@ So computer movement is **order-driven pathing toward a stored goal** over these
 3. `0x38F0` → `8AC8`: **0** if any Chebyshev-1 neighbor cell holds unit type **3** (transport), else **1**.
 4. Heuristic tree writes a new type into `+0xE06` (types match ALG-003 / ALG-006: `0` army … `7` battleship). If the type changes, recompute city deadline `+0x18F4 = 6D8E + cost` via `0xDE3:259D` and call `0x30EB` to refresh the per-player inventory block at `ES:1810`.
 
-**Inventory block [D]:** `ES:1810[player*16 + type*2]` = living count for that type. Helper `0x30EB` zeroes then recounts all eight types for the current player.
+**Inventory block [D]:** `ES:1810[player*16 + type*2]` = living count for that type. Helper `0x30EB` zeroes then recounts all eight types for the current player (live recount only — no optimistic increment; called from `0x3829` after production type change and deadline recompute).
+
+**`0x3B45` call chain [D]:** invoked from `0x3785` only when `0x3ADC` returns false. If `0x3B45` returns zero, caller falls through to **`0x39A9`** ship-mix (`0x378D`). Coastal path uses `0x383D` `>2` nearby-enemy army branch; inland uses `3×fighters` vs armies and `8AC8` transport-adjacency before the `fighters vs cityCount/2` gate at `0x3BE4`.
 
 **Core selection behaviors [D]** (priority sketch; flags `ES:62E8` / `ES:62F0` gate several branches — see ALG-AI-003):
 
@@ -496,7 +498,7 @@ So computer movement is **order-driven pathing toward a stored goal** over these
 | has transports, no destroyers, `62F0≠0` | `2` (destroyer) |
 | `0x3ADC`: any of ~20 tracked enemy locs path-reachable | `0` (army) — “threat / invasion” |
 | `0x3B45`: fighter pressure — if `3*fighters < armies` or transport-adjacent (`8AC8==0`), else army; coastal branches compare fighter count vs `cityCount/2` | `1` (fighter) or `0` |
-| `0x393A` early game: if `cityCount <= 1` and no fighters at `15E0` | `3` else `0`; if more cities, may call `0x39A9` |
+| `0x393A` early branch (`0x35B9`, only when `8AC4==0` land-neighbors): `cityCount>1` → transport if `15E0==0` else army; `cityCount<=1` → `0x39A9` ship-mix (`0x3966`) |
 
 Nearby-enemy scout `0x383D` counts owned units within distance `<= 6` of the city (with terrain/type filters); production uses thresholds `> 5` and `> 2` as gates.
 
@@ -575,9 +577,9 @@ Then set `4F8[p]=1`, dialog “The computer wishes|to resign!|Do you accept?”.
 | ALG-011 overload | `src/engine/cargo-overload.ts`, `tests/alg-011-overload.test.mjs` | deterministic survivor policy tested |
 | ALG-012 detection | `src/engine/knowledge.ts`, `tests/alg-012-detection.test.mjs` | matrix tested; sentry/patrol/wait wake needs separate audit |
 | ALG-013 docking | `stayUnit`, `dockShip`, `tests/alg-013-docking.test.mjs` | explicit stay/arrival repair tested; turn-phase trace pending |
-| ALG-AI-001 move/order | `classic-executor.ts`, `classic-mask.ts`, `classic-escort.ts`, path/passability; `tests/alg-ai-001-*.test.mjs` | **staged partial**: escort stationing, ship-B coastal-sea mask, load-ship hold, transport sanitize; full 34-byte glyph tables still not claimed |
-| ALG-AI-002 production | `classic-production.ts` + `chooseClassicCityProduction`; `tests/alg-ai-002-*.test.mjs` | **staged partial**: `0x3490` + `0x3ADC` chart reachability; tracked slots stale+fresh **[D]**; `0x3B45`/`0x393A` gaps remain |
-| ALG-AI-003 setup grades | `classic-grades.ts`, campaign Game menu → `Game.aiPolicy`; `tests/alg-ai-003-grades.test.mjs`, `campaign-ai-policy.test.mjs` | grades selectable on new campaigns; combat `840` factors not fully wired in play |
+| ALG-AI-001 move/order | `classic-glyph-masks.ts`, `classic-passability.ts`, `tools/disasm_alg_ai_001_masks.py`; `tests/alg-ai-001-*.test.mjs` | **staged partial**: **34-byte masks [D]** at image `0x2E410`; escort / full glyph chart layer still partial |
+| ALG-AI-002 production | `classic-production.ts` + `chooseClassicCityProduction`; `tests/alg-ai-002-*.test.mjs` | **staged partial**: `0x3ADC` stale+fresh **[D]**; `0x30EB` live recount **[D]**; `0x393A`/`0x3B45` tree order **[D]** Raiden trace |
+| ALG-AI-003 setup grades | `classic-grades.ts`, `combat.ts` (`dosAiCombatFactor`); `tests/alg-ai-003-grades.test.mjs` | grade A/B selectable; **combat `840` factor [D]** when `aiPolicy.kind==='classic-dos'` |
 | ALG-AI-004 resign offer | `classic-resign.ts`, resign modal + `respondClassicResign`; `tests/alg-ai-004-resign.test.mjs` | predicates + accept/decline UX; not DOS elimination trace parity |
 
 ---

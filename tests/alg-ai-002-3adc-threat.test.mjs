@@ -132,8 +132,8 @@ test('Destroyer gate still outranks 0x3ADC on grade B', () => {
   assert.equal(chooseClassicCityProduction(game, 'red', city, 2), 'destroyer');
 });
 
-test('Without path threat, fighter pressure can return when approach is blocked', () => {
+test('Without path threat, transport-adjacent pressure prefers army on coastal 0x3B45 [D]', () => {
   const { game, city } = landCorridorGame({ blockApproach: true });
   const pick = chooseClassicCityProduction(game, 'red', city, 1);
-  assert.equal(pick, 'fighter');
+  assert.equal(pick, 'army');
 });

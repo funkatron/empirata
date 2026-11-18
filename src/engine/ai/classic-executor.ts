@@ -1,6 +1,10 @@
 import type { Coord, FactionId, Game, Unit, UnitType } from '../types.js';
 import type { AiPolicy } from './classic-grades.js';
-import { chooseClassicCityProduction, legalizeClassicProductionForCity } from './classic-production.js';
+import {
+  chooseClassicCityProduction,
+  classicInventoryBlock0x30EB,
+  legalizeClassicProductionForCity,
+} from './classic-production.js';
 import { classicEscortStep } from './classic-escort.js';
 import {
   classicArmyConquestStep,
@@ -62,11 +66,13 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
     policy: Extract<AiPolicy, { kind: 'classic-dos' }>,
   ): Game {
     let g = clone(game);
-    for (const city of g.cities.filter(c => c.owner === faction)) {
+    const owned = g.cities.filter(c => c.owner === faction).sort((a, b) => b.id.localeCompare(a.id));
+    for (const city of owned) {
+      const inventory = classicInventoryBlock0x30EB(g, faction);
       const pick = legalizeClassicProductionForCity(
         g,
         city,
-        chooseClassicCityProduction(g, faction, city, policy.grade),
+        chooseClassicCityProduction(g, faction, city, policy.grade, inventory),
       );
       if (city.production !== pick) g = ops.selectProduction(g, city.id, pick, true);
     }

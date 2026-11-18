@@ -24,12 +24,10 @@ test('classicTilePassable blocks enemy cities and foreign land for armies', () =
 
 test('classicRouteStep returns one step toward a reachable friendly city', () => {
   const g = makeRulesLab();
-  for (let y = 24; y <= 26; y++) for (let x = 6; x <= 12; x++) g.tiles[y * g.width + x] = 'sea';
-  const ship = g.units.find(u => u.kind === 'destroyer');
-  ship.position = { x: 10, y: 25 };
-  const step = classicRouteStep(g, ship, g.cities.find(c => c.id === 'c-blue').position, 1);
+  const army = g.units.find(u => u.kind === 'army' && u.owner === 'blue');
+  const step = classicRouteStep(g, army, g.cities.find(c => c.id === 'c-blue').position, 1);
   assert.ok(step);
-  assert.ok(Math.max(Math.abs(step.x - ship.position.x), Math.abs(step.y - ship.position.y)) === 1);
+  assert.ok(Math.max(Math.abs(step.x - army.position.x), Math.abs(step.y - army.position.y)) === 1);
 });
 
 test('classicLegalDirectionStep prefers a legal neighbor', () => {
