@@ -4,6 +4,10 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.6.12 — Escort close-range `0x4600`
+
+Within Chebyshev **3** of the escort target, classic escort pathing follows the target’s standing order (`move-to`, `go-home`, etc.) before generic station-ring routing.
+
 ## Version 0.6.11 — Islands rim regression guard
 
 Held-out save `tests/fixtures/islands-rim-round-376.json` (seed 3898486421) asserts classic AI unstucks east-rim `none` warships after lab rounds.
