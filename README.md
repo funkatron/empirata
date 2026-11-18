@@ -4,9 +4,9 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
-## Version 0.6.8 — ALG-AI-002 inventory + production branches
+## Version 0.6.8 — Classic DOS production + masks + grade combat
 
-Classic production uses **`0x30EB`** inventory (`classicInventoryBlock0x30EB`), **`0x3B45`** fighter pressure, and **`0x393A`** early opening (navy guard until binary tree order is traced). See `agents/local-agent-handoff-dos-ai.md`.
+**ALG-AI-002:** `0x30EB` inventory, **`0x3B45` / `0x393A`** production tree ([D] Raiden #163). **`0x3ADC`** stale+fresh threats (#161). **ALG-AI-001:** 34-byte passability masks in pathfinding (#163). **ALG-AI-003:** classic `840` combat factors. Handoff: `agents/local-agent-handoff-dos-ai.md`.
 
 ## Version 0.6.7 — Classic `0x3ADC` tracked threats **[D]**
 
