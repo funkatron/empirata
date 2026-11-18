@@ -23,7 +23,7 @@ Authoritative **order** for post–v0.5.2 classic work. Update status as PRs lan
 | **H3** | ALG-AI-001 `0x4C52` parity documentation | done (Q28 #169) |
 | **H4** | Escort close-range `0x4600` | done (v0.6.12, Q28 #170) |
 | **H5** | Post-Q27 handoff doc hygiene | done (Q28 #171) |
-| **I1** | Escort stationing `1D09:03C2` | in progress (Q29) |
+| **I1** | Escort stationing `1D09:03C2` | done (v0.6.13, Q29 #172) |
 | **I2** | `0x4C52` DOSBox border A/B | planned |
 | **I3** | ALG-AI-004 resign bookkeeping trace | planned |
 | **I4** | ALG-012 patrol/wait wake | planned |

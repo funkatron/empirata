@@ -24,7 +24,7 @@ Related: **Random** `0x3F0C` uses `rand()%16` to rotate bearing; **None** uses a
 
 ## Gaps (not claimed closed)
 
-- No scripted DOSBox A/B at map border with hex compare of direction byte after exhaust.
+- DOSBox A/B protocol: `agents/alg-ai-001-4c52-dosbox-experiment-2026-11-18.md` (I2). No captured run log in-repo yet.
 - Full coupling of **`-1`** to `ES:24A` overload fields (escort target index vs compass) is documented in ruleset but not re-traced here.
 - Coastal **ship-B** mask + chart unknown tiles can still block all eight neighbors (see H2 islands fixture).
 
