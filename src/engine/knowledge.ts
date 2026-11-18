@@ -75,16 +75,20 @@ export function updateKnowledge(game:Game, faction:FactionId): void {
 export function updateAllKnowledge(game:Game,activateSentries=true):void {
   for(const player of game.players) updateKnowledge(game,player.id);
   if(!activateSentries)return;
-  // Sentry activation uses fresh shared intelligence, never stale reports or
-  // hidden occupancy. Cargo is activated through Unload Ship instead.
+  // ALG-012 wake set [D]: Sentry, Patrol-from, Wait (`skip` in Empirata UI).
+  const wakesOnContact=(kind:typeof game.units[number]['order']['kind'])=>
+    kind==='sentry'||kind==='patrol'||kind==='skip';
   for(const unit of game.units){
-    if(unit.aboard||unit.order.kind!=='sentry')continue;
+    if(unit.aboard||!wakesOnContact(unit.order.kind))continue;
     const knowledge=game.knowledge[unit.owner];
     if(!knowledge.sightings.some(s=>knowledge.freshEnemies.includes(s.id)&&
       Math.max(Math.abs(s.position.x-unit.position.x),Math.abs(s.position.y-unit.position.y))<=1))continue;
+    const wakeLabel=unit.order.kind==='sentry'?'sentry awakened by adjacent enemy contact.':
+      unit.order.kind==='patrol'?'patrol interrupted by adjacent enemy contact.':
+      'wait order ended by adjacent enemy contact.';
     unit.order={kind:'none'};
     game.events.push({id:game.nextEventId++,round:game.round,recipient:unit.owner,
-      kind:'system',message:`${unitLabel(unit)}: sentry awakened by adjacent enemy contact.`});
+      kind:'system',message:`${unitLabel(unit)}: ${wakeLabel}`});
   }
 }
 function mergeCityIntel(a: CityIntel | null, b: CityIntel | null): CityIntel | null {

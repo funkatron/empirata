@@ -1,6 +1,6 @@
-# Local agent handoff — DOS AI parity (post–v0.6.12 / Q28)
+# Local agent handoff — DOS AI parity (post–v0.6.15 / Q29)
 
-**`main` through v0.6.12** includes Q27 (H1a/H1b) and Q28 (H2–H5): #165–#167, **#168–#171**.
+**`main` through v0.6.14+** includes Q27–Q28 and Q29 slices **I1–I4** (#172–#175).
 
 ## Done on `main` (movement tranche)
 
@@ -19,12 +19,12 @@ See **`agents/q28-post-q27-slices.md`** and **`agents/alg-ai-001-4c52-empirata-p
 
 | Slice | Item |
 |-------|------|
-| **I1** | Escort `1D09:03C2` station ranking (v0.6.13) |
-| **I2** | `0x4C52` DOSBox border A/B |
-| **I3** | ALG-AI-004 resign bookkeeping |
-| **I4** | ALG-012 patrol/wait wake |
+| **I1** | Escort `1D09:03C2` (#172, v0.6.13) |
+| **I2** | `0x4C52` DOSBox protocol (#173) |
+| **I3** | ALG-AI-004 resign doc (#174, v0.6.14) |
+| **I4** | ALG-012 wake (#175, v0.6.15) |
 
-Plan: `agents/q29-i1-escort-station-ooda-plan.md`
+Plans: `agents/q29-i1-escort-station-ooda-plan.md`, `alg-ai-001-4c52-dosbox-experiment-2026-11-18.md`, `alg-ai-004-resign-bookkeeping-2026-11-18.md`
 
 ## Commands
 
