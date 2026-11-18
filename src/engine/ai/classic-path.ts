@@ -95,20 +95,65 @@ export function classicRouteStep(
   return { x: cursor % game.width, y: Math.floor(cursor / game.width) };
 }
 
+export type ClassicLegalDirectionResult = {
+  step: Coord | null;
+  /** Compass index used when `step` is set (`0x4C52` rotation winner). */
+  directionIndex: number | null;
+};
+
+/** When north is blocked on the top playable row, start rotation away from the map rim. */
+export function classicRimAwarePreferredIndex(game: Game, unit: Unit, preferredIndex: number): number {
+  const { x, y } = unit.position;
+  const north = directions[1]!;
+  const northPos = { x: x + north.x, y: y + north.y };
+  if (y === 1 && preferredIndex === 1 && !playable(game, northPos)) {
+    return 5; // south — common DOS rim escape when default none bearing is north
+  }
+  const southIdx = 5;
+  const south = directions[southIdx]!;
+  const southPos = { x: x + south.x, y: y + south.y };
+  if (y === game.height - 2 && preferredIndex === southIdx && !playable(game, southPos)) {
+    return 1;
+  }
+  const westIdx = 7;
+  const west = directions[westIdx]!;
+  if (x === 1 && preferredIndex === westIdx && !playable(game, { x: x + west.x, y: y + west.y })) {
+    return 3;
+  }
+  const eastIdx = 3;
+  const east = directions[eastIdx]!;
+  if (x === game.width - 2 && preferredIndex === eastIdx && !playable(game, { x: x + east.x, y: y + east.y })) {
+    return 7;
+  }
+  return preferredIndex;
+}
+
 /** ALG-AI-001 `0x4C52`: try up to eight rotations from a preferred compass index. */
+export function classicResolveLegalDirection(
+  game: Game,
+  unit: Unit,
+  preferredIndex: number,
+  grade: DosComputerGrade,
+): ClassicLegalDirectionResult {
+  const view = getPlayerView(game, unit.owner);
+  const bias = classicRandomRotationBias(unit);
+  const start = classicRimAwarePreferredIndex(game, unit, preferredIndex);
+  for (let attempt = 0; attempt < directions.length; attempt++) {
+    const idx = (start + attempt * bias + directions.length * 8) % directions.length;
+    const dir = directions[idx]!;
+    const step = { x: unit.position.x + dir.x, y: unit.position.y + dir.y };
+    if (classicTilePassableChart(game, view, unit.owner, unit, step, grade)) {
+      return { step, directionIndex: idx };
+    }
+  }
+  return { step: null, directionIndex: null };
+}
+
 export function classicLegalDirectionStep(
   game: Game,
   unit: Unit,
   preferredIndex: number,
   grade: DosComputerGrade,
 ): Coord | null {
-  const view = getPlayerView(game, unit.owner);
-  const bias = classicRandomRotationBias(unit);
-  for (let attempt = 0; attempt < directions.length; attempt++) {
-    const idx = (preferredIndex + attempt * bias + directions.length * 8) % directions.length;
-    const dir = directions[idx]!;
-    const step = { x: unit.position.x + dir.x, y: unit.position.y + dir.y };
-    if (classicTilePassableChart(game, view, unit.owner, unit, step, grade)) return step;
-  }
-  return null;
+  return classicResolveLegalDirection(game, unit, preferredIndex, grade).step;
 }
