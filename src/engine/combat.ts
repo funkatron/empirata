@@ -15,13 +15,23 @@ import type {Game} from './types.js';
 import {nextRandom, nextRandom15} from './rng.js';
 import {STATS} from './units.js';
 import {adjudicateCombat,adjudicateCityCapture,type HitBy} from './adjudication.js';
+import {dosAiCombatFactor} from './ai/classic-grades.js';
+import {resolveAiPolicy} from './ai/policy.js';
 
-function combatEfficiency(game:Game, owner:string):number {
+function baseCombatEfficiency(game:Game, owner:string):number {
   const p=game.players.find(x=>x.id===owner);
   if(!p||!Number.isFinite(p.combatEfficiency)||p.combatEfficiency<0||p.combatEfficiency>100){
     throw new Error('Combat efficiency must be between 0 and 100.');
   }
   return p.combatEfficiency;
+}
+
+/** ALG-AI-003 `0xDE40`: classic DOS scales efficiency by grade factor 4 or 5. */
+export function combatEfficiency(game:Game, owner:string):number {
+  const base=baseCombatEfficiency(game, owner);
+  const policy=resolveAiPolicy(game);
+  if(policy.kind!=='classic-dos') return base;
+  return base*dosAiCombatFactor(policy.grade)/5;
 }
 
 /** DOS ALG-002: per-hit effective combat efficiencies, including integer SAR half-factors. */

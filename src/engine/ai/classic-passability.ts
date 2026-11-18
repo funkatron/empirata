@@ -2,6 +2,8 @@ import type { Coord, FactionId, Game, Unit } from '../types.js';
 import { STATS } from '../units.js';
 import { cityAt, playable, terrainAt } from '../world.js';
 import type { DosComputerGrade } from './classic-grades.js';
+import { classicChartGlyphsForTile, classicDosPlayerIndex } from './classic-glyph.js';
+import { classicMaskAllowsGlyph } from './classic-glyph-masks.js';
 import { classicMaskProfile, isCoastalSeaTile } from './classic-mask.js';
 
 function chebyshev(a: Coord, b: Coord): number {
@@ -25,18 +27,15 @@ export function classicTilePassable(
       u => !u.aboard && u.owner === faction && u.id !== unit.id && u.position.x === pos.x && u.position.y === pos.y,
     ) && !city;
   if (friendlyStack) return false;
-  if (city) {
-    return city.owner === faction;
-  }
-  if (profile === 'army') {
-    return terrain === 'land';
-  }
-  if (profile === 'fighter') {
-    return terrain === 'land' || terrain === 'sea';
-  }
-  if (terrain !== 'sea') return false;
-  if (profile === 'ship-b' && isCoastalSeaTile(game, pos)) return false;
-  return true;
+  const playerIndex = classicDosPlayerIndex(game, faction);
+  const glyphCandidates = classicChartGlyphsForTile(game, faction, terrain, city);
+  const maskOk = glyphCandidates.some(g => classicMaskAllowsGlyph(profile, playerIndex, g));
+  if (!maskOk) return false;
+  if (city) return city.owner === faction;
+  if (profile === 'ship-b' && terrain === 'sea' && isCoastalSeaTile(game, pos)) return false;
+  if (profile === 'army') return terrain === 'land';
+  if (profile === 'fighter') return terrain === 'land' || terrain === 'sea';
+  return terrain === 'sea';
 }
 
 export function classicPathBudget(from: Coord, to: Coord): number {

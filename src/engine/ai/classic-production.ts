@@ -138,24 +138,19 @@ export function nearbyEnemyCount(game: Game, faction: FactionId, city: City): nu
 }
 
 /**
- * `0x393A` early opening: one city, no fighters in inventory (`15E0` analogue).
- * Full DOS tree may run this only before navy exists; guarded until trace confirms ordering.
+ * `0x393A` — only invoked when coastal land-neighbor count `8AC4 == 0` (`0x35B9`).
+ * For `cityCount > 1`: transport if no fighters (`15E0`), else army (`0x397C` / `0x39A1`).
+ * For `cityCount <= 1`: falls through to `0x39A9` ship-mix (`0x3966`), not direct transport.
  */
+export type ClassicEarly393AResult = UnitType | 'ship-mix' | null;
+
 export function classicEarlyProduction0x393A(
   counts: Record<UnitType, number>,
-  coastal: boolean,
   cityCount: number,
-): UnitType | null {
-  if (cityCount > 1 || counts.fighter > 0) return null;
-  const noNavy =
-    counts.transport === 0 &&
-    counts.destroyer === 0 &&
-    counts.submarine === 0 &&
-    counts.cruiser === 0 &&
-    counts.carrier === 0 &&
-    counts.battleship === 0;
-  if (!noNavy) return null;
-  return coastal ? 'transport' : 'army';
+): ClassicEarly393AResult {
+  if (cityCount <= 1) return 'ship-mix';
+  if (counts.fighter === 0) return 'transport';
+  return 'army';
 }
 
 /**
@@ -167,11 +162,19 @@ export function classicFighterPressure0x3B45(
   coastal: boolean,
   cityCount: number,
   transportAdjacent: boolean,
+  nearEnemies: number,
 ): UnitType | null {
-  if (!coastal) return null;
-  const pressure = counts.fighter * 3 < counts.army || transportAdjacent;
-  if (!pressure) return null;
-  if (counts.fighter * 2 < cityCount) return 'fighter';
+  if (!coastal) {
+    if (counts.fighter * 3 < counts.army) return 'fighter';
+    if (!transportAdjacent) return 'army';
+    return 'fighter';
+  }
+  if (nearEnemies > 2) return 'army';
+  if (nearEnemies <= 2 && transportAdjacent) return 'army';
+  if (counts.fighter * 3 < counts.army || transportAdjacent) {
+    if (counts.fighter * 2 > cityCount) return 'fighter';
+    return null;
+  }
   return 'army';
 }
 
@@ -208,8 +211,15 @@ export function chooseClassicCityProduction(
 
   if (nearEnemies > 5) return 'army';
 
-  const early = classicEarlyProduction0x393A(counts, coastal, cityCount);
-  if (early) return legalizeClassicProductionForCity(game, city, early);
+  if (neighbors.land === 0) {
+    const early = classicEarlyProduction0x393A(counts, cityCount);
+    if (early === 'ship-mix' && coastal) {
+      return legalizeClassicProductionForCity(game, city, classicShipMixProduction(counts));
+    }
+    if (early && early !== 'ship-mix') {
+      return legalizeClassicProductionForCity(game, city, early);
+    }
+  }
 
   if (neighbors.sea === 0 && neighbors.land > 0 && counts.transport < 2) {
     return legalizeClassicProductionForCity(game, city, 'transport');
@@ -226,7 +236,13 @@ export function chooseClassicCityProduction(
 
   if (classicCityPathInvasionThreat(game, faction, city, grade)) return 'army';
 
-  const fighterPick = classicFighterPressure0x3B45(counts, coastal, cityCount, transportAdjacent);
+  const fighterPick = classicFighterPressure0x3B45(
+    counts,
+    coastal,
+    cityCount,
+    transportAdjacent,
+    nearEnemies,
+  );
   if (fighterPick) return legalizeClassicProductionForCity(game, city, fighterPick);
 
   if (coastal && counts.carrier === 0 && counts.destroyer > 0 && counts.transport > 0) return 'carrier';
