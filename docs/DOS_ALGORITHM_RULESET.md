@@ -577,7 +577,7 @@ Then set `4F8[p]=1`, dialog “The computer wishes|to resign!|Do you accept?”.
 | ALG-011 overload | `src/engine/cargo-overload.ts`, `tests/alg-011-overload.test.mjs` | deterministic survivor policy tested |
 | ALG-012 detection | `src/engine/knowledge.ts`, `tests/alg-012-detection.test.mjs` | matrix tested; sentry/patrol/wait wake needs separate audit |
 | ALG-013 docking | `stayUnit`, `dockShip`, `tests/alg-013-docking.test.mjs` | explicit stay/arrival repair tested; turn-phase trace pending |
-| ALG-AI-001 move/order | `classic-glyph-masks.ts`, `classicTilePassableChart`, `classicResolveLegalDirection`; `tests/alg-ai-001-*.test.mjs` | **staged partial**: masks **[D]**; chart path (v0.6.9); rim bearing rotate + `classicRimAwarePreferredIndex` (v0.6.10); full `0x4C52` trace optional |
+| ALG-AI-001 move/order | `classic-glyph-masks.ts`, `classicTilePassableChart`, `classicResolveLegalDirection`; `agents/alg-ai-001-4c52-empirata-parity-2026-11-18.md` | **staged partial**: masks **[D]**; chart (v0.6.9); `0x4C52` mapped **[D]** doc + rim rotate (v0.6.10); escort `0x4600` partial (H4) |
 | ALG-AI-002 production | `classic-production.ts` + `chooseClassicCityProduction`; `tests/alg-ai-002-*.test.mjs` | **staged partial**: `0x3ADC` stale+fresh **[D]**; `0x30EB` live recount **[D]**; `0x393A`/`0x3B45` tree order **[D]** Raiden trace |
 | ALG-AI-003 setup grades | `classic-grades.ts`, `combat.ts` (`dosAiCombatFactor`); `tests/alg-ai-003-grades.test.mjs` | grade A/B selectable; **combat `840` factor [D]** when `aiPolicy.kind==='classic-dos'` |
 | ALG-AI-004 resign offer | `classic-resign.ts`, resign modal + `respondClassicResign`; `tests/alg-ai-004-resign.test.mjs` | predicates + accept/decline UX; not DOS elimination trace parity |
