@@ -24,7 +24,7 @@ test('classicEscortCloseRangeGoal follows a move-to destination when within Cheb
     position: { x: 42, y: 30 },
     order: { kind: 'move-to', destination: { x: 80, y: 30 } },
   };
-  const goal = classicEscortCloseRangeGoal(g, escort, convoy);
+  const goal = classicEscortCloseRangeGoal(g, escort, convoy, 1);
   assert.deepEqual(goal, { x: 80, y: 30 });
 });
 

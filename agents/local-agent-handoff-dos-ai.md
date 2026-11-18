@@ -15,11 +15,16 @@
 
 See **`agents/q28-post-q27-slices.md`** and **`agents/alg-ai-001-4c52-empirata-parity-2026-11-18.md`**.
 
-## Next work (optional)
+## Next work (Q29)
 
-- Raiden DOSBox border A/B for `0x4C52` exhaust byte
-- Full escort station probe `1D09:03C2` trace
-- ALG-AI-004 resign bookkeeping
+| Slice | Item |
+|-------|------|
+| **I1** | Escort `1D09:03C2` station ranking (v0.6.13) |
+| **I2** | `0x4C52` DOSBox border A/B |
+| **I3** | ALG-AI-004 resign bookkeeping |
+| **I4** | ALG-012 patrol/wait wake |
+
+Plan: `agents/q29-i1-escort-station-ooda-plan.md`
 
 ## Commands
 
