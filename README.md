@@ -4,6 +4,10 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.6.11 — Islands rim regression guard
+
+Held-out save `tests/fixtures/islands-rim-round-376.json` (seed 3898486421) asserts classic AI unstucks east-rim `none` warships after lab rounds.
+
 ## Version 0.6.10 — Classic map-rim wander (ALG-AI-001)
 
 Ships with **none** / **random** on the playable border rotate bearing when all neighbors are blocked; top-rim **none** defaults bias south instead of illegal north steps.

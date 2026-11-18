@@ -19,5 +19,9 @@ Authoritative **order** for post–v0.5.2 classic work. Update status as PRs lan
 | **G3** | ALG-AI-001 mask bytes @ `0x2E410` in engine | done (#163) |
 | **H1a** | ALG-AI-001 chart `ES:234` pathfinding | done (v0.6.9, Q27a) |
 | **H1b** | Map-rim stuck ships (`none` / wander) | done (v0.6.10, Q27b) |
+| **H2** | Islands seed `3898486421` round-376 rim regression | in progress (Q28) |
+| **H3** | ALG-AI-001 `0x4C52` parity documentation | planned (Q28) |
+| **H4** | Escort close-range `0x4600` | planned (Q28) |
+| **H5** | Post-Q27 handoff doc hygiene | planned (Q28) |
 
 **Policy:** patch semver (0.5.x) for shipped UI/behavior; **0.6.0** minor when classic became default (slice E). Further 0.6.x patches through 0.6.x classic expansion (F).
