@@ -22,9 +22,11 @@ import {
   classicTransportSeaStep,
 } from './classic-amphibious.js';
 import { classicTacticalReissueOrder } from './classic-reissue.js';
-import { classicLegalDirectionStep } from './classic-path.js';
+import { classicResolveLegalDirection } from './classic-path.js';
 import {
+  classicAdvanceBearingWhenBlocked,
   classicDamagedShipSeeksPort,
+  classicDirectionIndex,
   classicFighterMoveToExhausted,
   classicRandomOrderTick,
   classicSanitizeTransportOrder,
@@ -147,18 +149,59 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
             const rotated = classicRandomOrderTick(g, current);
             g = rotated.game;
             g = ops.setOrder(g, unit.id, { kind: 'go-direction', direction: { ...directions[rotated.directionIndex]! } }, true);
-            const positioned = g.units.find(u => u.id === unit.id);
-            if (positioned) step = classicLegalDirectionStep(g, positioned, rotated.directionIndex, grade);
+            let positioned = g.units.find(u => u.id === unit.id);
+            if (positioned) {
+              const resolved = classicResolveLegalDirection(g, positioned, rotated.directionIndex, grade);
+              if (resolved.directionIndex !== null) {
+                g = ops.setOrder(
+                  g,
+                  unit.id,
+                  { kind: 'go-direction', direction: { ...directions[resolved.directionIndex]! } },
+                  true,
+                );
+              }
+              positioned = g.units.find(u => u.id === unit.id);
+              if (positioned) step = resolved.step;
+              if (!step && positioned) {
+                const nextIdx = classicAdvanceBearingWhenBlocked(positioned, rotated.directionIndex);
+                g = ops.setOrder(
+                  g,
+                  unit.id,
+                  { kind: 'go-direction', direction: { ...directions[nextIdx]! } },
+                  true,
+                );
+              }
+            }
           } else {
             const tick = classicStandingOrderTick(current.order);
             if (tick?.kind === 'bear') {
               g = ops.setOrder(g, unit.id, { kind: 'go-direction', direction: { ...tick.direction } }, true);
-              const positioned = g.units.find(u => u.id === unit.id);
+              let positioned = g.units.find(u => u.id === unit.id);
               if (positioned) {
                 const idx = directions.findIndex(
                   d => d.x === tick.direction.x && d.y === tick.direction.y,
                 );
-                step = classicLegalDirectionStep(g, positioned, idx >= 0 ? idx : 1, grade);
+                const preferred = idx >= 0 ? idx : classicDirectionIndex(positioned);
+                const resolved = classicResolveLegalDirection(g, positioned, preferred, grade);
+                if (resolved.directionIndex !== null) {
+                  g = ops.setOrder(
+                    g,
+                    unit.id,
+                    { kind: 'go-direction', direction: { ...directions[resolved.directionIndex]! } },
+                    true,
+                  );
+                }
+                positioned = g.units.find(u => u.id === unit.id);
+                if (positioned) step = resolved.step;
+                if (!step && positioned) {
+                  const nextIdx = classicAdvanceBearingWhenBlocked(positioned, preferred);
+                  g = ops.setOrder(
+                    g,
+                    unit.id,
+                    { kind: 'go-direction', direction: { ...directions[nextIdx]! } },
+                    true,
+                  );
+                }
               }
             }
           }

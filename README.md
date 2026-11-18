@@ -4,6 +4,10 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.6.10 — Classic map-rim wander (ALG-AI-001)
+
+Ships with **none** / **random** on the playable border rotate bearing when all neighbors are blocked; top-rim **none** defaults bias south instead of illegal north steps.
+
 ## Version 0.6.9 — Classic chart passability for AI movement
 
 Classic route step and legal direction use **PlayerView chart cells** + mask bytes (`classicTilePassableChart`), not omniscient terrain.
