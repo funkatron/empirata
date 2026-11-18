@@ -1,4 +1,5 @@
-import type { City, Coord, FactionId } from '../types.js';
+import type { City, Coord, FactionId, Game, PlayerView } from '../types.js';
+import { index, playable } from '../world.js';
 
 /** Player slot `0…3` for DOS glyph bands (`10p−6` city encoding). */
 export function classicDosPlayerIndex(game: { players: { id: FactionId }[] }, faction: FactionId): number {
@@ -48,4 +49,18 @@ export function classicChartGlyphsForTile(
   if (terrain === 'land') return classicLandChartGlyphs();
   if (terrain === 'sea') return classicSeaChartGlyphs(classicDosPlayerIndex(game, faction));
   return [0];
+}
+
+/** `ES:234` glyph index candidates for a chart cell visible to `view.active`. */
+export function classicChartGlyphsForViewCell(
+  game: Pick<Game, 'players' | 'width' | 'height'>,
+  view: PlayerView,
+  faction: FactionId,
+  pos: Coord,
+): number[] {
+  if (!playable(game, pos)) return [];
+  const cell = view.cells[index(game, pos)];
+  if (!cell || cell.terrain === null) return [];
+  if (cell.city) return [classicChartCityGlyph(game, faction, { owner: cell.city.owner })];
+  return classicChartGlyphsForTile(game, faction, cell.terrain, undefined);
 }

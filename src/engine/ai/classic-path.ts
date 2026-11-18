@@ -1,8 +1,9 @@
 import type { Coord, FactionId, Game, PlayerView, Unit } from '../types.js';
 import { directions } from '../world.js';
 import type { DosComputerGrade } from './classic-grades.js';
-import { classicPathBudget, classicTilePassable } from './classic-passability.js';
+import { classicPathBudget, classicTilePassableChart } from './classic-passability.js';
 import { classicRandomRotationBias } from './classic-order-tick.js';
+import { getPlayerView } from '../knowledge.js';
 import { index, playable } from '../world.js';
 
 /** ALG-AI-002 `0x3ADC` army passability on charted PlayerView cells (ES:234 analogue). */
@@ -62,6 +63,7 @@ export function classicRouteStep(
   const goalIdx = index(game, destination);
   const startIdx = index(game, start);
   if (startIdx === goalIdx) return null;
+  const view = getPlayerView(game, unit.owner);
   const budget = classicPathBudget(start, destination);
   const visited = new Set<number>([startIdx]);
   const parent = new Map<number, number>();
@@ -77,7 +79,7 @@ export function classicRouteStep(
       if (!playable(game, pos)) continue;
       const k = index(game, pos);
       if (visited.has(k)) continue;
-      if (!classicTilePassable(game, unit.owner, unit, pos, grade)) continue;
+      if (!classicTilePassableChart(game, view, unit.owner, unit, pos, grade)) continue;
       visited.add(k);
       parent.set(k, here);
       queue.push({ idx: k, depth: depth + 1 });
@@ -100,12 +102,13 @@ export function classicLegalDirectionStep(
   preferredIndex: number,
   grade: DosComputerGrade,
 ): Coord | null {
+  const view = getPlayerView(game, unit.owner);
   const bias = classicRandomRotationBias(unit);
   for (let attempt = 0; attempt < directions.length; attempt++) {
     const idx = (preferredIndex + attempt * bias + directions.length * 8) % directions.length;
     const dir = directions[idx]!;
     const step = { x: unit.position.x + dir.x, y: unit.position.y + dir.y };
-    if (classicTilePassable(game, unit.owner, unit, step, grade)) return step;
+    if (classicTilePassableChart(game, view, unit.owner, unit, step, grade)) return step;
   }
   return null;
 }

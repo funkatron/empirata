@@ -7,6 +7,7 @@ import {
   classicTilePassable,
   classicFighterMoveToExhausted,
   makeRulesLab,
+  updateAllKnowledge,
 } from '../dist/engine/index.js';
 
 test('classicPathBudget matches min(125, 2*chebyshev+25)', () => {
@@ -33,7 +34,12 @@ test('classicRouteStep returns one step toward a reachable friendly city', () =>
 test('classicLegalDirectionStep prefers a legal neighbor', () => {
   const g = makeRulesLab();
   g.tiles.fill('land');
-  const army = { ...g.units.find(u => u.kind === 'army'), position: { x: 50, y: 30 } };
+  const city = g.cities.find(c => c.id === 'c-blue');
+  const army = {
+    ...g.units.find(u => u.kind === 'army' && u.owner === 'blue'),
+    position: { x: city.position.x + 1, y: city.position.y },
+  };
+  updateAllKnowledge(g, false);
   const step = classicLegalDirectionStep(g, army, 1, 1);
   assert.ok(step);
 });
