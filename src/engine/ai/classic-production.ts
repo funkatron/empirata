@@ -172,7 +172,7 @@ export function classicFighterPressure0x3B45(
   if (nearEnemies > 2) return 'army';
   if (nearEnemies <= 2 && transportAdjacent) return 'army';
   if (counts.fighter * 3 < counts.army || transportAdjacent) {
-    if (counts.fighter * 2 > cityCount) return 'fighter';
+    if (counts.fighter * 2 < cityCount) return 'fighter';
     return null;
   }
   return 'army';

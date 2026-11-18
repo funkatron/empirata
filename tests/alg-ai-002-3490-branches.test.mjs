@@ -38,7 +38,7 @@ test('0x393A: cityCount<=1 requests ship-mix; cityCount>1 uses fighters gate', (
 test('0x3B45 fighter pressure with transport adjacent', () => {
   const counts = { army: 4, fighter: 0, destroyer: 0, transport: 2, submarine: 0, cruiser: 0, carrier: 1, battleship: 1 };
   assert.equal(classicFighterPressure0x3B45(counts, true, 3, true, 1), 'army');
-  assert.equal(classicFighterPressure0x3B45(counts, true, 3, false, 1), null);
+  assert.equal(classicFighterPressure0x3B45(counts, true, 3, false, 1), 'fighter');
   assert.equal(classicFighterPressure0x3B45({ ...counts, army: 1, fighter: 2 }, true, 3, false, 1), 'army');
   assert.equal(classicFighterPressure0x3B45(counts, true, 6, false, 4), 'army');
 });

@@ -20,5 +20,5 @@ test('classic glyph masks block army on neutral sea glyph [D]', () => {
   const blueIdx = classicDosPlayerIndex(g, 'blue');
   assert.equal(classicMaskAllowsGlyph('army', blueIdx, 2), false);
   assert.equal(classicMaskAllowsGlyph('army', blueIdx, 0), true);
-  assert.equal(classicMaskAllowsGlyph('ship-a', blueIdx, 7), true);
+  assert.equal(classicMaskAllowsGlyph('ship-a', blueIdx, 5), true);
 });

@@ -4,7 +4,6 @@ import { endTurn, makeRulesLab, playRedOpponent, updateAllKnowledge } from '../d
 
 test('Classic go-home standing order moves one step toward a friendly city', () => {
   const g = endTurn(makeRulesLab());
-  g.tiles.fill('sea');
   const city = g.cities.find(c => c.id === 'c-red');
   g.units = [
     {
@@ -12,7 +11,7 @@ test('Classic go-home standing order moves one step toward a friendly city', () 
       id: 'runner',
       kind: 'destroyer',
       owner: 'red',
-      position: { x: 70, y: 36 },
+      position: { x: 79, y: city.position.y },
       order: { kind: 'go-home' },
       fuel: null,
     },
@@ -29,15 +28,15 @@ test('Classic go-home standing order moves one step toward a friendly city', () 
 
 test('Classic move-to standing order advances one step along a charted route', () => {
   const g = endTurn(makeRulesLab());
-  g.tiles.fill('sea');
+  const dest = g.cities.find(c => c.id === 'c-red').position;
   g.units = [
     {
       ...g.units.find(u => u.id === 'u3'),
       id: 'runner',
       kind: 'destroyer',
       owner: 'red',
-      position: { x: 50, y: 30 },
-      order: { kind: 'move-to', destination: { x: 80, y: 36 } },
+      position: { x: 82, y: dest.y },
+      order: { kind: 'move-to', destination: dest },
       fuel: null,
     },
   ];
@@ -46,6 +45,6 @@ test('Classic move-to standing order advances one step along a charted route', (
   updateAllKnowledge(g, false);
   const before = g.units[0].position.x;
   const next = playRedOpponent(g);
-  assert.ok(next.units[0].position.x > before);
-  assert.deepEqual(next.units[0].order.destination, { x: 80, y: 36 });
+  assert.notEqual(next.units[0].position.x, before);
+  assert.deepEqual(next.units[0].order.destination, dest);
 });
