@@ -4,7 +4,6 @@ import {
   classicEscortStationCandidates,
   classicEscortStationGoal,
   classicEscortStep,
-  classicUnitReachableGoal,
   directions,
   makeRulesLab,
   updateAllKnowledge,
@@ -25,11 +24,11 @@ test('classicEscortStationCandidates use eight-direction probe order (0DF56)', (
   const escort = {
     ...target,
     id: 'escort',
-    position: { x: 44, y: 30 },
+    position: { x: 49, y: 30 },
     order: { kind: 'escort', targetId: 'lead' },
   };
   g.units = [escort, target];
-  updateAllKnowledge(g);
+  updateAllKnowledge(g, false);
   const stations = classicEscortStationCandidates(g, escort, target, 1);
   const expected = directions
     .map(d => ({ x: target.position.x + d.x, y: target.position.y + d.y }))
@@ -53,11 +52,11 @@ test('classicEscortStationGoal is first reachable neighbor in probe order', () =
   const escort = {
     ...target,
     id: 'escort',
-    position: { x: 44, y: 30 },
+    position: { x: 49, y: 30 },
     order: { kind: 'escort', targetId: 'lead' },
   };
   g.units = [escort, target];
-  updateAllKnowledge(g);
+  updateAllKnowledge(g, false);
   const goal = classicEscortStationGoal(g, escort, target, 1);
   assert.ok(goal);
   const stations = classicEscortStationCandidates(g, escort, target, 1);
@@ -73,24 +72,24 @@ test('classicEscortStationCandidates drops non-passable neighbors', () => {
     ...g.units.find(u => u.kind === 'destroyer'),
     id: 'lead',
     owner: 'red',
-    position: { x: city.position.x, y: city.position.y },
+    position: { x: city.position.x + 2, y: city.position.y },
     order: { kind: 'none' },
     fuel: null,
   };
   const escort = {
     ...target,
     id: 'escort',
-    position: { x: city.position.x + 5, y: city.position.y },
+    position: { x: city.position.x + 1, y: city.position.y },
     order: { kind: 'escort', targetId: 'lead' },
   };
   g.units = [escort, target];
-  updateAllKnowledge(g);
+  updateAllKnowledge(g, false);
   const stations = classicEscortStationCandidates(g, escort, target, 1);
   assert.ok(stations.length > 0);
   assert.ok(stations.every(p => p.x !== city.position.x || p.y !== city.position.y));
 });
 
-test('classicEscortStationCandidates skip unreachable neighbors before later hits', () => {
+test('classicEscortStationGoal skips unreachable neighbors before later probe hits', () => {
   const g = makeRulesLab();
   g.tiles.fill('land');
   const tx = 40;
@@ -107,7 +106,7 @@ test('classicEscortStationCandidates skip unreachable neighbors before later hit
   const escort = {
     ...target,
     id: 'escort',
-    position: { x: tx - 8, y: ty },
+    position: { x: tx - 3, y: ty },
     order: { kind: 'escort', targetId: 'lead' },
   };
   g.units = [escort, target];
@@ -117,12 +116,10 @@ test('classicEscortStationCandidates skip unreachable neighbors before later hit
   }
   const west = { x: tx - 1, y: ty };
   g.tiles[west.y * g.width + west.x] = 'land';
-  updateAllKnowledge(g);
-  assert.equal(classicUnitReachableGoal(g, escort, directions[0] && { x: tx + directions[0].x, y: ty + directions[0].y }, 1), false);
+  updateAllKnowledge(g, false);
   const stations = classicEscortStationCandidates(g, escort, target, 1);
-  assert.ok(stations.some(s => s.x === west.x && s.y === west.y));
-  const goal = classicEscortStationGoal(g, escort, target, 1);
-  assert.deepEqual(goal, west);
+  assert.deepEqual(stations, [west]);
+  assert.deepEqual(classicEscortStationGoal(g, escort, target, 1), west);
 });
 
 test('classicEscortStep uses stationing goal for a holding target within range', () => {
@@ -143,7 +140,7 @@ test('classicEscortStep uses stationing goal for a holding target within range',
     order: { kind: 'escort', targetId: 'lead' },
   };
   g.units = [escort, target];
-  updateAllKnowledge(g);
+  updateAllKnowledge(g, false);
   const step = classicEscortStep(g, escort, 1);
   assert.ok(step);
   assert.ok(Math.max(Math.abs(step.x - escort.position.x), Math.abs(step.y - escort.position.y)) === 1);
