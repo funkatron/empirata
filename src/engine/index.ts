@@ -15,6 +15,7 @@ export * from './map-recipe.js';
 
 export * from './unit-names.js';
 export * from './presentation.js';
+export * from './order-intent.js';
 export * from './ai/classic-grades.js';
 export * from './ai/policy.js';
 export * from './ai/classic-order-tick.js';
