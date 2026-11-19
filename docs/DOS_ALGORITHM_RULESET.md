@@ -433,7 +433,7 @@ Computer movement-phase pass limit is **1** (ALG-013); humans get **100**.
 | Passability test [D] | Map glyph `t = ES:234[loc]` (knowledge layer; cities store `10*owner − 6`). Mask byte at `DS:(base + player*0x22 + t)` must be **nonzero** or the tile is blocked (`0x1ACE0`, `0x1AE87`). |
 | Legalize dir `0x4C52` | From current dir, try up to **8** rotations by `±1` (unit-index parity); accept first that passes `12C2:099C` and tile probe `0x4B52`. Else write direction **`-1`**. |
 | Escort close-range `0x4600` | If dist to target `< 4`, switch on target’s order; may call `0x4714` or `1D09:03C2` for a stationing tile. |
-| Escort station `1D09:03C2` [D] | **20-angle** probe + `1A9E:006C` reachability (**first hit**); related `1D09:0DF56` walks **8** chart dirs. Empirata `classicEscortStationCandidates` sort is **[T] heuristic** (distance / behind / sea / city), not byte-matched (2026-11-19 static review). |
+| Escort station `1D09:03C2` [D] | **`0x46C2` → `1D09:03C2` (`0x1D452`)**: loop **`0x14` (20)** via `25E6:0F64`, each candidate **`1A9E:006C`** reachability — **first hit**. **`1D09:0DF56` (`0x1DF56`)**: **`0x8`** chart-dir decrement walk (near call from `03C2`). Empirata **main**: 8 neighbors + **[T]** lexicographic sort; **J1 PR #178**: 8-dir first-hit reachability (partial vs DOS). Trace: `agents/alg-ai-001-03c2-static-trace-2026-11-19.md`. |
 
 **Passability masks (`0x22` = 34 bytes) [D]:**
 
