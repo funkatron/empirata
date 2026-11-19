@@ -5,3 +5,5 @@ dist/
 *.log
 docs/evaluation/mapgen-previews/*.txt
 docs/evaluation/mapgen-previews/*.pgm
+agents/evaluation/**/*.sav
+agents/evaluation/**/*.d64

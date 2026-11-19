@@ -26,6 +26,11 @@ See **`agents/q28-post-q27-slices.md`** and **`agents/alg-ai-001-4c52-empirata-p
 
 Plans: `agents/q29-i1-escort-station-ooda-plan.md`, `alg-ai-001-4c52-dosbox-experiment-2026-11-18.md`, `alg-ai-004-resign-bookkeeping-2026-11-18.md`
 
+## Local traces vs cloud GUI
+
+- **Your local agent (terminal):** binary/DOSBox traces — see **`agents/local-agent-trace-workflow.md`** (copy-paste prompt + `tools/disasm_empire_anchor.py`).
+- **Cloud agent:** `npm test`, fixtures, optional browser smoke — not a substitute for DOSBox eyes on rim/escort.
+
 ## Commands
 
 ```bash
