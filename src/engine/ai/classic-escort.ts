@@ -1,9 +1,9 @@
 import type { Coord, Game, Unit } from '../types.js';
 import type { DosComputerGrade } from './classic-grades.js';
 import { classicTilePassableChart } from './classic-passability.js';
-import { classicRouteStep } from './classic-path.js';
+import { classicRouteStep, classicUnitReachableGoal } from './classic-path.js';
 import { getPlayerView } from '../knowledge.js';
-import { cityAt, directions, playable, terrainAt } from '../world.js';
+import { directions, playable } from '../world.js';
 
 function chebyshev(a: Coord, b: Coord): number {
   return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
@@ -19,48 +19,10 @@ function nearestFriendlyCityPosition(game: Game, owner: Unit['owner'], near: Coo
   return homes[0]?.position ?? null;
 }
 
-function escortAxisSign(delta: number): number {
-  if (delta === 0) return 0;
-  if (delta > 0) return 1;
-  return -1;
-}
-
-function escortTargetBearing(target: Unit): Coord {
-  const order = target.order;
-  if (order.kind === 'go-direction') return { ...order.direction };
-  if (order.kind === 'move-to') {
-    const dx = order.destination.x - target.position.x;
-    const dy = order.destination.y - target.position.y;
-    return { x: escortAxisSign(dx), y: escortAxisSign(dy) };
-  }
-  if (order.kind === 'patrol') {
-    const anchor = order.outbound ? order.to : order.from;
-    const dx = anchor.x - target.position.x;
-    const dy = anchor.y - target.position.y;
-    return { x: escortAxisSign(dx), y: escortAxisSign(dy) };
-  }
-  return { x: 0, y: 0 };
-}
-
-function seaNeighborCount(game: Game, pos: Coord): number {
-  return directions.filter(d => {
-    const p = { x: pos.x + d.x, y: pos.y + d.y };
-    return playable(game, p) && terrainAt(game, p) === 'sea';
-  }).length;
-}
-
-/** Behind the target along its current bearing (negative dot with station offset). */
-function stationBehindRank(target: Unit, station: Coord, bearing: Coord): number {
-  if (bearing.x === 0 && bearing.y === 0) return 0;
-  const dx = station.x - target.position.x;
-  const dy = station.y - target.position.y;
-  return -(dx * bearing.x + dy * bearing.y);
-}
-
 /**
- * ALG-AI-001 `1D09:03C2` stationing probe: chart-passable tiles adjacent to the escort target.
- * Candidate **ordering** below is **[T] Empirata heuristic** (2026-11-19 static `0x1D452` review); DOS uses
- * a 20-angle probe / eight-mask walk and **first reachable** hit, not this lexicographic sort ([D] intent only).
+ * ALG-AI-001 `1D09:03C2` / `1D09:0DF56`: neighbors of the escort target in fixed eight-chart-direction
+ * order (same as `directions` / compass 0…7). Each must be chart-passable and reachable (`1A9E:006C`).
+ * **First hit** is `[0]` — not a lexicographic heuristic. Twenty-angle outer ring: pending DOS trace (J1: distance 1 only).
  */
 export function classicEscortStationCandidates(
   game: Game,
@@ -69,28 +31,15 @@ export function classicEscortStationCandidates(
   grade: DosComputerGrade,
 ): Coord[] {
   const view = getPlayerView(game, unit.owner);
-  const bearing = escortTargetBearing(target);
-  const candidates = directions
-    .map(d => ({ x: target.position.x + d.x, y: target.position.y + d.y }))
-    .filter(p => playable(game, p))
-    .filter(p => classicTilePassableChart(game, view, unit.owner, unit, p, grade));
-  return candidates.sort((a, b) => {
-    const distA = chebyshev(a, unit.position);
-    const distB = chebyshev(b, unit.position);
-    if (distA !== distB) return distA - distB;
-    const behindA = stationBehindRank(target, a, bearing);
-    const behindB = stationBehindRank(target, b, bearing);
-    if (behindA !== behindB) return behindA - behindB;
-    if (unit.kind !== 'army' && unit.kind !== 'fighter') {
-      const seaA = seaNeighborCount(game, a);
-      const seaB = seaNeighborCount(game, b);
-      if (seaB !== seaA) return seaB - seaA;
-    }
-    const cityA = cityAt(game, a) ? 1 : 0;
-    const cityB = cityAt(game, b) ? 1 : 0;
-    if (cityA !== cityB) return cityA - cityB;
-    return a.x - b.x || a.y - b.y;
-  });
+  const stations: Coord[] = [];
+  for (const d of directions) {
+    const p = { x: target.position.x + d.x, y: target.position.y + d.y };
+    if (!playable(game, p)) continue;
+    if (!classicTilePassableChart(game, view, unit.owner, unit, p, grade)) continue;
+    if (!classicUnitReachableGoal(game, unit, p, grade)) continue;
+    stations.push(p);
+  }
+  return stations;
 }
 
 export function classicEscortStationGoal(
