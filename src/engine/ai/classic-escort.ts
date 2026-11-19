@@ -19,25 +19,25 @@ function nearestFriendlyCityPosition(game: Game, owner: Unit['owner'], near: Coo
   return homes[0]?.position ?? null;
 }
 
+function escortAxisSign(delta: number): number {
+  if (delta === 0) return 0;
+  if (delta > 0) return 1;
+  return -1;
+}
+
 function escortTargetBearing(target: Unit): Coord {
   const order = target.order;
   if (order.kind === 'go-direction') return { ...order.direction };
   if (order.kind === 'move-to') {
     const dx = order.destination.x - target.position.x;
     const dy = order.destination.y - target.position.y;
-    return {
-      x: dx === 0 ? 0 : dx > 0 ? 1 : -1,
-      y: dy === 0 ? 0 : dy > 0 ? 1 : -1,
-    };
+    return { x: escortAxisSign(dx), y: escortAxisSign(dy) };
   }
   if (order.kind === 'patrol') {
     const anchor = order.outbound ? order.to : order.from;
     const dx = anchor.x - target.position.x;
     const dy = anchor.y - target.position.y;
-    return {
-      x: dx === 0 ? 0 : dx > 0 ? 1 : -1,
-      y: dy === 0 ? 0 : dy > 0 ? 1 : -1,
-    };
+    return { x: escortAxisSign(dx), y: escortAxisSign(dy) };
   }
   return { x: 0, y: 0 };
 }
@@ -58,7 +58,9 @@ function stationBehindRank(target: Unit, station: Coord, bearing: Coord): number
 }
 
 /**
- * ALG-AI-001 `1D09:03C2` stationing probe: passable tiles adjacent to the escort target, ranked for classic escort.
+ * ALG-AI-001 `1D09:03C2` stationing probe: chart-passable tiles adjacent to the escort target.
+ * Candidate **ordering** below is **[T] Empirata heuristic** (2026-11-19 static `0x1D452` review); DOS uses
+ * a 20-angle probe / eight-mask walk and **first reachable** hit, not this lexicographic sort ([D] intent only).
  */
 export function classicEscortStationCandidates(
   game: Game,
