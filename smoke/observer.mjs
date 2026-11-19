@@ -45,14 +45,14 @@ test('Observer speed, progress and cancellation in WebKit',async t=>{
         await page.locator('#roundSpeed').selectOption(String(count));
         await page.locator('#advanceRounds').click();
         if(count===100){
-          assert.equal(await page.locator('#roundProgress').isVisible(),true);
+          assert.equal(await page.locator('#mapBusy').isVisible(),true);
           assert.equal(await page.locator('#nextRound').isDisabled(),true);
           if(process.env.EMPIRATA_SCREENSHOT_DIR){
             await mkdir(process.env.EMPIRATA_SCREENSHOT_DIR,{recursive:true});
             await page.screenshot({path:resolve(process.env.EMPIRATA_SCREENSHOT_DIR,'observer-progress-portrait.png')});
           }
         }
-        await page.waitForFunction(expected=>document.querySelector('#round').textContent===`ROUND ${expected}`&&document.querySelector('#roundProgress').hidden,before+count);
+        await page.waitForFunction(expected=>document.querySelector('#round').textContent===`ROUND ${expected}`&&document.querySelector('#mapBusy').hidden,before+count);
         assert.equal(await page.evaluate(()=>window.observerPaints),1,'One map redraw per completed batch');
         assert.equal(await page.locator('#advanceRounds').isEnabled(),true);
         assert.equal(await page.locator('#nextRound').isEnabled(),true);
@@ -64,24 +64,24 @@ test('Observer speed, progress and cancellation in WebKit',async t=>{
       },finalRound);
       await page.reload();
       await page.waitForFunction(expected=>document.querySelector('#round').textContent===`ROUND ${expected}`,finalRound);
-      assert.equal(await page.locator('#roundProgress').isHidden(),true);
+      assert.equal(await page.locator('#mapBusy').isHidden(),true);
     });
     await t.test('A 100-round manual advance can be paused between rounds',async()=>{
       await page.locator('#roundSpeed').selectOption('100');
       const before=await round();
       const paused=await page.evaluate(min=>new Promise(done=>{
-        const node=document.querySelector('#roundProgressText');
+        const node=document.querySelector('#mapBusyDetail');
         const observer=new MutationObserver(()=>{
           const current=Number(document.querySelector('#round').textContent.replace('ROUND ',''))+Number(node.textContent.split(' / ')[0]);
           if(current>=min){
-            const visible=!document.querySelector('#roundProgress').hidden;
+            const visible=!document.querySelector('#mapBusy').hidden;
             document.querySelector('#autoPlay').click();observer.disconnect();done({current,visible});
           }
         });observer.observe(node,{childList:true,subtree:true});document.querySelector('#advanceRounds').click();
       }),before+3);
       assert.equal(paused.visible,true);assert.ok(paused.current<before+100);
       await page.waitForTimeout(200);assert.equal(await round(),paused.current);
-      assert.equal(await page.locator('#roundProgress').isHidden(),true);
+      assert.equal(await page.locator('#mapBusy').isHidden(),true);
     });
     await t.test('Playback uses a changed speed on its next advance and stops cleanly',async()=>{
       const before=await round();
@@ -102,14 +102,14 @@ test('Observer speed, progress and cancellation in WebKit',async t=>{
     await t.test('Starting another scenario cancels pending round work',async()=>{
       await page.locator('#roundSpeed').selectOption('100');const before=await round();
       await page.evaluate(min=>new Promise(done=>{
-        const node=document.querySelector('#roundProgressText');
+        const node=document.querySelector('#mapBusyDetail');
         const observer=new MutationObserver(()=>{
           if(Number(document.querySelector('#round').textContent.replace('ROUND ',''))+Number(node.textContent.split(' / ')[0])>=min){observer.disconnect();document.querySelector('#classicGame').click();done();}
         });observer.observe(node,{childList:true,subtree:true});document.querySelector('#advanceRounds').click();
       }),before+3);
       await page.waitForTimeout(850);assert.equal(await round(),1);
       assert.equal(await page.locator('#spectatorCard').isHidden(),true);
-      assert.equal(await page.locator('#roundProgress').isHidden(),true);
+      assert.equal(await page.locator('#mapBusy').isHidden(),true);
     });
     assert.deepEqual(errors,[]);
   }finally{

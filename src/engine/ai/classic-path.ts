@@ -130,6 +130,54 @@ export function classicRouteStep(
   return { x: cursor % game.width, y: Math.floor(cursor / game.width) };
 }
 
+/** Full chart path for UI overlays (same constraints as `classicRouteStep`). */
+export function classicRoutePath(
+  game: Game,
+  unit: Unit,
+  destination: Coord,
+  grade: DosComputerGrade,
+): Coord[] | null {
+  const start = unit.position;
+  const goalIdx = index(game, destination);
+  const startIdx = index(game, start);
+  if (startIdx === goalIdx) return [{ ...start }];
+  if (!classicUnitReachableGoal(game, unit, destination, grade)) return null;
+  const view = getPlayerView(game, unit.owner);
+  const budget = classicPathBudget(start, destination);
+  const visited = new Set<number>([startIdx]);
+  const parent = new Map<number, number>();
+  const queue: Array<{ idx: number; depth: number }> = [{ idx: startIdx, depth: 0 }];
+  for (let head = 0; head < queue.length; head++) {
+    const { idx: here, depth } = queue[head]!;
+    if (here === goalIdx) break;
+    if (depth >= budget) continue;
+    const x = here % game.width;
+    const y = Math.floor(here / game.width);
+    for (const direction of directions) {
+      const pos = { x: x + direction.x, y: y + direction.y };
+      if (!playable(game, pos)) continue;
+      const k = index(game, pos);
+      if (visited.has(k)) continue;
+      if (!classicTilePassableChart(game, view, unit.owner, unit, pos, grade)) continue;
+      visited.add(k);
+      parent.set(k, here);
+      queue.push({ idx: k, depth: depth + 1 });
+    }
+  }
+  if (!visited.has(goalIdx)) return null;
+  const path: Coord[] = [];
+  let cursor = goalIdx;
+  while (true) {
+    path.push({ x: cursor % game.width, y: Math.floor(cursor / game.width) });
+    if (cursor === startIdx) break;
+    const previous = parent.get(cursor);
+    if (previous === undefined) return null;
+    cursor = previous;
+  }
+  path.reverse();
+  return path;
+}
+
 export type ClassicLegalDirectionResult = {
   step: Coord | null;
   /** Compass index used when `step` is set (`0x4C52` rotation winner). */
