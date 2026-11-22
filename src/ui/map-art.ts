@@ -83,7 +83,7 @@ function shoreSprite(mask:number):HTMLCanvasElement {
   shoreCache.set(mask,canvas);
   return canvas;
 }
-export function drawCoast(ctx:CanvasRenderingContext2D,x:number,y:number,size:number,north:boolean,east:boolean,south:boolean,west:boolean,northEast=false,southEast=false,southWest=false,northWest=false):void {
+export function drawCoast(ctx:CanvasRenderingContext2D,x:number,y:number,size:number,north:boolean,east:boolean,south:boolean,west:boolean,_northEast=false,_southEast=false,_southWest=false,_northWest=false):void {
   const mask=(north?1:0)|(east?2:0)|(south?4:0)|(west?8:0);
   if(!mask)return;
   ctx.save();

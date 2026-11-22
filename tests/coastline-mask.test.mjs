@@ -5,11 +5,11 @@ import {readFileSync} from 'node:fs';
 // Small deterministic renderer-contract check. Browser screenshots remain a
 // separate visual review; no long campaigns or browser installation in CI.
 const art=readFileSync(new URL('../src/ui/map-art.ts',import.meta.url),'utf8');
-const main=readFileSync(new URL('../src/ui/main.ts',import.meta.url),'utf8');
+const render=readFileSync(new URL('../src/ui/render.ts',import.meta.url),'utf8');
 
 test('coastline renderer receives eight neighbor directions',()=>{
-  assert.match(main,/seaAt\(0,-1\),seaAt\(1,0\),seaAt\(0,1\),seaAt\(-1,0\)/);
-  assert.match(main,/seaAt\(1,-1\),seaAt\(1,1\),seaAt\(-1,1\),seaAt\(-1,-1\)/);
+  assert.match(render,/seaAt\(0,-1\),seaAt\(1,0\),seaAt\(0,1\),seaAt\(-1,0\)/);
+  assert.match(render,/seaAt\(1,-1\),seaAt\(1,1\),seaAt\(-1,1\),seaAt\(-1,-1\)/);
 });
 test('diagonal-only sea neighbors never paint shoreline spurs',()=>{
   assert.match(art,/const mask=\(north\?1:0\)\|\(east\?2:0\)\|\(south\?4:0\)\|\(west\?8:0\)/);
@@ -19,8 +19,8 @@ test('diagonal-only sea neighbors never paint shoreline spurs',()=>{
 
 test('shoreline pixels are composed once from cardinal edge distances',()=>{
   assert.match(art,/for\(let y=0;y<32;y\+\+\)for\(let x=0;x<32;x\+\+\)/);
-  assert.match(art,/const d=Math\.min\(\.\.\.distances\)/);
-  assert.match(art,/if\(d>=3\)continue/);
+  assert.match(art,/let d=Math\.min\(\.\.\.distances\)/);
+  assert.match(art,/if\(band>=3\)continue/);
   assert.doesNotMatch(art,/function edge\(/);
   assert.doesNotMatch(art,/for\(const \[corner,active\]/);
 });
