@@ -7,23 +7,20 @@ import * as engine from '../dist/engine/index.js';
 
 const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 
-test('Inspection and cargo controls render stable names while retaining type and identity',()=>{
-  const source=readFileSync(new URL('../dist/ui/main.js',import.meta.url),'utf8');
+test('Inspection and cargo controls render stable names while retaining type and identity',async()=>{
+  const {selectedUnitBlock,spectatorUnitBlock}=await import('../dist/ui/inspector-panel.js');
   const game=engine.makeCloseQuartersLab(),view=engine.getPlayerView(game,'blue');
-  const context=vm.createContext({...engine,game,view});
-  vm.runInContext(source.slice(source.indexOf('function knownUnitName('),source.indexOf('function refresh(')),context);
   for(const unit of view.ownUnits){
-    context.unit=unit;
-    for(const block of ['selectedUnitBlock','spectatorUnitBlock']){
-      const rendered=vm.runInContext(`${block}(unit)`,context);
+    for(const block of [u=>selectedUnitBlock(view,u),u=>spectatorUnitBlock(view,u)]){
+      const rendered=block(unit);
       assert.ok(rendered.includes(engine.unitName(unit)));
       assert.ok(rendered.includes(engine.STATS[unit.kind].name));
       assert.ok(!rendered.includes(`#${unit.id}`));
     }
   }
   const ship=view.ownUnits.find(u=>u.kind==='transport'),cargo=view.ownUnits.find(u=>u.kind==='army');
-  cargo.aboard=ship.id;context.unit=ship;
-  const rendered=vm.runInContext('selectedUnitBlock(unit)',context);
+  cargo.aboard=ship.id;
+  const rendered=selectedUnitBlock(view,ship);
   assert.ok(rendered.includes(`data-cargo="${cargo.id}"`),'Buttons keep the real order target ID');
   assert.ok(rendered.includes(`Select ${engine.unitName(cargo)}`));
 });
