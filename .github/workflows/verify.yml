@@ -65,9 +65,29 @@ jobs:
         with:
           path: _site
 
-  deploy:
+  # Runs on main push only until browser-smoke proves stable (target: promote to PR gate after 10 clean runs).
+  browser-smoke:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Playwright and WebKit
+        run: npx playwright install webkit --with-deps
+      - name: Build
+        run: npm run build
+      - name: Browser smoke (observer)
+        run: EMPIRATA_PLAYWRIGHT_MODULE=playwright node --test smoke/observer.mjs
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [verify, browser-smoke]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
