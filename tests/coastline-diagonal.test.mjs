@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const art=readFileSync(new URL('../src/ui/map-art.ts',import.meta.url),'utf8');
-const ui=readFileSync(new URL('../src/ui/main.ts',import.meta.url),'utf8');
+const render=readFileSync(new URL('../src/ui/render.ts',import.meta.url),'utf8');
 
 test('terrain renderer passes all eight known sea neighbors to coastlines',()=>{
-  assert.match(ui,/seaAt\(0,-1\),seaAt\(1,0\),seaAt\(0,1\),seaAt\(-1,0\)/);
-  assert.match(ui,/seaAt\(1,-1\),seaAt\(1,1\),seaAt\(-1,1\),seaAt\(-1,-1\)/);
-  assert.match(ui,/observerTerrain\(game,view,/);
+  assert.match(render,/seaAt\(0,-1\),seaAt\(1,0\),seaAt\(0,1\),seaAt\(-1,0\)/);
+  assert.match(render,/seaAt\(1,-1\),seaAt\(1,1\),seaAt\(-1,1\),seaAt\(-1,-1\)/);
+  assert.match(render,/observerTerrain\(p\.game,p\.view,/);
 });
 test('diagonal corners contribute to sprite cache key and actual corner mask',()=>{
   assert.match(art,/northEast\?16:0/);
