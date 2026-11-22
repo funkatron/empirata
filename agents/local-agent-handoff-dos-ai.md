@@ -1,8 +1,8 @@
-# Local agent handoff — DOS AI parity (post–v0.6.15 / Q30)
+# Local agent handoff — DOS AI parity (post–v0.6.16 / Q31)
 
-**`main`** through **v0.6.15** (#175) plus escort **[T]** ruleset row **#176**.
+**`main`** through **v0.6.16** (#178) + Q30 traces (#177–#180) + observer **#181**.
 
-## Done on `main` (movement tranche)
+## Done on `main` (movement + Q30 + observer)
 
 | Item | Status |
 |------|--------|
@@ -17,22 +17,28 @@
 | I3 ALG-AI-004 resign doc | **#174** (v0.6.14) |
 | I4 ALG-012 wake set | **#175** (v0.6.15) |
 | I1b escort station [T] ruleset | **#176** |
+| J0 Q30 handoff / tracker | **#177** |
+| J1 escort 8-dir + `006C` first-hit | **#178** (v0.6.16) |
+| J1 static trace (20-angle vs 8-dir) | **#179–#180** |
+| Observer order overlays + `#mapBusy` | **#181** |
 
-See **`agents/q28-post-q27-slices.md`**, **`agents/q29-i1-escort-station-ooda-plan.md`**.
+See **`agents/q28-post-q27-slices.md`**, **`agents/q29-i1-escort-station-ooda-plan.md`**, **`agents/q30-j1-escort-first-hit-ooda-plan.md`**.
 
-## Q30 (active)
+## Q31 (active — all tracks)
 
-| Slice | Item |
-|-------|------|
-| **J0** | Doc / tracker hygiene (this file + `classic-migration-slices.md`) |
-| **J1** | `1D09:03C2` eight-direction probe + reachability first-hit — `agents/q30-j1-escort-first-hit-ooda-plan.md` |
-| **J2** | (optional) DOSBox `0x4C52` rim run per I2 protocol |
-| **J3** | (optional) ALG-AI-004 `0xDF58` crush ordering trace |
+**Master plan:** **`agents/q31-multi-track-handoff-2026-11-21.md`**
+
+| Track | Focus |
+|-------|--------|
+| **A** | J1b 20-angle escort, J2 DOSBox `0x4C52`, J3 `0xDF58` trace |
+| **B** | Merge/rebase production PRs **#104–#105**; close **#102–#103** |
+| **C** | Coast **#95**, CI **#96**, docs **#94**, workstream refresh |
+| **D** | Observer path polish (human lab paths, cache invalidation, smoke) |
 
 ## Local traces vs cloud GUI
 
-- **Your local agent (terminal):** binary/DOSBox traces — see **`agents/local-agent-trace-workflow.md`** (copy-paste prompt + `tools/disasm_empire_anchor.py`).
-- **Cloud agent:** `npm test`, fixtures, optional browser smoke — not a substitute for DOSBox eyes on rim/escort.
+- **Your local agent (terminal):** binary/DOSBox traces — **`agents/local-agent-trace-workflow.md`**, `tools/disasm_empire_anchor.py`.
+- **Cloud agent:** `npm test`, fixtures, browser smoke — not a substitute for DOSBox on rim/escort.
 
 ## Commands
 
