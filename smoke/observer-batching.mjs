@@ -23,11 +23,11 @@ function observer(count,finish=Infinity){
 for(const count of [1,10,50,100])test(`Observer ${count}-round batch redraws and saves once at completion`,()=>{
  const o=observer(count);o.run('startRoundPlayback(false)');
  for(let i=0;i<count;i++){assert.equal(o.paints(),0);assert.deepEqual(o.saves,[]);o.step();}
- assert.equal(o.round(),count+1);assert.equal(o.paints(),1);assert.deepEqual(o.saves,[count+1]);assert.equal(o.el('roundProgress').hidden,true);
+ assert.equal(o.round(),count+1);assert.equal(o.paints(),1);assert.deepEqual(o.saves,[count+1]);assert.equal(o.el('mapBusy').hidden,true);
 });
 test('Pause flushes a partial batch and cancels pending advancement',()=>{
  const o=observer(100);o.run('startRoundPlayback(false)');for(let i=0;i<3;i++)o.step();
- assert.equal(o.paints(),0);assert.equal(o.el('roundProgressText').textContent,'3 / 100');
+ assert.equal(o.paints(),0);assert.equal(o.el('mapBusyDetail').textContent,'4 / 100');
  o.run('pausePlayback()');assert.equal(o.paints(),1);assert.deepEqual(o.saves,[4]);assert.equal(o.round(),4);
  o.run('pausePlayback()');assert.equal(o.paints(),1);
 });
@@ -45,5 +45,5 @@ test('Game over stops a batch early and saves the final completed position',()=>
  const o=observer(100,4);o.run('startRoundPlayback(true)');o.step();o.step();o.step();
  assert.equal(o.round(),4);assert.deepEqual(o.saves,[4]);assert.equal(o.paints(),1);
  assert.equal(o.el('advanceRounds').disabled,true);assert.equal(o.el('nextRound').disabled,true);
- assert.equal(o.el('roundProgress').hidden,true);
+ assert.equal(o.el('mapBusy').hidden,true);
 });

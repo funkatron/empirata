@@ -52,6 +52,40 @@ export function classicArmyReachableOnChart(
   return false;
 }
 
+/** ALG-AI-001 `1A9E:006C` / `0x400E`: goal reachable within DOS path budget on chart masks. */
+export function classicUnitReachableGoal(
+  game: Game,
+  unit: Unit,
+  destination: Coord,
+  grade: DosComputerGrade,
+): boolean {
+  const start = unit.position;
+  const goalIdx = index(game, destination);
+  const startIdx = index(game, start);
+  if (startIdx === goalIdx) return true;
+  const view = getPlayerView(game, unit.owner);
+  const budget = classicPathBudget(start, destination);
+  const visited = new Set<number>([startIdx]);
+  const queue: Array<{ idx: number; depth: number }> = [{ idx: startIdx, depth: 0 }];
+  for (let head = 0; head < queue.length; head++) {
+    const { idx: here, depth } = queue[head]!;
+    if (here === goalIdx) return true;
+    if (depth >= budget) continue;
+    const x = here % game.width;
+    const y = Math.floor(here / game.width);
+    for (const direction of directions) {
+      const pos = { x: x + direction.x, y: y + direction.y };
+      if (!playable(game, pos)) continue;
+      const k = index(game, pos);
+      if (visited.has(k)) continue;
+      if (!classicTilePassableChart(game, view, unit.owner, unit, pos, grade)) continue;
+      visited.add(k);
+      queue.push({ idx: k, depth: depth + 1 });
+    }
+  }
+  return false;
+}
+
 /** ALG-AI-001 goal step: BFS toward goal with DOS depth budget. */
 export function classicRouteStep(
   game: Game,
@@ -63,6 +97,7 @@ export function classicRouteStep(
   const goalIdx = index(game, destination);
   const startIdx = index(game, start);
   if (startIdx === goalIdx) return null;
+  if (!classicUnitReachableGoal(game, unit, destination, grade)) return null;
   const view = getPlayerView(game, unit.owner);
   const budget = classicPathBudget(start, destination);
   const visited = new Set<number>([startIdx]);
@@ -93,6 +128,54 @@ export function classicRouteStep(
     cursor = previous;
   }
   return { x: cursor % game.width, y: Math.floor(cursor / game.width) };
+}
+
+/** Full chart path for UI overlays (same constraints as `classicRouteStep`). */
+export function classicRoutePath(
+  game: Game,
+  unit: Unit,
+  destination: Coord,
+  grade: DosComputerGrade,
+): Coord[] | null {
+  const start = unit.position;
+  const goalIdx = index(game, destination);
+  const startIdx = index(game, start);
+  if (startIdx === goalIdx) return [{ ...start }];
+  if (!classicUnitReachableGoal(game, unit, destination, grade)) return null;
+  const view = getPlayerView(game, unit.owner);
+  const budget = classicPathBudget(start, destination);
+  const visited = new Set<number>([startIdx]);
+  const parent = new Map<number, number>();
+  const queue: Array<{ idx: number; depth: number }> = [{ idx: startIdx, depth: 0 }];
+  for (let head = 0; head < queue.length; head++) {
+    const { idx: here, depth } = queue[head]!;
+    if (here === goalIdx) break;
+    if (depth >= budget) continue;
+    const x = here % game.width;
+    const y = Math.floor(here / game.width);
+    for (const direction of directions) {
+      const pos = { x: x + direction.x, y: y + direction.y };
+      if (!playable(game, pos)) continue;
+      const k = index(game, pos);
+      if (visited.has(k)) continue;
+      if (!classicTilePassableChart(game, view, unit.owner, unit, pos, grade)) continue;
+      visited.add(k);
+      parent.set(k, here);
+      queue.push({ idx: k, depth: depth + 1 });
+    }
+  }
+  if (!visited.has(goalIdx)) return null;
+  const path: Coord[] = [];
+  let cursor = goalIdx;
+  while (true) {
+    path.push({ x: cursor % game.width, y: Math.floor(cursor / game.width) });
+    if (cursor === startIdx) break;
+    const previous = parent.get(cursor);
+    if (previous === undefined) return null;
+    cursor = previous;
+  }
+  path.reverse();
+  return path;
 }
 
 export type ClassicLegalDirectionResult = {

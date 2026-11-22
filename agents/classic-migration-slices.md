@@ -1,4 +1,4 @@
-# Classic migration — slice tracker (2026-11-17)
+# Classic migration — slice tracker (2026-11-21)
 
 Authoritative **order** for post–v0.5.2 classic work. Update status as PRs land.
 
@@ -27,5 +27,21 @@ Authoritative **order** for post–v0.5.2 classic work. Update status as PRs lan
 | **I2** | `0x4C52` DOSBox border A/B | done (#173) |
 | **I3** | ALG-AI-004 resign bookkeeping trace | done (v0.6.14, #174) |
 | **I4** | ALG-012 patrol/wait wake | done (v0.6.15, #175) |
+| **I1b** | Escort station sort [T] ruleset honesty | done (#176) |
+| **J0** | Q30 handoff + slice tracker post–#176 | done (Q30) |
+| **J1** | Escort `1D09:03C2` eight-dir + `006C` first-hit | done (v0.6.16, Q30) |
+| **J-trace** | Static trace `03C2` 20-angle vs 8-dir | done (#180) |
+| **J-UI** | CvC order paths, `#mapBusy`, drop `roundProgress` | done (#181) |
+
+## Q31 (open — see `agents/q31-multi-track-handoff-2026-11-21.md`)
+
+| Slice | Deliverable | Status |
+|-------|-------------|--------|
+| **J1b / A1** | Escort station 20-angle loop (or staged ruleset) | pending |
+| **J2 / A2** | DOSBox `0x4C52` rim evidence | pending |
+| **J3 / A3** | ALG-AI-004 `0xDF58` static trace | pending |
+| **B1–B2** | Production ship-mix + visible inventory (PRs #104–#105) | pending |
+| **C1–C4** | Coast, Actions Node 24, perf doc, workstream refresh | pending |
+| **D1–D4** | Observer path polish | pending |
 
 **Policy:** patch semver (0.5.x) for shipped UI/behavior; **0.6.0** minor when classic became default (slice E). Further 0.6.x patches through 0.6.x classic expansion (F).

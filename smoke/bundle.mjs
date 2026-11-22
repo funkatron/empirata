@@ -55,7 +55,7 @@ test('AI spectator controls support dual intelligence and scorecards',()=>{
   assert.match(html,/id="advanceRounds"/);
   assert.match(html,/id="roundSpeed"/);
   for(const speed of [1,10,50,100])assert.match(html,new RegExp(`<option value="${speed}">${speed} rounds?<\\/option>`));
-  assert.match(html,/id="roundProgress"[^>]*role="status"[^>]*hidden/);
+  assert.match(html,/id="mapBusy"[^>]*role="status"[^>]*hidden/);
   const mainSource=readFileSync(new URL('../src/ui/main.ts',import.meta.url),'utf8');
   assert.match(mainSource,/mergeSpectatorPlayerViews/);
   assert.match(mainSource,/spectatorMode\s*===\s*['"]both['"]/);

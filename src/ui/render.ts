@@ -13,6 +13,7 @@ export interface RenderParams {
   selectedCity: string|null;
   spectatorContact: string|null;
   spectatorCity: string|null;
+  postPaint: (() => void)|null;
 }
 
 const COLORS={blue:'#68c4f1',red:'#f47c73',green:'#a4dc8b',neutral:'#e2c37c'};
@@ -155,6 +156,7 @@ export function createRenderer(canvas:HTMLCanvasElement,ctx:CanvasRenderingConte
     }
     const fog=ensureFogLayer(p,layerTileSize);
     if(fog)blitWorldLayer(fog,layerTileSize,p.tileSize,p.cameraX,p.cameraY,w,h);
+    p.postPaint?.();
     mapPaintStats.lastPaintMs=performance.now()-paintStarted;
   }
 

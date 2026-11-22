@@ -315,6 +315,49 @@ export function moveUnit(game:Game,id:string,to:Coord,protectedCargo:ReadonlySet
   updateAllKnowledge(g);
   return g;
 }
+/** Full knowledge-limited path for spectator overlays (same rules as `routeStep`). */
+export function knowledgeRoutePath(game:Game,unit:Unit,destination:Coord):Coord[]|null {
+  const knowledge=game.knowledge[unit.owner];
+  const goal=index(game,destination),start=index(game,unit.position);
+  if(start===goal)return [{...unit.position}];
+  const visited=new Set<number>([start]),queue=[start],parent=new Map<number,number>();
+  const visibleEnemies=new Set(game.knowledge[unit.owner].sightings
+    .filter(s=>knowledge.freshEnemies.includes(s.id)).map(s=>index(game,s.position)));
+  const friendly=new Set(game.units.filter(u=>!u.aboard&&u.owner===unit.owner&&u.id!==unit.id).map(u=>index(game,u.position)));
+  const cities=new Map(game.cities.filter(c=>knowledge.cities[c.id]!==undefined).map(c=>[index(game,c.position),c]));
+  const domain=STATS[unit.kind].domain;
+  for(let head=0;head<queue.length;head++){
+    const here=queue[head]!;if(here===goal)break;
+    const x=here%game.width,y=Math.floor(here/game.width);
+    for(const direction of directions){
+      const pos={x:x+direction.x,y:y+direction.y};
+      if(!playable(game,pos))continue;
+      const k=index(game,pos);
+      if(visited.has(k)||visibleEnemies.has(k)||(friendly.has(k)&&!game.cities.some(city=>knowledge.cities[city.id]?.owner===unit.owner&&equal(city.position,pos))))continue;
+      const terrain=knowledge.terrain[k];
+      const city=knowledge.terrain[k]!==null?cities.get(k):undefined;
+      if(city&&(!knowledge.cities[city.id]||knowledge.cities[city.id]!.owner!==unit.owner))continue;
+      if(terrain!==null){
+        if(domain==='land'&&terrain!=='land'&&!city)continue;
+        if(domain==='sea'&&terrain!=='sea'&&!city)continue;
+        if(domain==='sea'&&city&&!directions.some(d=>knowledge.terrain[index(game,{x:pos.x+d.x,y:pos.y+d.y})]==='sea'))continue;
+      }
+      visited.add(k);parent.set(k,here);queue.push(k);
+    }
+  }
+  if(!visited.has(goal))return null;
+  const path:Coord[]=[];
+  let cursor=goal;
+  while(true){
+    path.push({x:cursor%game.width,y:Math.floor(cursor/game.width)});
+    if(cursor===start)break;
+    const previous=parent.get(cursor);
+    if(previous===undefined)return null;
+    cursor=previous;
+  }
+  path.reverse();
+  return path;
+}
 /** Route through the player's remembered map, not the real hidden terrain.
  * Unknown cells are considered for exploration and validated one step at a time.
  * No automated combat, assault or cargo loading is permitted.

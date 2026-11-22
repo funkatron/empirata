@@ -20,7 +20,7 @@ import {advanceLabRound,endTurn,labRoundPhases,exportSave,getPlayerView,importSa
   moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,saveLocally,selectProduction,setOrder,
   STATS,unitName,cityName,gameOutcome,readableReport,
   formatMapSeedLine,mapRecipeFromCampaign,parseMapRecipe,randomCampaignSeed,serializeMapRecipe,parseCampaignSeed,
-  isCampaignLayout,isMapAlgorithm,isCityDensity,classicResignPendingFor,respondClassicResign,hasBlockingClassicResign,formatAiPolicyLabel,resolveAiPolicy} from '../engine/index.js';
+  isCampaignLayout,isMapAlgorithm,isCityDensity,classicResignPendingFor,respondClassicResign,hasBlockingClassicResign,formatAiPolicyLabel,resolveAiPolicy,unitOrderGoals,unitOrderPath} from '../engine/index.js';
 import type {AiPolicy,CampaignLayout,CampaignMode,City,CityDensity,Coord,Game,MapAlgorithm,MapRecipe,Unit,UnitType,PlayerView} from '../engine/index.js';
 
 const el=(id:string)=>document.getElementById(id)!;
@@ -46,6 +46,9 @@ let observer:'blue'|'red'='blue';
 let spectatorMode:'both'|'blue'|'red'='both';
 // Observer-only preference; not part of game state or either AI's knowledge.
 let revealSpectatorTerrain=true;
+let showSpectatorOrderGoals=false;
+let pathOverlayKey='';
+let pathOverlay:Coord[]|null=null;
 let playback:ReturnType<typeof setTimeout>|null=null;
 let playbackGeneration=0,roundsPerAdvance=1;
 let observerRefreshPending=false;
@@ -99,8 +102,97 @@ let lastEventsKey='';
 const stackDialog=el('stackDialog') as HTMLDialogElement;
 const gameMenuDialog=el('gameMenuDialog') as HTMLDialogElement;
 function uiMessage(message:string):void {el('toast').textContent=message;}
+const colors={blue:'#68c4f1',red:'#f47c73',green:'#a4dc8b',neutral:'#e2c37c'};
+function setMapActivity(title:string|null,detail=''):void {
+  const panel=el('mapBusy');
+  if(!title){panel.hidden=true;return;}
+  panel.hidden=false;
+  el('mapBusyText').textContent=title;
+  el('mapBusyDetail').textContent=detail;
+}
+function spectatorPhaseMessage(phaseIndex:number):string {
+  if(game.scenario==='ai-vs-ai'){
+    if(phaseIndex===0)return 'Blue computer moving';
+    if(phaseIndex===1)return 'Production & upkeep';
+    if(phaseIndex===2)return 'Red computer moving';
+    return 'Closing round';
+  }
+  if(phaseIndex===0)return 'Production & upkeep';
+  if(phaseIndex===1)return 'Computer moving';
+  return 'Closing round';
+}
+function overlayUnitId():string|null {
+  if(game.scenario!=='ai-vs-ai')return selectedUnit;
+  return spectatorContact??selectedUnit;
+}
+function pathForSelection():Coord[]|null {
+  const id=overlayUnitId();
+  if(!id)return null;
+  const unit=game.units.find(u=>u.id===id&&!u.aboard);
+  if(!unit)return null;
+  const key=`${game.round}|${id}|${unit.position.x},${unit.position.y}|${JSON.stringify(unit.order)}`;
+  if(key!==pathOverlayKey){pathOverlayKey=key;pathOverlay=unitOrderPath(game,unit);}
+  return pathOverlay;
+}
+function drawPathOverlay(path:Coord[],color:string):void {
+  if(path.length<2)return;
+  ctx.save();
+  ctx.strokeStyle=color;
+  ctx.globalAlpha=.88;
+  ctx.lineWidth=Math.max(2,tileSize*.08);
+  ctx.setLineDash([Math.max(4,tileSize*.14),Math.max(3,tileSize*.1)]);
+  ctx.beginPath();
+  for(let i=0;i<path.length;i++){
+    const p=path[i]!;
+    const x=p.x*tileSize+tileSize/2-cameraX,y=p.y*tileSize+tileSize/2-cameraY;
+    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+function drawGoalMarker(px:number,py:number,color:string,secondary=false):void {
+  const cx=px+tileSize/2,cy=py+tileSize/2,r=tileSize*(secondary?.18:.24);
+  ctx.save();
+  ctx.strokeStyle=color;
+  ctx.lineWidth=secondary?1.6:2.2;
+  ctx.globalAlpha=secondary?.72:1;
+  ctx.beginPath();
+  ctx.moveTo(cx,cy-r);ctx.lineTo(cx+r,cy);ctx.lineTo(cx,cy+r);ctx.lineTo(cx-r,cy);
+  ctx.closePath();ctx.stroke();
+  ctx.restore();
+}
+function paintOrderOverlays(displayUnits:Array<{id:string;owner:'blue'|'red'|'green'}>):void {
+  if(game.scenario!=='ai-vs-ai')return;
+  const goalsOn=showSpectatorOrderGoals;
+  const path=pathForSelection();
+  const pathId=overlayUnitId();
+  if(goalsOn){
+    for(const seen of displayUnits){
+      const unit=game.units.find(u=>u.id===seen.id&&!u.aboard);
+      if(!unit)continue;
+      const goals=unitOrderGoals(game,unit);
+      const color=colors[unit.owner]??'#e2c37c';
+      goals.forEach((goal,i)=>{
+        if(i>0&&pathId===unit.id&&path?.at(-1)&&goal.x===path.at(-1)!.x&&goal.y===path.at(-1)!.y)return;
+        drawGoalMarker(goal.x*tileSize-cameraX,goal.y*tileSize-cameraY,color,i>0);
+      });
+    }
+  }
+  if(path&&pathId){
+    const owner=game.units.find(u=>u.id===pathId)?.owner??'blue';
+    drawPathOverlay(path,colors[owner]??'#e2c37c');
+    if(!goalsOn){
+      const goals=unitOrderGoals(game,game.units.find(u=>u.id===pathId)!);
+      const color=colors[owner]??'#e2c37c';
+      goals.slice(0,1).forEach(g=>drawGoalMarker(g.x*tileSize-cameraX,g.y*tileSize-cameraY,color));
+    }
+  }
+}
 function buildRenderParams():RenderParams{
-  return {view,game,tileSize,cameraX,cameraY,revealSpectatorTerrain,selectedUnit,selectedCity,spectatorContact,spectatorCity};
+  const displayUnits=[...view.enemies.map(e=>({id:e.id,kind:e.kind,position:e.position,owner:e.owner,stale:e.stale})),
+    ...view.ownUnits.filter(u=>!u.aboard).map(u=>({id:u.id,kind:u.kind,position:u.position,owner:u.owner,stale:false}))];
+  return {view,game,tileSize,cameraX,cameraY,revealSpectatorTerrain,selectedUnit,selectedCity,spectatorContact,spectatorCity,
+    postPaint:()=>paintOrderOverlays(displayUnits)};
 }
 function invalidateMapLayer():void{renderer.invalidateMapLayer();}
 function paint():void{renderer.paint(buildRenderParams());}
@@ -137,7 +229,7 @@ function pausePlayback():void {
   const button=document.getElementById('autoPlay');if(button)button.textContent='▶ Play';
   (el('advanceRounds') as HTMLButtonElement).disabled=gameOutcome(game).state==='finished';
   (el('nextRound') as HTMLButtonElement).disabled=gameOutcome(game).state==='finished';
-  el('roundProgress').hidden=true;
+  setMapActivity(null);
   flushObserverBatch();
 }
 /** Yield between AI phases and rounds so painting, Pause and scenario changes
@@ -151,8 +243,7 @@ function startRoundPlayback(repeat:boolean):void {
   (el('advanceRounds') as HTMLButtonElement).disabled=true;
   (el('nextRound') as HTMLButtonElement).disabled=true;
   const progress=()=>{
-    el('roundProgress').hidden=false;
-    el('roundProgressText').textContent=`${completed} / ${target}`;
+    setMapActivity('Advancing rounds',`${completed+1} / ${target}`);
   };
   progress();
   const tick=()=>{
@@ -170,6 +261,7 @@ function startRoundPlayback(repeat:boolean):void {
       if(!openRoundPhases.length){pausePlayback();return;}
     }
     const phase=openRoundPhases[openRoundPhaseIndex]!;
+    setMapActivity(spectatorPhaseMessage(openRoundPhaseIndex),`${completed+1} / ${target} · round ${game.round}`);
     if(!dispatch(()=>phase(game),true)){
       uiMessage('Playback paused: a computer turn step failed.');
       pausePlayback();
@@ -443,6 +535,7 @@ function refresh():void {
     game.scenario==='ai-vs-ai'&&spectatorMode==='both'?'Both':spectatorMode==='red'?'Red':'Blue';
   (el('spectatorSide') as HTMLSelectElement).value=spectatorMode;
   (el('spectatorTerrain') as HTMLInputElement).checked=revealSpectatorTerrain;
+  (el('spectatorOrderGoals') as HTMLInputElement).checked=showSpectatorOrderGoals;
   if(game.scenario==='ai-vs-ai'){
     el('spectatorNow').textContent=
       spectatorMode==='both'
@@ -586,7 +679,20 @@ document.addEventListener('keydown',ev=>{
   const u=view.ownUnits.find(u=>u.id===selectedUnit);if(!u)return;
   ev.preventDefault();tapTile({x:u.position.x+delta.x,y:u.position.y+delta.y},false);
 });
-el('nextRound').addEventListener('click',()=>{dispatch(()=>advanceLabRound(game));uiMessage(`Round ${game.round}. Red has completed its response turn.`);});
+el('nextRound').addEventListener('click',()=>{
+  if(game.scenario==='ai-vs-ai'){
+    startRoundPlayback(false);
+    return;
+  }
+  setMapActivity('Computer turn','Resolving round…');
+  requestAnimationFrame(()=>{
+    window.setTimeout(()=>{
+      const ok=dispatch(()=>advanceLabRound(game));
+      setMapActivity(null);
+      if(ok)uiMessage(`Round ${game.round}. Red has completed its response turn.`);
+    },0);
+  });
+});
 el('zoomIn').addEventListener('click',()=>{beginZoomGesture();zoom(4);});
 el('zoomOut').addEventListener('click',()=>{beginZoomGesture();zoom(-4);});
 el('recenter').addEventListener('click',()=>focus(view.ownUnits.find(u=>u.id===selectedUnit)?.position??view.ownCities[0]?.position??{x:8,y:25}));
@@ -726,6 +832,11 @@ el('classicGame').addEventListener('click',()=>startScenario('classic-lab'));
 el('invasionGame').addEventListener('click',()=>startScenario('ai-invasion'));
 el('aiSkirmishGame').addEventListener('click',()=>startScenario('ai-skirmish'));
 el('aiVsAiGame').addEventListener('click',()=>startScenario('ai-vs-ai'));
+el('spectatorOrderGoals').addEventListener('change',()=>{
+  showSpectatorOrderGoals=(el('spectatorOrderGoals') as HTMLInputElement).checked;
+  pathOverlayKey='';
+  paint();
+});
 el('spectatorTerrain').addEventListener('change',()=>{
   revealSpectatorTerrain=(el('spectatorTerrain') as HTMLInputElement).checked;
   invalidateMapLayer();

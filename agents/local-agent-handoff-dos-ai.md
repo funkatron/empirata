@@ -1,8 +1,8 @@
-# Local agent handoff — DOS AI parity (post–v0.6.15 / Q29)
+# Local agent handoff — DOS AI parity (post–v0.6.16 / Q31)
 
-**`main` through v0.6.14+** includes Q27–Q28 and Q29 slices **I1–I4** (#172–#175).
+**`main`** through **v0.6.16** (#178) + Q30 traces (#177–#180) + observer **#181**.
 
-## Done on `main` (movement tranche)
+## Done on `main` (movement + Q30 + observer)
 
 | Item | Status |
 |------|--------|
@@ -12,30 +12,39 @@
 | H2 islands rim regression fixture | **#168** (v0.6.11) |
 | H3 `0x4C52` parity doc | **#169** |
 | H4 escort `0x4600` close-range | **#170** (v0.6.12) |
+| I1 escort station **[T]** rank | **#172** (v0.6.13) |
+| I2 `0x4C52` DOSBox protocol | **#173** (doc) |
+| I3 ALG-AI-004 resign doc | **#174** (v0.6.14) |
+| I4 ALG-012 wake set | **#175** (v0.6.15) |
+| I1b escort station [T] ruleset | **#176** |
+| J0 Q30 handoff / tracker | **#177** |
+| J1 escort 8-dir + `006C` first-hit | **#178** (v0.6.16) |
+| J1 static trace (20-angle vs 8-dir) | **#179–#180** |
+| Observer order overlays + `#mapBusy` | **#181** |
 
-See **`agents/q28-post-q27-slices.md`** and **`agents/alg-ai-001-4c52-empirata-parity-2026-11-18.md`**.
+See **`agents/q28-post-q27-slices.md`**, **`agents/q29-i1-escort-station-ooda-plan.md`**, **`agents/q30-j1-escort-first-hit-ooda-plan.md`**.
 
-## Next work (Q29)
+## Q31 (active — all tracks)
 
-| Slice | Item |
-|-------|------|
-| **I1** | Escort `1D09:03C2` (#172, v0.6.13) |
-| **I2** | `0x4C52` DOSBox protocol (#173) |
-| **I3** | ALG-AI-004 resign doc (#174, v0.6.14) |
-| **I4** | ALG-012 wake (#175, v0.6.15) |
+**Master plan:** **`agents/q31-multi-track-handoff-2026-11-21.md`**
 
-Plans: `agents/q29-i1-escort-station-ooda-plan.md`, `alg-ai-001-4c52-dosbox-experiment-2026-11-18.md`, `alg-ai-004-resign-bookkeeping-2026-11-18.md`
+| Track | Focus |
+|-------|--------|
+| **A** | J1b 20-angle escort, J2 DOSBox `0x4C52`, J3 `0xDF58` trace |
+| **B** | Merge/rebase production PRs **#104–#105**; close **#102–#103** |
+| **C** | Coast **#95**, CI **#96**, docs **#94**, workstream refresh |
+| **D** | Observer path polish (human lab paths, cache invalidation, smoke) |
 
 ## Local traces vs cloud GUI
 
-- **Your local agent (terminal):** binary/DOSBox traces — see **`agents/local-agent-trace-workflow.md`** (copy-paste prompt + `tools/disasm_empire_anchor.py`).
-- **Cloud agent:** `npm test`, fixtures, optional browser smoke — not a substitute for DOSBox eyes on rim/escort.
+- **Your local agent (terminal):** binary/DOSBox traces — **`agents/local-agent-trace-workflow.md`**, `tools/disasm_empire_anchor.py`.
+- **Cloud agent:** `npm test`, fixtures, browser smoke — not a substitute for DOSBox on rim/escort.
 
 ## Commands
 
 ```bash
 npm run build && npm test
-node --test tests/alg-ai-001-islands-rim-regression.test.mjs
+node --test tests/alg-ai-001-escort-station.test.mjs tests/alg-ai-001-islands-rim-regression.test.mjs
 ```
 
 ## Branch policy

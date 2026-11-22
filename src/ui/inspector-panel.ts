@@ -35,16 +35,29 @@ export function selectedCityBlock(game:Game,city:City):string {
   <p class="stat-note">Changing unit types discards unfinished production. Production advances at the beginning of your faction's turn.</p>`;
 }
 
+function spectatorOrderLine(view:PlayerView,unit:Unit):string {
+  const order=unit.order;
+  if(order.kind==='move-to')return `Moving to ${order.destination.x}, ${order.destination.y}`;
+  if(order.kind==='go-direction')return `Continuing ${order.direction.x}, ${order.direction.y}`;
+  if(order.kind==='patrol')return `Patrolling ${order.from.x},${order.from.y} ↔ ${order.to.x},${order.to.y}`;
+  if(order.kind==='go-home')return 'Returning home';
+  if(order.kind==='escort')return `Escorting ${text(knownUnitName(view,order.targetId))}`;
+  if(order.kind==='sentry')return 'Sentry';
+  if(order.kind==='skip')return 'Wait';
+  return 'Awaiting orders';
+}
+
 export function spectatorUnitBlock(view:PlayerView,unit:Unit):string {
   const stats=STATS[unit.kind];
   const cargo=view.ownUnits.filter(u=>u.aboard===unit.id);
   return `<div class="selection-title">${text(unitName(unit))}</div><div class="subtle">${text(stats.name)}</div>
     <div class="subtle">${text(unit.owner)} · ${unit.position.x}, ${unit.position.y}</div>
+    <div class="subtle">${spectatorOrderLine(view,unit)}</div>
     <div class="data"><div class="datum"><small>Movement remaining</small><strong>${Math.max(0,movementAllowance(unit)-unit.spent)}</strong></div>
     <div class="datum"><small>Damage</small><strong>${unit.damage} / ${stats.hitPoints}</strong></div>
     ${unit.kind==='fighter'?`<div class="datum"><small>Fuel</small><strong>${unit.fuel}</strong></div>`:''}
     ${capacity(unit)!==null?`<div class="datum"><small>Cargo</small><strong>${cargo.length} / ${capacity(unit)}</strong></div>`:''}</div>
-    <p class="stat-note">Spectator inspection only. No orders can be issued.</p>`;
+    <p class="stat-note">Spectator inspection only. Select a unit to see its intended path on the map.</p>`;
 }
 
 export function spectatorCityBlock(city:City):string {

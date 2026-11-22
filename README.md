@@ -4,6 +4,10 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.6.16 — Escort station first-hit (`1D09:03C2`)
+
+`classicEscortStationCandidates` walks **eight chart directions** and picks the first **reachable** neighbor (`1A9E:006C`), replacing the prior **[T]** lexicographic rank.
+
 ## Version 0.6.15 — ALG-012 patrol / wait wake
 
 Adjacent fresh enemy contact clears **sentry**, **patrol**, and **skip** (wait) to `none`, matching DOS wake-set **[D]**.
