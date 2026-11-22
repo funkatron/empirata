@@ -86,7 +86,7 @@ export function classicArmyConquestStep(
   view: PlayerView,
   faction: FactionId,
   unit: Unit,
-  grade: DosComputerGrade,
+  _grade: DosComputerGrade,
 ): Coord | null {
   if (unit.kind !== 'army' || unit.aboard) return null;
   const targets = classicKnownHostileCityTiles(view);

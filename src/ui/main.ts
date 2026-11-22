@@ -9,25 +9,26 @@ import {
   shouldEmitTap,
   shouldSuppressMultiTouch,
 } from './gestures.js';
-import {drawCity,drawCoast,drawTerrain,drawUnit} from './map-art.js';
-import {
-  fogLayerCacheKey,observerFogOpacity,observerTerrain,refreshShouldInvalidateKnowledgeLayer,terrainLayerCacheKey,
-} from './observer-map.js';
+import {refreshShouldInvalidateKnowledgeLayer} from './observer-map.js';
+import {createRenderer} from './render.js';
+import type {RenderParams} from './render.js';
 import {endgameModal} from './endgame.js';
 import {resignModal} from './resign.js';
-import {advanceLabRound,endTurn,labRoundPhases,capacity,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,makeCampaignMap,mergeSpectatorPlayerViews,
-  moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,movementAllowance,requiredProductionTurns,saveLocally,selectProduction,setOrder,
-  STATS,UNIT_TYPES,isCoastal,unitName,cityName,gameOutcome,readableReport,
-  formatMapSeedLine,mapRecipeFromCampaign,parseCampaignSeed,parseMapRecipe,randomCampaignSeed,serializeMapRecipe,
-  isCampaignLayout,isCityDensity,isMapAlgorithm,classicResignPendingFor,respondClassicResign,hasBlockingClassicResign,DEFAULT_AI_POLICY,formatAiPolicyLabel,resolveAiPolicy,unitOrderGoals,unitOrderPath} from '../engine/index.js';
+import {knownUnitName,selectedUnitBlock,selectedCityBlock,spectatorUnitBlock,spectatorCityBlock,text} from './inspector-panel.js';
+import {applyAiPolicyToMenu,applyRecipeToMenu,currentMenuRecipe,readCampaignAiPolicy,seedSource,syncCampaignClassicGrade,syncCampaignSeedControls} from './game-menu.js';
+import {advanceLabRound,endTurn,labRoundPhases,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,makeCampaignMap,mergeSpectatorPlayerViews,
+  moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,saveLocally,selectProduction,setOrder,
+  STATS,unitName,cityName,gameOutcome,readableReport,
+  formatMapSeedLine,mapRecipeFromCampaign,parseMapRecipe,randomCampaignSeed,serializeMapRecipe,parseCampaignSeed,
+  isCampaignLayout,isMapAlgorithm,isCityDensity,classicResignPendingFor,respondClassicResign,hasBlockingClassicResign,formatAiPolicyLabel,resolveAiPolicy,unitOrderGoals,unitOrderPath} from '../engine/index.js';
 import type {AiPolicy,CampaignLayout,CampaignMode,City,CityDensity,Coord,Game,MapAlgorithm,MapRecipe,Unit,UnitType,PlayerView} from '../engine/index.js';
-type SeedSource='custom'|'random';
 
 const el=(id:string)=>document.getElementById(id)!;
 const canvas=el('map') as HTMLCanvasElement;
 const context=canvas.getContext('2d');
 if(!context)throw new Error('Canvas 2D is unavailable.');
 const ctx=context;
+const renderer=createRenderer(canvas,ctx);
 const resultModal=endgameModal(el('endgameDialog') as HTMLDialogElement,el('endgameTitle'),el('endgameDetail'),el('endgameInspect') as HTMLButtonElement,canvas);
 const resignOffer=resignModal(
   el('resignDialog') as HTMLDialogElement,
@@ -96,26 +97,12 @@ let suppressTap=false;
 let hydrated=false;
 let choosingDestination=false;
 let choosingOrder:'move-to'|'patrol'|'go-direction'|'escort'='move-to';
-let paintRaf:number|null=null;
-/** Bumps when the underlying world tiles change (new game, import, atlas ready). */
-let tilesRevision=0;
-/** Bumps when knowledge-based terrain stamps must rebuild (reveal-off refreshes). */
-let knowledgeLayerGeneration=0;
-let terrainLayer:HTMLCanvasElement|null=null;
-let terrainLayerKey='';
-let fogLayer:HTMLCanvasElement|null=null;
-let fogLayerKey='';
-/** While pinching or wheel-zooming, stamp layers once at this scale and blit with live tileSize. */
-let zoomGestureLayerTileSize:number|null=null;
-let zoomGestureCommitTimer:ReturnType<typeof setTimeout>|null=null;
 let lastInspectorKey='';
 let lastEventsKey='';
-/** CI / smoke timing probe — presentation only; never feeds gameplay. */
-const mapPaintStats={terrainRebuilds:0,lastEnsureMs:0,lastPaintMs:0,lastRebuild:false};
 const stackDialog=el('stackDialog') as HTMLDialogElement;
 const gameMenuDialog=el('gameMenuDialog') as HTMLDialogElement;
-const colors={blue:'#68c4f1',red:'#f47c73',green:'#a4dc8b',neutral:'#e2c37c'};
 function uiMessage(message:string):void {el('toast').textContent=message;}
+const colors={blue:'#68c4f1',red:'#f47c73',green:'#a4dc8b',neutral:'#e2c37c'};
 function setMapActivity(title:string|null,detail=''):void {
   const panel=el('mapBusy');
   if(!title){panel.hidden=true;return;}
@@ -201,57 +188,29 @@ function paintOrderOverlays(displayUnits:Array<{id:string;owner:'blue'|'red'|'gr
     }
   }
 }
-function invalidateMapLayer():void {
-  tilesRevision++;
-  knowledgeLayerGeneration++;
-  terrainLayerKey='';
-  fogLayerKey='';
+function buildRenderParams():RenderParams{
+  const displayUnits=[...view.enemies.map(e=>({id:e.id,kind:e.kind,position:e.position,owner:e.owner,stale:e.stale})),
+    ...view.ownUnits.filter(u=>!u.aboard).map(u=>({id:u.id,kind:u.kind,position:u.position,owner:u.owner,stale:false}))];
+  return {view,game,tileSize,cameraX,cameraY,revealSpectatorTerrain,selectedUnit,selectedCity,spectatorContact,spectatorCity,
+    postPaint:()=>paintOrderOverlays(displayUnits)};
 }
-function invalidateKnowledgeLayer():void {
-  knowledgeLayerGeneration++;
-  fogLayerKey='';
-  // Reveal-on CvC terrain is true geography; only fog tracks PlayerView visibility.
-  const revealMap=game.scenario==='ai-vs-ai'&&revealSpectatorTerrain;
-  if(!revealMap)terrainLayerKey='';
-}
-function blitWorldLayer(
-  target:CanvasRenderingContext2D,layer:HTMLCanvasElement,
-  layerTileSize:number,viewTileSize:number,cameraX:number,cameraY:number,viewW:number,viewH:number,
-):void{
-  if(layerTileSize===viewTileSize){target.drawImage(layer,-cameraX,-cameraY);return;}
-  const scale=viewTileSize/layerTileSize;
-  target.drawImage(layer,cameraX/scale,cameraY/scale,viewW/scale,viewH/scale,0,0,viewW,viewH);
-}
-function commitZoomGestureLayers():void{
-  if(zoomGestureCommitTimer!==null){clearTimeout(zoomGestureCommitTimer);zoomGestureCommitTimer=null;}
-  if(zoomGestureLayerTileSize===null)return;
-  zoomGestureLayerTileSize=null;
-  paint();
-}
-function beginZoomGesture():void{
-  if(zoomGestureLayerTileSize===null)zoomGestureLayerTileSize=tileSize;
-  if(zoomGestureCommitTimer!==null)clearTimeout(zoomGestureCommitTimer);
-  zoomGestureCommitTimer=setTimeout(commitZoomGestureLayers,150);
-}
+function invalidateMapLayer():void{renderer.invalidateMapLayer();}
+function paint():void{renderer.paint(buildRenderParams());}
+function schedulePaint():void{renderer.schedulePaint(buildRenderParams());}
+function beginZoomGesture():void{renderer.beginZoomGesture(tileSize);}
 function publishMapPaintProbe():void {
   // observer-batching.mjs evaluates a slice of this file in vm without `window`.
   if(typeof window==='undefined')return;
   (window as Window&{empirataMapPaintProbe?:unknown}).empirataMapPaintProbe={
-    stats:()=>({...mapPaintStats}),
-    reset(){
-      mapPaintStats.terrainRebuilds=0;
-      mapPaintStats.lastEnsureMs=0;
-      mapPaintStats.lastPaintMs=0;
-      mapPaintStats.lastRebuild=false;
-    },
+    stats:()=>renderer.mapPaintStats,
+    reset(){renderer.resetPaintStats();},
     paintOnce:()=>paint(),
     refreshOnce:()=>refresh(),
     invalidateAndPaint(){invalidateMapLayer();paint();},
     setReveal(enabled:boolean){
       revealSpectatorTerrain=enabled;
       (el('spectatorTerrain') as HTMLInputElement).checked=enabled;
-      invalidateMapLayer();
-      paint();
+      invalidateMapLayer();paint();
     },
     /** Playwright smoke: select a map cell through the same tap path as the UI (incl. overview zoom). */
     selectMapCell(pos:Coord){
@@ -263,16 +222,6 @@ function publishMapPaintProbe():void {
   };
 }
 publishMapPaintProbe();
-/** Coalesce continuous camera updates to one paint per animation frame. */
-function schedulePaint():void {
-  if(paintRaf!==null)return;
-  paintRaf=requestAnimationFrame(()=>{paintRaf=null;paintFrame();});
-}
-/** Flush any pending rAF and paint immediately (selection, resize, refresh). */
-function paint():void {
-  if(paintRaf!==null){cancelAnimationFrame(paintRaf);paintRaf=null;}
-  paintFrame();
-}
 function pausePlayback():void {
   playbackGeneration++;
   if(playback!==null){clearTimeout(playback);playback=null;}
@@ -337,7 +286,6 @@ function dispatch(operation:()=>Game,deferObserverRefresh=false):boolean {
   if(gameOutcome(game).state==='finished'){uiMessage('Game over. Inspect the map, export the save, or start a new game.');return false;}
   try {
     const before=game.nextEventId;
-    const previousRound=game.round;
     game=operation();
     if(deferObserverRefresh){observerRefreshPending=true;return true;}
     view=spectatorView();
@@ -392,136 +340,6 @@ function fitWorld():void {
   clamp();paint();
 }
 window.addEventListener('empirata-terrain-ready',()=>{invalidateMapLayer();paint();});
-function ensureTerrainLayer(revealMap:boolean,layerTileSize:number):HTMLCanvasElement {
-  const key=terrainLayerCacheKey(tilesRevision,layerTileSize,revealMap,knowledgeLayerGeneration);
-  if(terrainLayer&&terrainLayerKey===key){
-    mapPaintStats.lastEnsureMs=0;
-    mapPaintStats.lastRebuild=false;
-    return terrainLayer;
-  }
-  const started=performance.now();
-  const width=Math.max(1,Math.ceil(game.width*layerTileSize));
-  const height=Math.max(1,Math.ceil(game.height*layerTileSize));
-  if(!terrainLayer)terrainLayer=document.createElement('canvas');
-  if(terrainLayer.width!==width)terrainLayer.width=width;
-  if(terrainLayer.height!==height)terrainLayer.height=height;
-  const layer=terrainLayer.getContext('2d')!;
-  layer.setTransform(1,0,0,1,0,0);
-  layer.clearRect(0,0,width,height);
-  layer.fillStyle='#08131b';layer.fillRect(0,0,width,height);
-  // Reveal-on stamps true geography only; fog is painted live so this cache survives refreshes.
-  const displayTerrain=(x:number,y:number)=>x>=0&&x<view.width&&y>=0&&y<view.height?
-    observerTerrain(game,view,y*view.width+x,revealSpectatorTerrain):null;
-  for(let y=0;y<view.height;y++)for(let x=0;x<view.width;x++){
-    const terrain=displayTerrain(x,y);
-    const px=x*layerTileSize,py=y*layerTileSize;
-    const seaAt=(dx:number,dy:number)=>displayTerrain(x+dx,y+dy)==='sea';
-    drawTerrain(layer,terrain,px,py,layerTileSize,x,y);
-    if(terrain==='land')drawCoast(layer,px,py,layerTileSize,seaAt(0,-1),seaAt(1,0),seaAt(0,1),seaAt(-1,0));
-    if(layerTileSize>=9){layer.strokeStyle='rgba(120,159,166,.12)';layer.lineWidth=.65;layer.strokeRect(px+.3,py+.3,layerTileSize-.6,layerTileSize-.6);}
-  }
-  terrainLayerKey=key;
-  mapPaintStats.terrainRebuilds++;
-  mapPaintStats.lastRebuild=true;
-  mapPaintStats.lastEnsureMs=performance.now()-started;
-  return terrainLayer;
-}
-function ensureFogLayer(revealMap:boolean,layerTileSize:number):HTMLCanvasElement|null{
-  const key=fogLayerCacheKey(tilesRevision,layerTileSize,revealMap,knowledgeLayerGeneration);
-  if(fogLayer&&fogLayerKey===key)return fogLayer;
-  const width=Math.max(1,Math.ceil(game.width*layerTileSize));
-  const height=Math.max(1,Math.ceil(game.height*layerTileSize));
-  if(!fogLayer)fogLayer=document.createElement('canvas');
-  if(fogLayer.width!==width)fogLayer.width=width;
-  if(fogLayer.height!==height)fogLayer.height=height;
-  const layer=fogLayer.getContext('2d')!;
-  layer.setTransform(1,0,0,1,0,0);
-  layer.clearRect(0,0,width,height);
-  for(let y=0;y<view.height;y++)for(let x=0;x<view.width;x++){
-    const fog=observerFogOpacity(game,view,y*view.width+x,revealSpectatorTerrain);
-    if(fog===0)continue;
-    layer.fillStyle=`rgba(3,13,22,${fog})`;
-    layer.fillRect(x*layerTileSize,y*layerTileSize,layerTileSize,layerTileSize);
-  }
-  fogLayerKey=key;
-  return fogLayer;
-}
-function paintFrame():void {
-  const paintStarted=performance.now();
-  const w=canvas.clientWidth,h=canvas.clientHeight;
-  ctx.clearRect(0,0,w,h);
-  ctx.fillStyle='#08131b';ctx.fillRect(0,0,w,h);
-  const sx=Math.max(0,Math.floor(cameraX/tileSize)), ex=Math.min(game.width,Math.ceil((cameraX+w)/tileSize));
-  const sy=Math.max(0,Math.floor(cameraY/tileSize)), ey=Math.min(game.height,Math.ceil((cameraY+h)/tileSize));
-  const loadedShips=new Set(view.ownUnits.flatMap(u=>u.aboard?[u.aboard]:[]));
-  const displayUnits=[...view.enemies.map(e=>({id:e.id,kind:e.kind,position:e.position,owner:e.owner,stale:e.stale})),
-    ...view.ownUnits.filter(u=>!u.aboard).map(u=>({id:u.id,kind:u.kind,position:u.position,owner:u.owner,stale:false}))];
-  const unitsByCell=new Map<number,Array<(typeof displayUnits)[number]>>();
-  for(const unit of displayUnits){
-    const index=unit.position.y*view.width+unit.position.x;
-    const stack=unitsByCell.get(index)??[];
-    stack.push(unit);
-    unitsByCell.set(index,stack);
-  }
-  const neighbors=[[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]] as const;
-  const cellAt=(x:number,y:number)=>x>=0&&x<view.width&&y>=0&&y<view.height?view.cells[y*view.width+x]:undefined;
-  const revealMap=game.scenario==='ai-vs-ai'&&revealSpectatorTerrain;
-  const layerTileSize=zoomGestureLayerTileSize??tileSize;
-  const displayTerrain=(x:number,y:number)=>x>=0&&x<view.width&&y>=0&&y<view.height?
-    observerTerrain(game,view,y*view.width+x,revealSpectatorTerrain):null;
-  // Map landmarks are shown as neutral silhouettes until the observed faction
-  // discovers them. Never disclose their real ownership or production.
-  const concealedCityCells=new Set(revealMap?game.cities.filter(c=>
-    !cellAt(c.position.x,c.position.y)?.city).map(c=>c.position.y*view.width+c.position.x):[]);
-  const fitSize=Math.min(w/view.width,h/view.height);
-  const fitWeight=Math.max(0,Math.min(1,(Math.max(30,fitSize+8)-tileSize)/(Math.max(30,fitSize+8)-fitSize)));
-  const layer=ensureTerrainLayer(revealMap,layerTileSize);
-  blitWorldLayer(ctx,layer,layerTileSize,tileSize,cameraX,cameraY,w,h);
-  // Paint symbols after terrain so a large icon can cross its tile edge.
-  for(let y=sy;y<ey;y++)for(let x=sx;x<ex;x++){
-    const i=y*view.width+x,c=view.cells[i]!;
-    const px=x*tileSize-cameraX,py=y*tileSize-cameraY;
-    const stack=unitsByCell.get(i);
-    if(concealedCityCells.has(i)){
-      const coastal=neighbors.some(([dx,dy])=>displayTerrain(x+dx,y+dy)==='sea');
-      drawCity(ctx,coastal,px+tileSize*.13,py+tileSize*.13,tileSize*.74,colors.neutral);
-    }
-    if(c.city){
-      const coastal=neighbors.some(([dx,dy])=>displayTerrain(x+dx,y+dy)==='sea');
-      const size=tileSize*(stack ? .44 : .74);
-      const offset=tileSize*(stack ? .04 : .13);
-      drawCity(ctx,coastal,px+offset,py+offset,size,colors[c.city.owner??'neutral']);
-      if(c.city.id===selectedCity||c.city.id===spectatorCity){
-        ctx.strokeStyle='#fff7c4';ctx.lineWidth=2;ctx.strokeRect(px+2,py+2,Math.max(1,tileSize-4),Math.max(1,tileSize-4));
-      }
-    }
-    if(!stack)continue;
-    const u=stack.find(unit=>unit.id===selectedUnit||unit.id===spectatorContact)??stack.filter(unit=>!unit.stale).at(-1)??stack[stack.length-1]!;
-    ctx.globalAlpha=u.stale?.48:1;
-    const isolated=fitWeight>0&&stack.length===1&&neighbors.every(([dx,dy])=>{
-      const cell=cellAt(x+dx,y+dy);
-      return cell?.terrain===c.terrain&&!cell?.city&&!unitsByCell.has((y+dy)*view.width+x+dx);
-    });
-    const scale=c.city?.66:.82+fitWeight*(isolated?.28:.18);
-    const offset=tileSize*(c.city?.28:(1-scale)/2);
-    drawUnit(ctx,u.kind,px+offset,py+offset,tileSize*scale,colors[u.owner],!u.stale&&loadedShips.has(u.id));
-    ctx.globalAlpha=1;
-    const count=stack.filter(unit=>!unit.stale).length;
-    if(count>1&&tileSize>=20){
-      ctx.font=`bold ${Math.max(8,tileSize*.3)}px ui-monospace, monospace`;
-      ctx.textAlign='right';ctx.textBaseline='top';
-      ctx.strokeStyle='#0b1b25';ctx.lineWidth=2.5;ctx.lineJoin='round';
-      ctx.fillStyle='#f2e5ba';
-      ctx.strokeText(String(count),px+tileSize-2,py+2);
-      ctx.fillText(String(count),px+tileSize-2,py+2);
-    }
-    if(u.id===selectedUnit||u.id===spectatorContact){ctx.strokeStyle='#fff0a4';ctx.lineWidth=2.3;ctx.strokeRect(px+1,py+1,Math.max(1,tileSize-2),Math.max(1,tileSize-2));}
-  }
-  const fog=ensureFogLayer(revealMap,layerTileSize);
-  if(fog)blitWorldLayer(ctx,fog,layerTileSize,tileSize,cameraX,cameraY,w,h);
-  paintOrderOverlays(displayUnits);
-  mapPaintStats.lastPaintMs=performance.now()-paintStarted;
-}
 function cellFromPointer(ev:PointerEvent):Coord {
   const rect=canvas.getBoundingClientRect();
   return {x:Math.floor((ev.clientX-rect.left+cameraX)/tileSize),y:Math.floor((ev.clientY-rect.top+cameraY)/tileSize)};
@@ -610,7 +428,7 @@ function tapTile(pos:Coord,allowPicker=true):void {
       const target=view.ownUnits.find(u=>u.id!==id&&!u.aboard&&u.position.x===pos.x&&u.position.y===pos.y);
       if(!target){uiMessage('Tap a different friendly unit to escort.');return;}
       if(dispatch(()=>runMoveToOrders(setOrder(game,id,{kind:'escort',targetId:target.id}))))
-        uiMessage(`${knownUnitName(id)} is escorting ${unitName(target)}.`);
+        uiMessage(`${knownUnitName(view,id)} is escorting ${unitName(target)}.`);
       return;
     }
     const order=choosingOrder==='go-direction'?
@@ -618,7 +436,7 @@ function tapTile(pos:Coord,allowPicker=true):void {
       choosingOrder==='patrol'?{kind:'patrol' as const,from:{...origin},to:pos,outbound:true}:
       {kind:'move-to' as const,destination:pos};
     if(dispatch(()=>runMoveToOrders(setOrder(game,id,order))))
-      uiMessage(`${choosingOrder} order assigned for ${knownUnitName(id)}.`);
+      uiMessage(`${choosingOrder} order assigned for ${knownUnitName(view,id)}.`);
     return;
   }
   if(pos.x<0||pos.y<0||pos.x>=game.width||pos.y>=game.height)return;
@@ -659,67 +477,6 @@ function tapTile(pos:Coord,allowPicker=true):void {
   if(city){selectedCity=city.id;selectedUnit=null;refresh();return;}
   if(cell?.city){selectedCity=null;selectedUnit=null;uiMessage(`${cityName(cell.city.id)} · ${cell.city.owner??'neutral'} (read-only)`);refresh();return;}
   selectedCity=null;selectedUnit=null;refresh();
-}
-function knownUnitName(id:string):string {
-  const unit=view.ownUnits.find(u=>u.id===id)??view.enemies.find(u=>u.id===id);
-  return unit?unitName(unit):id;
-}
-function text(value:unknown):string{return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]!));}
-function selectedUnitBlock(unit:Unit):string {
-  const allowance=movementAllowance(unit),stats=STATS[unit.kind],possible=capacity(unit);
-  return `<div class="selection-title">${text(unitName(unit))}</div><div class="subtle">${text(stats.name)}</div>
-  <div class="subtle">${unit.position.x}, ${unit.position.y} · ${unit.order.kind==='sentry'?'Sentry':unit.order.kind==='move-to'?`Moving to ${unit.order.destination.x}, ${unit.order.destination.y}`:unit.order.kind==='go-direction'?`Continuing ${unit.order.direction.x},${unit.order.direction.y}`:unit.order.kind==='patrol'?`Patrolling ${unit.order.from.x},${unit.order.from.y} ↔ ${unit.order.to.x},${unit.order.to.y}`:unit.order.kind==='load-ship'?'Waiting to load cargo':unit.order.kind==='go-home'?'Returning home':unit.order.kind==='escort'?`Escorting ${text(knownUnitName(unit.order.targetId))}`:'Awaiting orders'}</div>
-  <div class="data"><div class="datum"><small>Movement</small><strong>${Math.max(0,allowance-unit.spent)} / ${allowance}</strong></div>
-  <div class="datum"><small>Damage</small><strong>${unit.damage} / ${stats.hitPoints}</strong></div>
-  ${unit.kind==='fighter'?`<div class="datum"><small>Fuel</small><strong>${unit.fuel} / 20</strong></div>`:''}
-  ${possible!==null?`<div class="datum"><small>Cargo capacity</small><strong>${possible}</strong></div>`:''}</div>
-  ${(unit.kind==='transport'||unit.kind==='carrier')? `<div class="stat-note">Aboard: ${view.ownUnits.filter(u=>u.aboard===unit.id).length} / ${capacity(unit)??0}</div>
-  <div class="actions"><button id="loadShipButton">Load Ship</button><button id="unloadShipButton">Unload Ship</button></div><div class="actions">${view.ownUnits.filter(u=>u.aboard===unit.id).map(u=>`<button class="cargoButton" data-cargo="${text(u.id)}">Select ${text(unitName(u))}</button>`).join('')}</div>`:''}
-  ${unit.aboard?'<p class="stat-note">Embarked: tap an adjacent legal square to launch or disembark (if movement remains).</p>':''}
-  <div class="actions"><button id="moveToButton">Move To</button><button id="directionButton">Go Direction</button><button id="patrolButton">Patrol</button><button id="homeButton">Go Home</button><button id="escortButton">Escort</button><button id="sentryButton">Sentry</button><button id="clearButton">Clear</button><button id="skipButton">Skip move</button></div>
-  <p class="stat-note" style="margin-top:12px">Tap an adjacent tile for manual movement, or choose Move To and tap a distant destination. Armies can assault neutral or enemy cities. Combat uses the original manual's normal-efficiency odds with a seeded random stream.</p>`;
-}
-function selectedCityBlock(city:City):string {
-  const coastal=isCoastal(game,city.position);
-  const choices=UNIT_TYPES.filter(kind=>coastal||STATS[kind].domain!=='sea');
-  const turns=city.production?requiredProductionTurns(city.production,city.firstCycle):null;
-  return `<div class="selection-title">${text(cityName(city.id))}</div><div class="subtle">${coastal?'Coastal port':'Inland'} · ${city.position.x}, ${city.position.y}</div>
-  <label class="subtle" for="productionSelect">Production</label>
-  <select id="productionSelect"><option value="">Choose a unit…</option>${choices.map(kind=>`<option value="${kind}" ${city.production===kind?'selected':''}>${STATS[kind].name} · ${city.firstCycle?STATS[kind].first:STATS[kind].repeat} turns</option>`).join('')}</select>
-  <div class="data"><div class="datum"><small>Factory progress</small><strong>${city.progress} / ${turns??'—'}</strong></div>
-  <div class="datum"><small>Production phase</small><strong>${city.firstCycle?'Setup':'Repeat'}</strong></div></div>
-  <p class="stat-note">Changing unit types discards unfinished production. Production advances at the beginning of your faction's turn.</p>`;
-}
-function spectatorOrderLine(unit:Unit):string {
-  const order=unit.order;
-  if(order.kind==='move-to')return `Moving to ${order.destination.x}, ${order.destination.y}`;
-  if(order.kind==='go-direction')return `Continuing ${order.direction.x}, ${order.direction.y}`;
-  if(order.kind==='patrol')return `Patrolling ${order.from.x},${order.from.y} ↔ ${order.to.x},${order.to.y}`;
-  if(order.kind==='go-home')return 'Returning home';
-  if(order.kind==='escort')return `Escorting ${text(knownUnitName(order.targetId))}`;
-  if(order.kind==='sentry')return 'Sentry';
-  if(order.kind==='skip')return 'Wait';
-  return 'Awaiting orders';
-}
-function spectatorUnitBlock(unit:Unit):string {
-  const stats=STATS[unit.kind];
-  const cargo=view.ownUnits.filter(u=>u.aboard===unit.id);
-  return `<div class="selection-title">${text(unitName(unit))}</div><div class="subtle">${text(stats.name)}</div>
-    <div class="subtle">${text(unit.owner)} · ${unit.position.x}, ${unit.position.y}</div>
-    <div class="subtle">${spectatorOrderLine(unit)}</div>
-    <div class="data"><div class="datum"><small>Movement remaining</small><strong>${Math.max(0,movementAllowance(unit)-unit.spent)}</strong></div>
-    <div class="datum"><small>Damage</small><strong>${unit.damage} / ${stats.hitPoints}</strong></div>
-    ${unit.kind==='fighter'?`<div class="datum"><small>Fuel</small><strong>${unit.fuel}</strong></div>`:''}
-    ${capacity(unit)!==null?`<div class="datum"><small>Cargo</small><strong>${cargo.length} / ${capacity(unit)}</strong></div>`:''}</div>
-    <p class="stat-note">Spectator inspection only. Select a unit to see its intended path on the map.</p>`;
-}
-function spectatorCityBlock(city:City):string {
-  const turns=city.production?requiredProductionTurns(city.production,city.firstCycle):null;
-  return `<div class="selection-title">${text(cityName(city.id))}</div>
-    <div class="subtle">${text(city.owner??'Neutral')} · ${city.position.x}, ${city.position.y}</div>
-    <div class="data"><div class="datum"><small>Production</small><strong>${text(city.production??'None')}</strong></div>
-    <div class="datum"><small>Progress</small><strong>${city.progress} / ${turns??'—'}</strong></div></div>
-    <p class="stat-note">Spectator inspection only. No production changes allowed.</p>`;
 }
 function factionTotals(faction:'blue'|'red'):{cities:number;units:number} {
   let cities=0,units=0;
@@ -768,7 +525,7 @@ function bindInspectorControls(unit:Unit|undefined,city:City|undefined):void {
 function refresh():void {
   view=spectatorView();
   if(refreshShouldInvalidateKnowledgeLayer(game.scenario,revealSpectatorTerrain)){
-    invalidateKnowledgeLayer();
+    renderer.invalidateKnowledgeLayer(game.scenario,revealSpectatorTerrain);
   }
   if(spectatorContact&&!view.enemies.some(u=>u.id===spectatorContact&&!u.stale))spectatorContact=null;
   if(spectatorCity&&!view.cells.some(c=>c.city?.id===spectatorCity))spectatorCity=null;
@@ -805,8 +562,8 @@ function refresh():void {
   ].join('|');
   if(inspectorKey!==lastInspectorKey){
     lastInspectorKey=inspectorKey;
-    if(unit)inspector.innerHTML=game.scenario==='ai-vs-ai'?spectatorUnitBlock(unit):selectedUnitBlock(unit);
-    else if(city)inspector.innerHTML=game.scenario==='ai-vs-ai'?spectatorCityBlock(city):selectedCityBlock(city);
+    if(unit)inspector.innerHTML=game.scenario==='ai-vs-ai'?spectatorUnitBlock(view,unit):selectedUnitBlock(view,unit);
+    else if(city)inspector.innerHTML=game.scenario==='ai-vs-ai'?spectatorCityBlock(city):selectedCityBlock(game,city);
     else if(spectatorContact){
       const enemy=view.enemies.find(u=>u.id===spectatorContact&&!u.stale);
       inspector.innerHTML=enemy?
@@ -895,7 +652,7 @@ function finishPointer(ev:PointerEvent,cancelled:boolean):void {
     const endedPinch=!!pinch;
     pinch=null;down=null;
     if(touches.size===0)suppressTap=false;
-    if(endedPinch)commitZoomGestureLayers();
+    if(endedPinch)renderer.commitZoomGesture();
     return;
   }
   if(down?.id===ev.pointerId){
@@ -944,53 +701,9 @@ function downloadText(filename:string,text:string):void{
   const link=document.createElement('a');link.href=url;link.download=filename;
   document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-function seedSource():SeedSource{
-  return (el('campaignSeedSource') as HTMLSelectElement).value==='custom'?'custom':'random';
-}
-function syncCampaignSeedControls():void{
-  const seedInput=el('campaignSeed') as HTMLInputElement;
-  seedInput.readOnly=seedSource()==='random';
-}
-function syncCampaignClassicGrade():void{
-  const classic=(el('campaignAiPolicy') as HTMLSelectElement).value==='classic-dos';
-  (el('campaignClassicGrade') as HTMLSelectElement).disabled=!classic;
-}
-function readCampaignAiPolicy():AiPolicy{
-  const kind=(el('campaignAiPolicy') as HTMLSelectElement).value;
-  if(kind==='classic-dos'){
-    const grade=Number((el('campaignClassicGrade') as HTMLSelectElement).value);
-    return {kind:'classic-dos',grade:grade===2?2:1};
-  }
-  return {kind:'modern-experimental'};
-}
-function applyAiPolicyToMenu(policy:AiPolicy|undefined):void{
-  const resolved=policy??DEFAULT_AI_POLICY;
-  (el('campaignAiPolicy') as HTMLSelectElement).value=resolved.kind;
-  (el('campaignClassicGrade') as HTMLSelectElement).value=String(resolved.kind==='classic-dos'?resolved.grade:1);
-  syncCampaignClassicGrade();
-}
-function applyRecipeToMenu(recipe:MapRecipe):void{
-  (el('campaignLayout') as HTMLSelectElement).value=recipe.layout;
-  (el('campaignAlgorithm') as HTMLSelectElement).value=recipe.algorithm;
-  (el('campaignDensity') as HTMLSelectElement).value=recipe.density;
-  (el('campaignSeedSource') as HTMLSelectElement).value='custom';
-  (el('campaignSeed') as HTMLInputElement).value=String(recipe.seed);
-  syncCampaignSeedControls();
-}
 function syncMenuFromCampaign(campaign:NonNullable<Game['campaignMap']>):void{
   applyRecipeToMenu(mapRecipeFromCampaign(campaign));
   applyAiPolicyToMenu(game.aiPolicy);
-}
-function currentMenuRecipe():MapRecipe{
-  const layoutRaw=(el('campaignLayout') as HTMLSelectElement).value;
-  const algorithmRaw=(el('campaignAlgorithm') as HTMLSelectElement).value;
-  const densityRaw=(el('campaignDensity') as HTMLSelectElement).value;
-  if(!isCampaignLayout(layoutRaw))throw new Error('Choose a valid layout.');
-  if(!isMapAlgorithm(algorithmRaw))throw new Error('Choose a valid generator.');
-  if(!isCityDensity(densityRaw))throw new Error('Choose a valid city density.');
-  const seed=parseCampaignSeed((el('campaignSeed') as HTMLInputElement).value);
-  if(seed===null)throw new Error('Enter a positive integer seed between 1 and 4294967295.');
-  return mapRecipeFromCampaign({layout:layoutRaw,seed,algorithm:algorithmRaw,density:densityRaw});
 }
 function recipeForCopy():MapRecipe{
   if(game.campaignMap)return mapRecipeFromCampaign(game.campaignMap);
@@ -1166,5 +879,6 @@ async function boot():Promise<void>{
   else if(game.scenario==='ai-invasion')uiMessage('AI Invasion restored. Press Next round to watch the invasion.');
   else if(game.scenario==='close-quarters')uiMessage('Select a blue unit, then tap an adjacent red unit or gold city to fight.');
   else uiMessage('Existing saved game restored. Choose Start Close Quarters to try the immediate combat scenario.');
+  if(game.campaignMap&&resolveAiPolicy(game).kind==='modern-experimental')uiMessage('This save uses the frozen Modern (experimental) AI. Start a new campaign to use Classic DOS AI.');
 }
 void boot();

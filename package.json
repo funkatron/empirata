@@ -16,9 +16,13 @@
     "evaluate:held-out-capture": "npm run build && node scripts/held-out-capture-eval.mjs",
     "start": "node scripts/server.mjs",
     "dev": "npm run build && npm run start",
+    "lint": "eslint src/",
     "test:coverage": "npm run build && node --experimental-test-coverage --test --test-coverage-include='dist/engine/*.js' --test-coverage-lines=85 --test-coverage-branches=80 tests/*.test.mjs"
   },
   "devDependencies": {
-    "typescript": "^5.8.3"
+    "eslint": "^10.15.0",
+    "playwright": "^1.65.1",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.73.0"
   }
 }

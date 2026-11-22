@@ -2,7 +2,7 @@ import type { Coord, FactionId, Game, PlayerView, Unit } from '../types.js';
 import type { DosComputerGrade } from './classic-grades.js';
 import { classicArmyReachableOnChart, classicRouteStep } from './classic-path.js';
 import { classicKnownHostileCityTiles } from './classic-move.js';
-import { directions, index, isCoastal, playable, terrainAt } from '../world.js';
+import { directions, isCoastal, playable, terrainAt } from '../world.js';
 
 function chebyshev(a: Coord, b: Coord): number {
   return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));

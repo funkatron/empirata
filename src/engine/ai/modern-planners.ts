@@ -154,7 +154,6 @@ export function planAiTransportAssembly(view:PlayerView,ship:Unit):{ship:Unit;wa
   if(next.aiAssembly?.objective!==objective)delete next.aiAssembly;
   const cell=view.cells.findIndex(c=>c.city?.id===objective);
   if(!objective||cell<0||view.cells[cell]!.city!.owner===null)return {ship:next,wait:false};
-  const target={x:cell%view.width,y:Math.floor(cell/view.width)};
   const distance=(a:Coord,b:Coord)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
   const cargo=(id:string)=>view.ownUnits.filter(u=>u.kind==='army'&&u.aboard===id).length;
   const supplied=(u:Unit)=>view.ownCities.some(c=>c.production==='army'&&distance(c.position,u.position)<=1);

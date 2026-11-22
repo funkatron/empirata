@@ -51,7 +51,7 @@ export function classicResignPendingFor(game: Game, faction: FactionId): Faction
 }
 
 export function hasBlockingClassicResign(game: Game): boolean {
-  return game.classicResignPending != null;
+  return game.classicResignPending !== null && game.classicResignPending !== undefined;
 }
 
 /** Accept: transfer computer cities to the human and remove computer units (DOS elimination bookkeeping). */

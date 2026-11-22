@@ -1,5 +1,4 @@
 import type { Coord, FactionId, Game, PlayerView, Unit } from '../types.js';
-import { STATS } from '../units.js';
 import { cityAt, playable, terrainAt } from '../world.js';
 import type { DosComputerGrade } from './classic-grades.js';
 import { classicChartGlyphsForTile, classicChartGlyphsForViewCell, classicDosPlayerIndex } from './classic-glyph.js';

@@ -1,9 +1,9 @@
 import { gameOutcome } from './presentation.js';
 import { unitLabel } from './unit-names.js';
-import type { City, Coord, FactionId, Game, Terrain, Unit, UnitOrder, UnitType } from './types.js';
+import type { City, Coord, FactionId, Game, Unit, UnitOrder, UnitType } from './types.js';
 import {MAX_FIGHTER_FUEL, movementAllowance, requiredProductionTurns, STATS, capacity } from './units.js';
 import {MAP_HEIGHT,MAP_WIDTH, makeTestTerrain, playable, index, terrainAt, cityAt, equal, isCoastal, directions } from './world.js';
-import {emptyKnowledge,updateAllKnowledge,getPlayerView} from './knowledge.js';
+import {emptyKnowledge,updateAllKnowledge} from './knowledge.js';
 import {resolveCombat,resolveCityAssault} from './combat.js';
 import {resolveCargoOverload} from './cargo-overload.js';
 
