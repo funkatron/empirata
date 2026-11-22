@@ -1,4 +1,4 @@
-import type { Game } from './types.js';
+import type { Coord, Game, UnitOrder } from './types.js';
 import { updateAllKnowledge } from './knowledge.js';
 import { STATS } from './units.js';
 import { playable, equal } from './world.js';
@@ -11,10 +11,16 @@ export function exportSave(game:Game):string {
 export function exportAutosave(game:Game):string {
   return JSON.stringify(game);
 }
+function migrateSchema(raw: Record<string, unknown>): Record<string, unknown> {
+  // Add a migration case here for each future schema bump.
+  // Pattern: if (raw['schema'] === 1) raw = migrate1to2(raw);
+  return raw;
+}
 export function importSave(json:string):Game {
   const data:unknown=JSON.parse(json);
   if(typeof data!=='object'||data===null)throw new Error('Invalid save file.');
-  const g=data as Partial<Game>;
+  const raw=migrateSchema(data as Record<string,unknown>);
+  const g=raw as Partial<Game>;
   if(g.schema!==1||g.ruleset!=='interstel-2.05'||g.mode!=='rules-lab')throw new Error('Save version or ruleset is not supported.');
   if(g.width!==100||g.height!==60||!Array.isArray(g.tiles)||g.tiles.length!==6000||
     !g.tiles.every(t=>t==='land'||t==='sea'))throw new Error('Invalid world dimensions or terrain.');
@@ -43,7 +49,7 @@ export function importSave(json:string):Game {
     if(!p||typeof p!=='object'||!validFaction(p.computer)||!validFaction(p.human)||!finiteInt(p.round)||p.round<1)
       throw new Error('Invalid classic resign pending state.');
   }
-  const validPosition=(pos:any)=>pos&&finiteInt(pos.x)&&finiteInt(pos.y)&&playable(g as Game,pos);
+  const validPosition=(pos:unknown)=>{const p=pos as Coord;return p&&finiteInt(p.x)&&finiteInt(p.y)&&playable(g as Game,p);};
   if(!finiteInt(g.round)||g.round!<1||!finiteInt(g.nextId)||g.nextId!<1||
     !finiteInt(g.nextEventId)||g.nextEventId!<1)throw new Error('Invalid counters.');
   if(!g.rng||!finiteInt(g.rng.seed)||g.rng.seed<0||g.rng.seed>0xffffffff||
@@ -97,18 +103,18 @@ export function importSave(json:string):Game {
     if(kind==='sentry'&&u.kind==='fighter'&&u.aboard===null&&
       !g.cities.some(c=>c.owner===u.owner&&equal(c.position,u.position)))
       throw new Error('Sentry fighter requires a friendly base.');
-    if(kind==='move-to'&&!validPosition((u.order as any).destination))throw new Error('Invalid Move To destination.');
+    if(kind==='move-to'&&!validPosition((u.order as Extract<UnitOrder,{kind:'move-to'}>).destination))throw new Error('Invalid Move To destination.');
     if(kind==='go-direction'){
-      const d=(u.order as any).direction;
+      const d=(u.order as Extract<UnitOrder,{kind:'go-direction'}>).direction;
       if(!d||!finiteInt(d.x)||!finiteInt(d.y)||Math.max(Math.abs(d.x),Math.abs(d.y))!==1)
         throw new Error('Invalid direction.');
     }
     if(kind==='patrol'){
-      const o=u.order as any;
+      const o=u.order as Extract<UnitOrder,{kind:'patrol'}>;
       if(!validPosition(o.from)||!validPosition(o.to)||equal(o.from,o.to)||typeof o.outbound!=='boolean')
         throw new Error('Invalid patrol route.');
     }
-    if(kind==='escort'&&(typeof (u.order as any).targetId!=='string'||!(u.order as any).targetId))
+    if(kind==='escort'&&(typeof (u.order as Extract<UnitOrder,{kind:'escort'}>).targetId!=='string'||!(u.order as Extract<UnitOrder,{kind:'escort'}>).targetId))
       throw new Error('Invalid escort target.');
     if(kind==='load-ship'&&u.kind!=='transport'&&u.kind!=='carrier')
       throw new Error('Only transport ships and carriers may wait for cargo.');

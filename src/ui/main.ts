@@ -249,7 +249,6 @@ function dispatch(operation:()=>Game,deferObserverRefresh=false):boolean {
   if(gameOutcome(game).state==='finished'){uiMessage('Game over. Inspect the map, export the save, or start a new game.');return false;}
   try {
     const before=game.nextEventId;
-    const previousRound=game.round;
     game=operation();
     if(deferObserverRefresh){observerRefreshPending=true;return true;}
     view=spectatorView();
@@ -1046,5 +1045,6 @@ async function boot():Promise<void>{
   else if(game.scenario==='ai-invasion')uiMessage('AI Invasion restored. Press Next round to watch the invasion.');
   else if(game.scenario==='close-quarters')uiMessage('Select a blue unit, then tap an adjacent red unit or gold city to fight.');
   else uiMessage('Existing saved game restored. Choose Start Close Quarters to try the immediate combat scenario.');
+  if(game.campaignMap&&resolveAiPolicy(game).kind==='modern-experimental')uiMessage('This save uses the frozen Modern (experimental) AI. Start a new campaign to use Classic DOS AI.');
 }
 void boot();

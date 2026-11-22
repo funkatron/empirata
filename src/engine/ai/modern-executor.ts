@@ -1,3 +1,6 @@
+// Modern (experimental) AI executor — FROZEN. No new development.
+// Active only for saves predating the aiPolicy field (schema 1, pre-v0.6).
+// New campaigns use classic-dos AI (classic-executor.ts).
 import type { Coord, FactionId, Game, Unit, UnitType } from '../types.js';
 import { unitLabel } from '../unit-names.js';
 import { getPlayerView } from '../knowledge.js';
@@ -43,7 +46,7 @@ export function createModernAiExecutor(ops: ModernAiGameOps) {
 
   if(game.active!==faction)throw new Error('AI must act during its faction turn.');
   // One private clone for the whole AI turn; public callers still see immutable ops.
-  let g=clone(game);
+  const g=clone(game);
   let view=getPlayerView(g,faction);
   let unitById=new Map(view.ownUnits.map(u=>[u.id,u]));
   let knownHostileCities:Array<{pos:Coord;city:NonNullable<(typeof view.cells)[number]['city']>}>|null=null;

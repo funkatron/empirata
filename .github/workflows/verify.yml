@@ -31,6 +31,8 @@ jobs:
         run: node -e "if (process.versions.node.split('.')[0] !== '24') process.exit(1)"
       - name: Install test dependencies
         run: npm install --no-audit --no-fund
+      - name: Lint
+        run: npm run lint
       - name: Check verification policy
         run: node --test tests/ci-scope.test.mjs
       - name: Select verification scope

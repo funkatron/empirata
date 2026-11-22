@@ -7,8 +7,8 @@ import { unitLabel } from './unit-names.js';
  * These functions must not be wired to an ordinary game's automatic combat flow
  * until the probability resolver has been validated against the original.
  */
-import type { City, Coord, FactionId, Game, Unit } from './types.js';
-import {STATS, movementAllowance, capacity} from './units.js';
+import type { Coord, FactionId, Game, Unit } from './types.js';
+import {STATS, movementAllowance} from './units.js';
 import {resolveCargoOverload} from './cargo-overload.js';
 import {playable, terrainAt, cityAt, equal, isCoastal} from './world.js';
 import {updateAllKnowledge} from './knowledge.js';
