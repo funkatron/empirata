@@ -1,5 +1,5 @@
 import type { Coord, Game, Unit } from './types.js';
-import { classicEscortCloseRangeGoal, classicEscortStationGoal } from './ai/classic-escort.js';
+import { classicEscortNavigationGoal } from './ai/classic-escort.js';
 import { classicRoutePath } from './ai/classic-path.js';
 import { isClassicDosPolicy, resolveAiPolicy } from './ai/policy.js';
 import { knowledgeRoutePath } from './game.js';
@@ -44,10 +44,8 @@ export function unitOrderGoals(game: Game, unit: Unit): Coord[] {
       const goals: Coord[] = [{ ...target.position }];
       const policy = resolveAiPolicy(game);
       if (isClassicDosPolicy(policy)) {
-        const station =
-          classicEscortCloseRangeGoal(game, unit, target, policy.grade) ??
-          classicEscortStationGoal(game, unit, target, policy.grade);
-        if (station && !equal(station, target.position)) goals.push({ ...station });
+        const nav = classicEscortNavigationGoal(game, unit, target, policy.grade);
+        if (nav.goal && !equal(nav.goal, target.position)) goals.push({ ...nav.goal });
       }
       return goals;
     }
@@ -72,10 +70,7 @@ function unitPathDestination(game: Game, unit: Unit): Coord | null {
       if (!target) return null;
       const policy = resolveAiPolicy(game);
       if (isClassicDosPolicy(policy)) {
-        return (
-          classicEscortCloseRangeGoal(game, unit, target, policy.grade) ??
-          classicEscortStationGoal(game, unit, target, policy.grade)
-        );
+        return classicEscortNavigationGoal(game, unit, target, policy.grade).goal;
       }
       return { ...target.position };
     }

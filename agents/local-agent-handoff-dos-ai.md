@@ -30,7 +30,7 @@ See **`agents/q28-post-q27-slices.md`**, **`agents/q29-i1-escort-station-ooda-pl
 
 | Track | Focus |
 |-------|--------|
-| **A** | A1 staged (`03C2` rand conversion still **[?]**); J2 DOSBox `0x4C52`; J3 `0xDF58` trace |
+| **A** | A1 done (v0.6.17 random window); J2 DOSBox `0x4C52`; J3 `0xDF58` trace |
 | **B** | **done** — ship-mix **#104**, inventory **#184** |
 | **C** | **done** except optional workstream refresh — coast **#76/#95**, CI **#96**, docs **#94** |
 | **D** | Observer path polish (human lab paths, cache invalidation, smoke) |

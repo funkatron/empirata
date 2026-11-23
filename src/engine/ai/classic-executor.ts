@@ -128,7 +128,11 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
         if (!step) {
           const ship = g.units.find(u => u.id === unit.id);
           if (ship?.order.kind === 'go-home') step = classicHomeRepairStep(g, ship, ops.routeStep, grade);
-          else if (ship?.order.kind === 'escort') step = classicEscortStep(g, ship, grade);
+          else if (ship?.order.kind === 'escort') {
+            const escort = classicEscortStep(g, ship, grade);
+            g = escort.game;
+            step = escort.step;
+          }
           else if (ship?.order.kind === 'patrol') step = classicPatrolStep(g, ship, grade);
           else if (current.kind === 'army') {
             step = classicArmyPortEmbarkStep(g, view, current);

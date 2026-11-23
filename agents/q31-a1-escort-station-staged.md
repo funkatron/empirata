@@ -1,5 +1,7 @@
 # Q31 A1 — escort station `1D09:03C2` staged (2026-11-23)
 
+**Superseded by v0.6.17.** The random-word conversion is recovered in `agents/alg-ai-001-03c2-rand-tile-2026-11-23.md`: two `rand()` draws, `idiv (2n+1)`, `n=3` at `0x46C2`. The notes below record why the eight-direction probe was kept until that trace.
+
 ## Observe
 
 - #180 shows `1D09:03C2` (`0x1D452`) loops **20** times (`mov [bp-0xa], 0x14` at `0x1D47E`) and calls `25E6:0F64` before `1A9E:006C`.

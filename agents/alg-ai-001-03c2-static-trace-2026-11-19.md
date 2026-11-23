@@ -1,5 +1,7 @@
 # ALG-AI-001 `1D09:03C2` — static trace (escort station)
 
+**2026-11-23 correction:** No fixed “20-angle” table in `0x1D452`. See `agents/alg-ai-001-03c2-rand-tile-2026-11-23.md` for the `rand` + `idiv (2n+1)` formula. `0x1DF56` is not called from that entry.
+
 ```text
 RUN_ID: escort-03c2-static-2026-11-19
 TRACE_ID: escort-03c2-static
