@@ -9,6 +9,38 @@ import {
   updateAllKnowledge,
 } from '../dist/engine/index.js';
 
+test('classicEscortStationCandidates stay on the eight neighbors until the 03C2 rand conversion is traced', () => {
+  const g = makeRulesLab();
+  g.tiles.fill('sea');
+  const target = {
+    ...g.units.find(u => u.kind === 'destroyer'),
+    id: 'lead',
+    owner: 'red',
+    kind: 'destroyer',
+    position: { x: 50, y: 30 },
+    order: { kind: 'none' },
+    fuel: null,
+  };
+  const escort = {
+    ...target,
+    id: 'escort',
+    position: { x: 47, y: 30 },
+    order: { kind: 'escort', targetId: 'lead' },
+  };
+  g.units = [escort, target];
+  updateAllKnowledge(g, false);
+  const stations = classicEscortStationCandidates(g, escort, target, 1);
+  assert.ok(stations.length > 0);
+  assert.ok(stations.length <= 8);
+  for (const station of stations) {
+    const distance = Math.max(
+      Math.abs(station.x - target.position.x),
+      Math.abs(station.y - target.position.y),
+    );
+    assert.equal(distance, 1);
+  }
+});
+
 test('classicEscortStationCandidates use eight-direction probe order (0DF56)', () => {
   const g = makeRulesLab();
   g.tiles.fill('sea');

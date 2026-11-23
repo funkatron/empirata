@@ -11,7 +11,7 @@
 
 | Slice | Deliverable | Branch hint | Depends on | Evidence gate |
 |-------|-------------|-------------|------------|---------------|
-| **A1 / J1b** | Escort station **20-angle** probe (`25E6:0F64` + `0x14` loop) or staged stub + ruleset | `cursor/j1b-escort-20angle-85b7` | Static trace **#180** | `alg-ai-001-escort-station.test.mjs`; ruleset row no longer “8-dir only” |
+| **A1 / J1b** | **Staged.** `03C2` calls ALG-001 `rand()` twenty times; coordinate conversion unrecovered. Engine stays 8-dir. | `agents/q31-a1-escort-station-staged.md` | Static trace **#180** + ALG-001 | `alg-ai-001-escort-station.test.mjs` locks Chebyshev 1 / at most 8 |
 | **A2 / J2** | DOSBox **`0x4C52`** rim A/B per `agents` I2 protocol | `cursor/j2-4c52-dosbox-evidence-85b7` | **#173** doc | Evidence `agents/alg-ai-001-4c52-*.md`; optional fixture only if mismatch |
 | **A3 / J3** | ALG-AI-004 **`0xDF58`** crush-order static trace | `cursor/j3-df58-static-trace-85b7` | disasm workflow | New `agents/alg-ai-004-df58-trace-*.md`; ruleset ALG-AI-004 row |
 
@@ -20,7 +20,7 @@
 **Local agent (A1–A3):** `tools/disasm_empire_anchor.py`, DOSBox for A2.  
 **Cloud agent:** tests, fixtures after **[D]** is written — do not implement 20-angle without trace cites.
 
-**Suggested order within A:** **A3** (docs-only, parallel) → **A2** (evidence) → **A1** (engine, bump **0.6.17** if behavior changes).
+**Suggested order within A:** **A1 staged** (done — no version bump). Next: **A3** (docs-only, parallel) and **A2** (DOSBox evidence). Implement the 20-iteration tile formula only after the `rand()` → coordinate conversion inside `0x1D452` is traced.
 
 ### Track A — paste prompt
 
@@ -110,7 +110,7 @@ Edit src/ + public/. computerUse or smoke for CvC. No sidebar roundProgress regr
 
 ## Definition of done (Q31 tranche)
 
-- [ ] **A:** Ruleset escort row reflects 20-angle **or** explicit staged gap with test; J2/J3 evidence files linked from ruleset  
+- [x] **A1 staged:** ruleset escort row names `25E6:0F64` as ALG-001 `rand()` and leaves the tile conversion **[?]**, with a distance-1 test. **A2/A3** evidence still open.  
 - [x] **B:** Ship-mix **#104** and inventory **#184** on `main`  
 - [x] **C:** Coast **#76/#95**, Actions **#96**, and performance doc **#94** on `main` (optional `WORKSTREAM_STATUS` refresh remains)  
 - [ ] **D:** At least **D2** shipped; D1/D4 if time  

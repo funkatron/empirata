@@ -9,7 +9,11 @@ MAIN_COMMIT: a3e523e (PR #179 local-agent trace workflow merged)
 J1_PR178: OPEN — cursor/j1-escort-03c2-first-hit-85b7 (not merged at trace time)
 ```
 
-## FINDING — **20-angle + 8-dir (both [D])**
+## Correction (2026-11-23)
+
+`25E6:0F64` is ALG-001 `rand()` (`0x26DC4`), not a static angle table. The 20-iteration loop is **[D]**; the random-word → map-index conversion inside `0x1D452` is still **[?]**. See `agents/q31-a1-escort-station-staged.md`. The “20-angle table” wording below is the 2026-11-19 note and is superseded by that correction.
+
+## FINDING — **20-iteration rand probe + 8-dir (loop bounds [D])**
 
 DOS escort close-range (`0x4600`) calls station helper on the default order branch:
 

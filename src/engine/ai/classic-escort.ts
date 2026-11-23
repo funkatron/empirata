@@ -20,9 +20,16 @@ function nearestFriendlyCityPosition(game: Game, owner: Unit['owner'], near: Coo
 }
 
 /**
- * ALG-AI-001 `1D09:03C2` / `1D09:0DF56`: neighbors of the escort target in fixed eight-chart-direction
- * order (same as `directions` / compass 0…7). Each must be chart-passable and reachable (`1A9E:006C`).
- * **First hit** is `[0]` — not a lexicographic heuristic. Twenty-angle outer ring: pending DOS trace (J1: distance 1 only).
+ * ALG-AI-001 escort station, staged.
+ *
+ * DOS `1D09:03C2` (`0x1D452`) loops **20** times (`0x1D47E`). Each pass calls
+ * `25E6:0F64`, which is ALG-001 `rand()` (`0x26DC4`), then builds a map index and
+ * keeps the first tile `1A9E:006C` says is reachable. How that random word becomes
+ * a coordinate is **not recovered**. Do not invent a 20-slot ring here.
+ *
+ * Until that conversion is traced, candidates are the eight chart neighbors of the
+ * target (`1D09:0DF56` / `directions` 0…7), chart-passable and reachable. **First hit**
+ * is `[0]` — not a lexicographic heuristic.
  */
 export function classicEscortStationCandidates(
   game: Game,
