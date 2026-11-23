@@ -44,9 +44,10 @@ export function unitOrderGoals(game: Game, unit: Unit): Coord[] {
       const goals: Coord[] = [{ ...target.position }];
       const policy = resolveAiPolicy(game);
       if (isClassicDosPolicy(policy)) {
+        const close = classicEscortCloseRangeGoal(game, unit, target, policy.grade);
         const station =
-          classicEscortCloseRangeGoal(game, unit, target, policy.grade) ??
-          classicEscortStationGoal(game, unit, target, policy.grade);
+          close.goal ??
+          classicEscortStationGoal(close.game, unit, target, policy.grade).goal;
         if (station && !equal(station, target.position)) goals.push({ ...station });
       }
       return goals;
@@ -72,9 +73,10 @@ function unitPathDestination(game: Game, unit: Unit): Coord | null {
       if (!target) return null;
       const policy = resolveAiPolicy(game);
       if (isClassicDosPolicy(policy)) {
+        const close = classicEscortCloseRangeGoal(game, unit, target, policy.grade);
         return (
-          classicEscortCloseRangeGoal(game, unit, target, policy.grade) ??
-          classicEscortStationGoal(game, unit, target, policy.grade)
+          close.goal ??
+          classicEscortStationGoal(close.game, unit, target, policy.grade).goal
         );
       }
       return { ...target.position };

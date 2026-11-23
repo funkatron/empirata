@@ -4,9 +4,13 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.6.17 — Escort station random window (`1D09:03C2`)
+
+`classicEscortStationCandidates` runs up to **20** probes in a **7×7** window (`n=3` at `0x46C2`): two `rand15` draws per probe, first **reachable** chart tile wins (`1A9E:006C`). Trace: `agents/alg-ai-001-03c2-rand-tile-2026-11-23.md`.
+
 ## Version 0.6.16 — Escort station first-hit (`1D09:03C2`)
 
-`classicEscortStationCandidates` walks **eight chart directions** and picks the first **reachable** neighbor (`1A9E:006C`), replacing the prior **[T]** lexicographic rank. The DOS `1D09:03C2` loop calls `rand()` twenty times; the conversion from that word to a tile is not recovered, so the eight-direction probe stays in place.
+`classicEscortStationCandidates` walked **eight chart directions** and picked the first **reachable** neighbor (`1A9E:006C`), replacing the prior **[T]** lexicographic rank.
 
 ## Version 0.6.15 — ALG-012 patrol / wait wake
 

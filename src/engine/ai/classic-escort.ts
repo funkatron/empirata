@@ -3,7 +3,17 @@ import type { DosComputerGrade } from './classic-grades.js';
 import { classicTilePassableChart } from './classic-passability.js';
 import { classicRouteStep, classicUnitReachableGoal } from './classic-path.js';
 import { getPlayerView } from '../knowledge.js';
-import { directions, playable } from '../world.js';
+import { nextRandom15 } from '../rng.js';
+import { playable } from '../world.js';
+
+/** ALG-AI-001 `0x46AB`: radius `n` pushed before `1D09:03C2` on escort close-range default. */
+export const CLASSIC_ESCORT_STATION_RADIUS = 3;
+/** Loop bound at `0x1D47E`. */
+export const CLASSIC_ESCORT_STATION_PROBE_COUNT = 20;
+/** First `idiv` axis (`imul 100` leg) — DOS `0x3A` clamp; Empirata **Y**. */
+const DOS_STATION_IMUL_MAX = 58;
+/** Second `idiv` axis (adder) — DOS `0x62` clamp; Empirata **X**. */
+const DOS_STATION_ADD_MAX = 98;
 
 function chebyshev(a: Coord, b: Coord): number {
   return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
@@ -19,34 +29,45 @@ function nearestFriendlyCityPosition(game: Game, owner: Unit['owner'], near: Coo
   return homes[0]?.position ?? null;
 }
 
+function clampStationAxis(value: number, min: number, max: number): number {
+  if (value > max) return max;
+  if (value < min) return min;
+  return value;
+}
+
 /**
- * ALG-AI-001 escort station, staged.
- *
- * DOS `1D09:03C2` (`0x1D452`) loops **20** times (`0x1D47E`). Each pass calls
- * `25E6:0F64`, which is ALG-001 `rand()` (`0x26DC4`), then builds a map index and
- * keeps the first tile `1A9E:006C` says is reachable. How that random word becomes
- * a coordinate is **not recovered**. Do not invent a 20-slot ring here.
- *
- * Until that conversion is traced, candidates are the eight chart neighbors of the
- * target (`1D09:0DF56` / `directions` 0…7), chart-passable and reachable. **First hit**
- * is `[0]` — not a lexicographic heuristic.
+ * ALG-AI-001 `1D09:03C2` (`0x1D452`): up to 20 probes in an `(2n+1)²` window around the escort
+ * target; two `25E6:0F64` draws per probe; first chart-passable reachable tile wins.
  */
 export function classicEscortStationCandidates(
   game: Game,
   unit: Unit,
   target: Unit,
   grade: DosComputerGrade,
-): Coord[] {
+  radius: number = CLASSIC_ESCORT_STATION_RADIUS,
+): { game: Game; candidates: Coord[] } {
   const view = getPlayerView(game, unit.owner);
-  const stations: Coord[] = [];
-  for (const d of directions) {
-    const p = { x: target.position.x + d.x, y: target.position.y + d.y };
+  const span = 2 * radius + 1;
+  const baseY = target.position.y - radius;
+  const baseX = target.position.x - radius;
+  let rng = game.rng;
+
+  for (let probe = 0; probe < CLASSIC_ESCORT_STATION_PROBE_COUNT; probe++) {
+    const drawY = nextRandom15(rng);
+    rng = drawY.next;
+    const y = clampStationAxis((drawY.value % span) + baseY, 1, DOS_STATION_IMUL_MAX);
+
+    const drawX = nextRandom15(rng);
+    rng = drawX.next;
+    const x = clampStationAxis((drawX.value % span) + baseX, 1, DOS_STATION_ADD_MAX);
+
+    const p = { x, y };
     if (!playable(game, p)) continue;
     if (!classicTilePassableChart(game, view, unit.owner, unit, p, grade)) continue;
     if (!classicUnitReachableGoal(game, unit, p, grade)) continue;
-    stations.push(p);
+    return { game: { ...game, rng }, candidates: [p] };
   }
-  return stations;
+  return { game: { ...game, rng }, candidates: [] };
 }
 
 export function classicEscortStationGoal(
@@ -54,44 +75,60 @@ export function classicEscortStationGoal(
   unit: Unit,
   target: Unit,
   grade: DosComputerGrade,
-): Coord | null {
-  return classicEscortStationCandidates(game, unit, target, grade)[0] ?? null;
+): { game: Game; goal: Coord | null } {
+  const probed = classicEscortStationCandidates(game, unit, target, grade);
+  return { game: probed.game, goal: probed.candidates[0] ?? null };
 }
 
 /**
  * ALG-AI-001 `0x4600`: within Chebyshev 3 of the escort target, path goal follows the target’s standing order
  * (or the `1D09:03C2` station tile when the target is holding).
  */
-export function classicEscortCloseRangeGoal(game: Game, unit: Unit, target: Unit, grade: DosComputerGrade): Coord | null {
-  if (chebyshev(unit.position, target.position) >= 4) return null;
+export function classicEscortCloseRangeGoal(
+  game: Game,
+  unit: Unit,
+  target: Unit,
+  grade: DosComputerGrade,
+): { game: Game; goal: Coord | null } {
+  if (chebyshev(unit.position, target.position) >= 4) return { game, goal: null };
   const order = target.order;
-  if (order.kind === 'move-to') return { ...order.destination };
+  if (order.kind === 'move-to') return { game, goal: { ...order.destination } };
   if (order.kind === 'go-home') {
     const home = nearestFriendlyCityPosition(game, unit.owner, target.position);
-    return home ? { ...home } : null;
+    return { game, goal: home ? { ...home } : null };
   }
   if (order.kind === 'go-direction') {
-    return { x: target.position.x + order.direction.x, y: target.position.y + order.direction.y };
+    return { game, goal: { x: target.position.x + order.direction.x, y: target.position.y + order.direction.y } };
   }
-  if (order.kind === 'patrol') return order.outbound ? { ...order.to } : { ...order.from };
+  if (order.kind === 'patrol') return { game, goal: order.outbound ? { ...order.to } : { ...order.from } };
   return classicEscortStationGoal(game, unit, target, grade);
 }
 
 /** ALG-AI-001 escort: seek a legal tile within one step of the escort target. */
-export function classicEscortStep(game: Game, unit: Unit, grade: DosComputerGrade): Coord | null {
+export function classicEscortStep(
+  game: Game,
+  unit: Unit,
+  grade: DosComputerGrade,
+): { game: Game; step: Coord | null } {
   const order = unit.order;
-  if (order.kind !== 'escort') return null;
+  if (order.kind !== 'escort') return { game, step: null };
   const target = game.units.find(t => t.id === order.targetId && t.owner === unit.owner && !t.aboard);
-  if (!target) return null;
-  if (chebyshev(unit.position, target.position) <= 1) return null;
-  const closeGoal = classicEscortCloseRangeGoal(game, unit, target, grade);
-  if (closeGoal) {
-    const closeStep = classicRouteStep(game, unit, closeGoal, grade);
-    if (closeStep) return closeStep;
+  if (!target) return { game, step: null };
+  if (chebyshev(unit.position, target.position) <= 1) return { game, step: null };
+
+  let g = game;
+  const close = classicEscortCloseRangeGoal(g, unit, target, grade);
+  g = close.game;
+  if (close.goal) {
+    const closeStep = classicRouteStep(g, unit, close.goal, grade);
+    if (closeStep) return { game: g, step: closeStep };
   }
-  for (const station of classicEscortStationCandidates(game, unit, target, grade)) {
-    const step = classicRouteStep(game, unit, station, grade);
-    if (step) return step;
+
+  const probed = classicEscortStationCandidates(g, unit, target, grade);
+  g = probed.game;
+  for (const station of probed.candidates) {
+    const step = classicRouteStep(g, unit, station, grade);
+    if (step) return { game: g, step };
   }
-  return null;
+  return { game: g, step: null };
 }

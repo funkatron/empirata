@@ -43,27 +43,26 @@ test('classicSanitizeTransportOrder clears escort on empty transport', () => {
 
 test('classicEscortStep moves toward a station tile beside the target', () => {
   const g = makeRulesLab();
-  g.tiles.fill('land');
-  const city = g.cities.find(c => c.id === 'c-red');
-  const escort = {
-    ...g.units[0],
-    id: 'escort-army',
+  g.tiles.fill('sea');
+  const target = {
+    ...g.units.find(u => u.kind === 'destroyer'),
+    id: 'lead',
     owner: 'red',
-    kind: 'army',
-    position: { x: city.position.x + 1, y: city.position.y },
-    order: { kind: 'escort', targetId: 'ally' },
-  };
-  const ally = {
-    ...g.units[0],
-    id: 'ally',
-    owner: 'red',
-    kind: 'army',
-    position: { x: city.position.x + 4, y: city.position.y },
+    kind: 'destroyer',
+    position: { x: 50, y: 30 },
     order: { kind: 'none' },
+    fuel: null,
   };
-  g.units = [escort, ally];
+  const escort = {
+    ...target,
+    id: 'escort',
+    position: { x: 47, y: 30 },
+    order: { kind: 'escort', targetId: 'lead' },
+  };
+  g.units = [escort, target];
+  g.rng = { seed: 0xface1234, draws: 0 };
   updateAllKnowledge(g, false);
-  const step = classicEscortStep(g, escort, 1);
+  const { step } = classicEscortStep(g, escort, 1);
   assert.ok(step);
   assert.equal(Math.max(Math.abs(step.x - escort.position.x), Math.abs(step.y - escort.position.y)), 1);
 });
