@@ -6,7 +6,7 @@ import { getPlayerView } from '../knowledge.js';
 import { nextRandom15 } from '../rng.js';
 import { playable } from '../world.js';
 
-/** ALG-AI-001 `0x46AB`: radius `n` pushed before `1D09:03C2` on escort close-range default. */
+/** ALG-AI-001: radius `n=3` pushed for the escort close-range call at `0x46C2`. */
 export const CLASSIC_ESCORT_STATION_RADIUS = 3;
 /** Loop bound at `0x1D47E`. */
 export const CLASSIC_ESCORT_STATION_PROBE_COUNT = 20;
@@ -104,7 +104,30 @@ export function classicEscortCloseRangeGoal(
   return classicEscortStationGoal(game, unit, target, grade);
 }
 
-/** ALG-AI-001 escort: seek a legal tile within one step of the escort target. */
+/**
+ * Tile this escort should path toward.
+ *
+ * Inside Chebyshev 3 this is `0x4600`: the target's standing order, or one `03C2`
+ * station probe when that order does not name a destination. A failed route does not
+ * roll the window again. Farther out, DOS does not call `03C2`; Empirata still aims at
+ * one station tile from the same formula so the escort can close.
+ */
+export function classicEscortNavigationGoal(
+  game: Game,
+  unit: Unit,
+  target: Unit,
+  grade: DosComputerGrade,
+): { game: Game; goal: Coord | null } {
+  if (chebyshev(unit.position, target.position) >= 4) {
+    return classicEscortStationGoal(game, unit, target, grade);
+  }
+  const close = classicEscortCloseRangeGoal(game, unit, target, grade);
+  if (close.goal) return close;
+  if (target.order.kind === 'go-home') return classicEscortStationGoal(close.game, unit, target, grade);
+  return close;
+}
+
+/** ALG-AI-001 escort: one step toward `classicEscortNavigationGoal`. */
 export function classicEscortStep(
   game: Game,
   unit: Unit,
@@ -116,19 +139,7 @@ export function classicEscortStep(
   if (!target) return { game, step: null };
   if (chebyshev(unit.position, target.position) <= 1) return { game, step: null };
 
-  let g = game;
-  const close = classicEscortCloseRangeGoal(g, unit, target, grade);
-  g = close.game;
-  if (close.goal) {
-    const closeStep = classicRouteStep(g, unit, close.goal, grade);
-    if (closeStep) return { game: g, step: closeStep };
-  }
-
-  const probed = classicEscortStationCandidates(g, unit, target, grade);
-  g = probed.game;
-  for (const station of probed.candidates) {
-    const step = classicRouteStep(g, unit, station, grade);
-    if (step) return { game: g, step };
-  }
-  return { game: g, step: null };
+  const nav = classicEscortNavigationGoal(game, unit, target, grade);
+  if (!nav.goal) return { game: nav.game, step: null };
+  return { game: nav.game, step: classicRouteStep(nav.game, unit, nav.goal, grade) };
 }

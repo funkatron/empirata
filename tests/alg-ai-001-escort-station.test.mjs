@@ -118,6 +118,42 @@ test('classicEscortStep advances rng and moves toward a station tile', () => {
   assert.ok(distToTarget <= CLASSIC_ESCORT_STATION_RADIUS);
 });
 
+test('classicEscortStep rolls the station window once for a holding target', () => {
+  const { g, escort } = holdingEscortFixture();
+  g.rng = { seed: 0xface1234, draws: 0 };
+  const moved = classicEscortStep(g, escort, 1);
+  const used = moved.game.rng.draws - g.rng.draws;
+  assert.ok(used >= 2);
+  assert.ok(used <= CLASSIC_ESCORT_STATION_PROBE_COUNT * 2);
+  assert.equal(used % 2, 0);
+});
+
+test('classicEscortStep does not draw rand while following a close move-to order', () => {
+  const g = makeRulesLab();
+  g.tiles.fill('sea');
+  g.rng = { seed: 0xabc, draws: 4 };
+  const escort = {
+    ...g.units.find(u => u.kind === 'destroyer'),
+    id: 'escort',
+    owner: 'red',
+    position: { x: 49, y: 30 },
+    order: { kind: 'escort', targetId: 'lead' },
+    fuel: null,
+  };
+  const target = {
+    ...escort,
+    id: 'lead',
+    position: { x: 51, y: 30 },
+    order: { kind: 'move-to', destination: { x: 50, y: 30 } },
+  };
+  g.units = [escort, target];
+  updateAllKnowledge(g, false);
+  const moved = classicEscortStep(g, escort, 1);
+  assert.equal(moved.game.rng.draws, g.rng.draws);
+  assert.ok(moved.step);
+  assert.ok(moved.step.x > escort.position.x);
+});
+
 test('classicEscortStationCandidates consumes at most two draws per probe', () => {
   const { g, escort, target } = holdingEscortFixture();
   g.rng = { seed: 99, draws: 0 };

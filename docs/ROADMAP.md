@@ -19,7 +19,7 @@ Use this section for **what to work on now**. Older dated sections below are his
 - **B (production):** ship-mix **#104** and own-unit inventory **#184** are on `main`.
 - **C (map / CI / docs):** coastline **#76** and **#95**, Actions Node 24 **#96**, and the performance baseline **#94** are on `main`.
 
-**Next:** Track **A** classic parity. **A1** is staged: the `1D09:03C2` loop calls ALG-001 `rand()` (`25E6:0F64`) twenty times, and the random-word → tile conversion is still unrecovered, so stationing stays the 8-direction first hit (`agents/q31-a1-escort-station-staged.md`). Still open: DOSBox `0x4C52` rim evidence (**A2**) and the `0xDF58` static trace (**A3**). Track **D** (observer path polish) can run beside those. Optional **C4** is a `WORKSTREAM_STATUS.md` date refresh only.
+**Next:** Track **A** classic parity. **A1** is on `main` as v0.6.17: `1D09:03C2` draws `rand()` twice per probe inside a `(2n+1)²` window (`n=3`). Still open: DOSBox `0x4C52` rim evidence (**A2**), the `0xDF58` static trace (**A3**), and the separate `n=10` reissue caller at `0x1D39F` (not escort). Track **D** (observer path polish) can run beside those. Optional **C4** is a `WORKSTREAM_STATUS.md` date refresh only.
 
 **Engine queue (historical):** The [review-driven execution queue](#review-driven-execution-queue-2026-11-09) **P0**–**P4** is **closed**. Playwright capture stays opt-in.
 
