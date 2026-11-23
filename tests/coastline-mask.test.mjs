@@ -17,17 +17,18 @@ test('diagonal-only sea neighbors never paint shoreline spurs',()=>{
   assert.match(art,/imageSmoothingEnabled=false/);
 });
 
-test('shoreline pixels are composed once from cardinal edge distances',()=>{
+test('shoreline water shape is composited from terrain atlas',()=>{
   assert.match(art,/for\(let y=0;y<32;y\+\+\)for\(let x=0;x<32;x\+\+\)/);
-  assert.match(art,/let d=Math\.min\(\.\.\.distances\)/);
-  assert.match(art,/if\(band>=3\)continue/);
-  assert.doesNotMatch(art,/function edge\(/);
-  assert.doesNotMatch(art,/for\(const \[corner,active\]/);
+  assert.match(art,/globalCompositeOperation='source-in'/);
+  assert.match(art,/drawImage\(atlas,0,32,32,32,0,0,32,32\)/);
+  assert.match(art,/const edge=\(horizontal:boolean,reverse:boolean\)/);
 });
 
-test('adjacent sea edges use symmetric rounded corner joins',()=>{
-  for(const pair of ['n&&w','n&&e','s&&w','s&&e'])assert.ok(art.includes('if('+pair+')d=Math.min(d,roundedJoin('));
-  assert.match(art,/Math\.abs\(a-b\)/);
-  assert.match(art,/const band=Math\.floor\(d\)/);
-  assert.doesNotMatch(art,/c\.fillRect\(x,y,1,1\)[\s\S]*c\.fillRect\(x,y,1,1\)/);
+test('diagonal coves are carved for isolated diagonal sea contacts',()=>{
+  assert.match(art,/ne&&!n&&!e/);
+  assert.match(art,/se&&!s&&!e/);
+  assert.match(art,/sw&&!s&&!w/);
+  assert.match(art,/nw&&!n&&!w/);
+  assert.match(art,/if\(xx\+yy>4\)continue/);
+  assert.match(art,/if\(xx\+yy!==5\)continue/);
 });
