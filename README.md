@@ -6,7 +6,7 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 ## Version 0.6.16 — Escort station first-hit (`1D09:03C2`)
 
-`classicEscortStationCandidates` walks **eight chart directions** and picks the first **reachable** neighbor (`1A9E:006C`), replacing the prior **[T]** lexicographic rank.
+`classicEscortStationCandidates` walks **eight chart directions** and picks the first **reachable** neighbor (`1A9E:006C`), replacing the prior **[T]** lexicographic rank. The DOS `1D09:03C2` loop calls `rand()` twenty times; the conversion from that word to a tile is not recovered, so the eight-direction probe stays in place.
 
 ## Version 0.6.15 — ALG-012 patrol / wait wake
 

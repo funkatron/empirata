@@ -37,7 +37,7 @@ Authoritative **order** for post–v0.5.2 classic work. Update status as PRs lan
 
 | Slice | Deliverable | Status |
 |-------|-------------|--------|
-| **J1b / A1** | Escort station 20-angle loop (or staged ruleset) | pending — next engine slice |
+| **J1b / A1** | Escort station 20-iteration loop | staged — `25E6:0F64` is ALG-001 `rand()`; tile conversion **[?]**; engine stays 8-dir (`agents/q31-a1-escort-station-staged.md`) |
 | **J2 / A2** | DOSBox `0x4C52` rim evidence | pending |
 | **J3 / A3** | ALG-AI-004 `0xDF58` static trace | pending |
 | **B1** | DOS production ship-mix | done (#104) |
