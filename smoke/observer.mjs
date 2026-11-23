@@ -31,7 +31,13 @@ test('Observer speed, progress and cancellation in WebKit',async t=>{
     const start=async()=>{
       await page.locator('#gameMenu').click();
       await page.locator('#gameMenuDialog').waitFor({state:'visible'});
-      await page.locator('#aiVsAiGame').click();
+      // Lab fixtures live in a closed <details>. Playwright will not click a
+      // button whose box is hidden, which is what timed out CI browser-smoke.
+      const testMenu=page.locator('#testScenariosMenu');
+      if(!(await testMenu.evaluate(el=>el.open)))await page.locator('#testScenariosMenu > summary').click();
+      const fixture=page.locator('#aiVsAiGame');
+      await fixture.scrollIntoViewIfNeeded();
+      await fixture.click();
       await page.waitForFunction(()=>document.querySelector('#round').textContent==='ROUND 1');
     };
     const round=async()=>Number((await page.locator('#round').textContent()).replace('ROUND ',''));
@@ -72,14 +78,24 @@ test('Observer speed, progress and cancellation in WebKit',async t=>{
       const paused=await page.evaluate(min=>new Promise(done=>{
         const node=document.querySelector('#mapBusyDetail');
         const observer=new MutationObserver(()=>{
-          const current=Number(document.querySelector('#round').textContent.replace('ROUND ',''))+Number(node.textContent.split(' / ')[0]);
+          // #round stays on the pre-batch value until Pause flushes. The detail
+          // numerator is the 1-based round being worked. Between rounds it
+          // already names the next round, before that round has started.
+          const label=Number(document.querySelector('#round').textContent.replace('ROUND ',''));
+          const detail=node.textContent;
+          const numer=Number(detail.split(' / ')[0]);
+          const inPhase=detail.includes('·');
+          let current=label+numer;
+          if(!inPhase)current=label+numer-1;
           if(current>=min){
             const visible=!document.querySelector('#mapBusy').hidden;
             document.querySelector('#autoPlay').click();observer.disconnect();done({current,visible});
           }
         });observer.observe(node,{childList:true,subtree:true});document.querySelector('#advanceRounds').click();
       }),before+3);
-      assert.equal(paused.visible,true);assert.ok(paused.current<before+100);
+      assert.equal(paused.visible,true);
+      assert.ok(paused.current>before);
+      assert.ok(paused.current<before+100);
       await page.waitForTimeout(200);assert.equal(await round(),paused.current);
       assert.equal(await page.locator('#mapBusy').isHidden(),true);
     });
