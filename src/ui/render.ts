@@ -61,7 +61,8 @@ export function createRenderer(canvas:HTMLCanvasElement,ctx:CanvasRenderingConte
       const px=x*layerTileSize,py=y*layerTileSize;
       const seaAt=(dx:number,dy:number)=>displayTerrain(x+dx,y+dy)==='sea';
       drawTerrain(layer,terrain,px,py,layerTileSize,x,y);
-      if(terrain==='land')drawCoast(layer,px,py,layerTileSize,seaAt(0,-1),seaAt(1,0),seaAt(0,1),seaAt(-1,0));
+      if(terrain==='land')drawCoast(layer,px,py,layerTileSize,seaAt(0,-1),seaAt(1,0),seaAt(0,1),seaAt(-1,0),
+        seaAt(1,-1),seaAt(1,1),seaAt(-1,1),seaAt(-1,-1));
       if(layerTileSize>=9){layer.strokeStyle='rgba(120,159,166,.12)';layer.lineWidth=.65;layer.strokeRect(px+.3,py+.3,layerTileSize-.6,layerTileSize-.6);}
     }
     terrainLayerKey=key;
