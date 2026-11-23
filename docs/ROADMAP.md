@@ -8,13 +8,20 @@
 
 **Migration:** (1) reconcile recovered ALG claims with actual engine/tests, since the ruleset mapping table contains stale pre-implementation statuses; (2) add a game-level policy/difficulty setting and original grade parameters with save/replay coverage; (3) implement classic production and movement in bounded deterministic steps; (4) make Classic DOS the default once the minimum classic policy is usable and visibly distinguish incomplete features until then. Keep both factions symmetrical and verify CI/Copilot before merge. No merge or deployment without authorization.
 
-## Current status (2026-11-16)
+## Current status (2026-11-23)
 
 Use this section for **what to work on now**. Older dated sections below are historical context and detailed specifications.
 
-**Product (v0.6.0):** New campaigns default to **Classic DOS grade 1**; **Modern (experimental)** remains selectable. Rules-lab saves without `aiPolicy` keep modern for fixture compatibility. Migration step (4) complete.
+**Product (v0.6.16):** New campaigns default to **Classic DOS grade 1**; **Modern (experimental)** remains selectable and is not an active strategy track. Rules-lab saves without `aiPolicy` keep modern for fixture compatibility.
 
-**Engine queue (authoritative):** Follow the [review-driven execution queue](#review-driven-execution-queue-2026-11-09) — **P0**–**P3** **closed**; **P4** **closed** (Priority 1 audit, gesture unit tests, `ui-load` smoke, G3 menu a11y, G4 overview tap-to-zoom); next: roadmap **P4 item 9** policy documented (Playwright opt-in).
+**Live queue:** [Q31 multi-track handoff](../agents/q31-multi-track-handoff-2026-11-21.md) and [classic migration slices](../agents/classic-migration-slices.md). Do not reopen finished Q31 tracks:
+
+- **B (production):** ship-mix **#104** and own-unit inventory **#184** are on `main`.
+- **C (map / CI / docs):** coastline **#76** and **#95**, Actions Node 24 **#96**, and the performance baseline **#94** are on `main`.
+
+**Next:** Track **A** classic parity — escort station 20-angle (**A1 / J1b**, needs the `25E6:0F64` table cited before engine code), DOSBox `0x4C52` rim evidence (**A2**), and the `0xDF58` static trace (**A3**). Track **D** (observer path polish) can run beside A. Optional **C4** is a `WORKSTREAM_STATUS.md` date refresh only.
+
+**Engine queue (historical):** The [review-driven execution queue](#review-driven-execution-queue-2026-11-09) **P0**–**P4** is **closed**. Playwright capture stays opt-in.
 
 **Evaluation discipline:** The frozen [42-campaign baseline](evaluation/strategy-baseline/BASELINE_INTERPRETATION.md) and [held-out manifest audit](../agents/evaluation/held-out-manifest-audit.json) are screening tools, not optimization targets. Long campaigns stay opt-in (`npm run evaluate:ai`, held-out workflow).
 

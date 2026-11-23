@@ -32,26 +32,23 @@ Read agents/q31-multi-track-handoff-2026-11-21.md § Track A. One ALG per PR. np
 
 ---
 
-## Track B — ALG-AI-002 production (stale open PRs)
+## Track B — ALG-AI-002 production (landed)
 
 | Step | Action | PRs |
 |------|--------|-----|
-| **B0** | Triage duplicate branches | Close **#103** if **#105** wins; close **#102** if **#104** wins |
-| **B1** | Rebase **#104** `feat/dos-ai-ship-mix-rebased` onto current `main`; fix conflicts | Merge as single ship-mix PR |
-| **B2** | Rebase **#105** `feat/dos-ai-visible-inventory-rebased`; run compare CI | Merge after B1 or independently if no overlap |
-| **B3** | Held-out / `compare` workflow green on `main` after merges | No new PR — verify only |
+| **B0** | Triage duplicate branches | **done** — duplicates closed; do not reopen |
+| **B1** | Ship-mix policy | **done** — **#104** on `main` |
+| **B2** | Own-unit inventory from `PlayerView` | **done** — **#184** on `main` (`src/engine/ai/dos-production.ts`) |
+| **B3** | Held-out / `compare` workflow green on `main` after merges | optional verify only — not a new feature |
 
-**Files likely touched:** `src/engine/ai/classic-production.ts`, planners, `tests/alg-ai-002*.test.mjs`.  
-**Do not** combine with Track A escort work in one PR.
-
-**Risk:** **#102** is **CONFLICTING**; do not merge without rebase. **#104/#105** are the preferred rebased heads.
+**Landed in** `src/engine/ai/dos-production.ts` and `tests/alg-ai-002-ship-mix.test.mjs`, `tests/alg-ai-002-inventory.test.mjs`.  
+Do not open a new ship-mix or inventory PR. A later production ALG is a new slice, not a rebase of #104 or #184.
 
 ### Track B — paste prompt
 
 ```text
-Track B — Empirata production AI. Rebase feat/dos-ai-ship-mix-rebased (#104) and
-feat/dos-ai-visible-inventory-rebased (#105) onto origin/main. Close obsolete #102/#103.
-npm test + compare CI. One merge per PR. See agents/q31-multi-track-handoff-2026-11-21.md § Track B.
+Track B is done on main (#104 ship-mix, #184 inventory). Do not rebase or reopen it.
+Next classic work is Track A. See agents/q31-multi-track-handoff-2026-11-21.md.
 ```
 
 ---
@@ -60,19 +57,18 @@ npm test + compare CI. One merge per PR. See agents/q31-multi-track-handoff-2026
 
 | Slice | Deliverable | Open PR | Branch hint |
 |-------|-------------|---------|-------------|
-| **C1** | Coast / diagonal shoreline (pick one approach) | **#95** vs **#76** | Rebase winner; close loser ( #76 verify failed historically) |
-| **C2** | GitHub Actions Node 24 majors | **#96** | Merge if not already on `main`; else close |
-| **C3** | Performance / integration doc baseline | **#94** | Doc-only merge |
-| **C4** | Optional: verify terrain deploy gate in `WORKSTREAM_STATUS` | new doc PR | `cursor/workstream-status-refresh-85b7` |
+| **C1** | Coast / diagonal shoreline | **done** (#76, #95) | Do not reopen coastline PRs |
+| **C2** | GitHub Actions Node 24 majors | **done** (#96) | — |
+| **C3** | Performance / integration doc baseline | **done** (#94) | `docs/PERFORMANCE_AI_INTEGRATION.md` |
+| **C4** | Optional: `WORKSTREAM_STATUS` date refresh | pending | `cursor/workstream-status-refresh-85b7` |
 
-**Suggested order:** **C2** (CI) → **C1** (visual + `npm test`) → **C3** → **C4**.
+**C1–C3 are on `main`.** Only optional **C4** remains.
 
 ### Track C — paste prompt
 
 ```text
-Track C — Empirata map/CI/docs. Rebase PR #95 coast fix onto main; retire #76 if superseded.
-Check whether #96 Actions Node 24 is already on main. Merge #94 if still accurate.
-Browser screenshot for C1. agents/q31-multi-track-handoff-2026-11-21.md § Track C.
+Track C coastline, Actions Node 24, and the performance baseline are already on main.
+Do not reopen #76, #94, #95, or #96. Optional leftover: refresh docs/WORKSTREAM_STATUS.md (C4).
 ```
 
 ---
@@ -115,8 +111,8 @@ Edit src/ + public/. computerUse or smoke for CvC. No sidebar roundProgress regr
 ## Definition of done (Q31 tranche)
 
 - [ ] **A:** Ruleset escort row reflects 20-angle **or** explicit staged gap with test; J2/J3 evidence files linked from ruleset  
-- [ ] **B:** No open duplicate production PRs; ship-mix + inventory on `main`  
-- [ ] **C:** Coast PR resolved; Actions/doc PRs merged or closed with reason  
+- [x] **B:** Ship-mix **#104** and inventory **#184** on `main`  
+- [x] **C:** Coast **#76/#95**, Actions **#96**, and performance doc **#94** on `main` (optional `WORKSTREAM_STATUS` refresh remains)  
 - [ ] **D:** At least **D2** shipped; D1/D4 if time  
 - [ ] **Hygiene:** `local-agent-handoff-dos-ai.md` + slice tracker list Q31 rows **done/pending**
 

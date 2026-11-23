@@ -31,8 +31,8 @@ See **`agents/q28-post-q27-slices.md`**, **`agents/q29-i1-escort-station-ooda-pl
 | Track | Focus |
 |-------|--------|
 | **A** | J1b 20-angle escort, J2 DOSBox `0x4C52`, J3 `0xDF58` trace |
-| **B** | Merge/rebase production PRs **#104–#105**; close **#102–#103** |
-| **C** | Coast **#95**, CI **#96**, docs **#94**, workstream refresh |
+| **B** | **done** — ship-mix **#104**, inventory **#184** |
+| **C** | **done** except optional workstream refresh — coast **#76/#95**, CI **#96**, docs **#94** |
 | **D** | Observer path polish (human lab paths, cache invalidation, smoke) |
 
 ## Local traces vs cloud GUI

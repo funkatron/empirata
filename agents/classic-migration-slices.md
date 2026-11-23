@@ -1,4 +1,4 @@
-# Classic migration — slice tracker (2026-11-21)
+# Classic migration — slice tracker (2026-11-23)
 
 Authoritative **order** for post–v0.5.2 classic work. Update status as PRs land.
 
@@ -37,11 +37,15 @@ Authoritative **order** for post–v0.5.2 classic work. Update status as PRs lan
 
 | Slice | Deliverable | Status |
 |-------|-------------|--------|
-| **J1b / A1** | Escort station 20-angle loop (or staged ruleset) | pending |
+| **J1b / A1** | Escort station 20-angle loop (or staged ruleset) | pending — next engine slice |
 | **J2 / A2** | DOSBox `0x4C52` rim evidence | pending |
 | **J3 / A3** | ALG-AI-004 `0xDF58` static trace | pending |
-| **B1–B2** | Production ship-mix + visible inventory (PRs #104–#105) | pending |
-| **C1–C4** | Coast, Actions Node 24, perf doc, workstream refresh | pending |
+| **B1** | DOS production ship-mix | done (#104) |
+| **B2** | DOS production own-unit inventory (`PlayerView`) | done (#184) |
+| **C1** | Diagonal shoreline / shared sea atlas | done (#76, #95) |
+| **C2** | GitHub Actions Node 24 majors | done (#96) |
+| **C3** | Performance integration baseline | done (#94) |
+| **C4** | `WORKSTREAM_STATUS` refresh | pending (optional) |
 | **D1–D4** | Observer path polish | pending |
 
 **Policy:** patch semver (0.5.x) for shipped UI/behavior; **0.6.0** minor when classic became default (slice E). Further 0.6.x patches through 0.6.x classic expansion (F).
