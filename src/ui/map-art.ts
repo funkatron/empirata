@@ -19,7 +19,7 @@ const harbor=new Path2D('M3 11V8H9V5H15V8H21V11Z M10 10H14V18H20V15H23V20L20 23H
 const atlas=new Image();
 let atlasReady=false;
 export function isTerrainAtlasReady():boolean{return atlasReady;}
-atlas.onload=()=>{atlasReady=true;window.dispatchEvent(new Event('empirata-terrain-ready'));};
+atlas.onload=()=>{atlasReady=true;shoreCache.clear();window.dispatchEvent(new Event('empirata-terrain-ready'));};
 atlas.src='./terrain-atlas.svg';
 function tileVariant(column:number,row:number):number {
   // The eight variants share matching perimeter pixels, allowing arbitrary
@@ -43,6 +43,8 @@ export function drawTerrain(ctx:CanvasRenderingContext2D,terrain:Terrain|null,x:
 
 // Shore overlay is assembled from neighboring *known* sea cells.
 // Drawn in a 32-pixel offscreen grid to retain hard pixel edges at every zoom.
+// Coastlines are transparent overlays. Water cutouts are filled with the same
+// atlas artwork as ordinary sea tiles, never a separately painted blue.
 const shoreCache=new Map<number,HTMLCanvasElement>();
 function shoreSprite(mask:number):HTMLCanvasElement {
   const cached=shoreCache.get(mask);
@@ -51,40 +53,83 @@ function shoreSprite(mask:number):HTMLCanvasElement {
   canvas.width=canvas.height=32;
   const c=canvas.getContext('2d')!;
   const n=!!(mask&1),e=!!(mask&2),s=!!(mask&4),w=!!(mask&8);
-  const sea='#247d9b',shallows='#40a5b4',sand='#c9b57a',highlight='#e3d49c';
-  // Compose each pixel once. Round inward-facing joins where two exposed
-  // edges meet, without extending shoreline into diagonal-only sea contacts.
-  // A symmetric smooth minimum preserves each straight edge away from joins.
+  const ne=!!(mask&16),se=!!(mask&32),sw=!!(mask&64),nw=!!(mask&128);
+  const shallows='#40a5b4',sand='#c9b57a',highlight='#e3d49c';
   const depth=[5,5,4,4,3,3,4,4,5,5,4,4,3,3,4,4,5,5,4,4,3,3,4,4,5,5,4,4,3,3,4,4];
+  // A single mask describes water, including diagonal-only coves.
+  const water=document.createElement('canvas');
+  water.width=water.height=32;
+  const wc=water.getContext('2d')!;
+  const mark=(x:number,y:number)=>wc.fillRect(x,y,1,1);
   for(let y=0;y<32;y++)for(let x=0;x<32;x++){
-    const distances:number[]=[];
-    if(n)distances.push(y-depth[x]!);
-    if(s)distances.push(31-y-depth[x]!);
-    if(w)distances.push(x-depth[y]!);
-    if(e)distances.push(31-x-depth[y]!);
-    if(!distances.length)continue;
-    let d=Math.min(...distances);
-    // Round the inland corner of each pair of adjacent exposed edges.
-    // The blend vanishes outside a four-pixel join, preserving straight coasts.
-    const roundedJoin=(a:number,b:number):number=>{
-      const radius=4,blend=Math.max(radius-Math.abs(a-b),0);
-      return Math.min(a,b)-blend*blend/(4*radius);
-    };
-    if(n&&w)d=Math.min(d,roundedJoin(y-depth[x]!,x-depth[y]!));
-    if(n&&e)d=Math.min(d,roundedJoin(y-depth[x]!,31-x-depth[y]!));
-    if(s&&w)d=Math.min(d,roundedJoin(31-y-depth[x]!,x-depth[y]!));
-    if(s&&e)d=Math.min(d,roundedJoin(31-y-depth[x]!,31-x-depth[y]!));
-    // Fractional join distances are quantized consistently across corners.
-    const band=Math.floor(d);
-    if(band>=3)continue;
-    c.fillStyle=band<0?sea:band===0?shallows:band===1?highlight:sand;
-    c.fillRect(x,y,1,1);
+    if((n&&y<depth[x]!)||(s&&y>=32-depth[x]!)||
+       (w&&x<depth[y]!)||(e&&x>=32-depth[y]!))mark(x,y);
+  }
+  // Diagonal sea contacts carve a small inward cove only when both
+  // cardinal neighbors are land. They do not create full edge spurs.
+  for(const [active,right,bottom] of [
+    [ne&&!n&&!e,true,false],[se&&!s&&!e,true,true],
+    [sw&&!s&&!w,false,true],[nw&&!n&&!w,false,false],
+  ] as const){
+    if(!active)continue;
+    for(let yy=0;yy<5;yy++)for(let xx=0;xx<5;xx++){
+      if(xx+yy>4)continue;
+      mark(right?31-xx:xx,bottom?31-yy:yy);
+    }
+  }
+  // The masked water pixels come from the exact sea atlas row.
+  if(atlasReady){
+    wc.globalCompositeOperation='source-in';
+    wc.imageSmoothingEnabled=false;
+    wc.drawImage(atlas,0,32,32,32,0,0,32,32);
+    wc.globalCompositeOperation='source-over';
+  }else{
+    wc.globalCompositeOperation='source-in';
+    wc.fillStyle='#134c78';wc.fillRect(0,0,32,32);
+    wc.globalCompositeOperation='source-over';
+  }
+  c.drawImage(water,0,0);
+  // Beach and shallow-water edging stay transparent away from the coast.
+  const edge=(horizontal:boolean,reverse:boolean)=>{
+    for(let i=0;i<32;i++){
+      const d=depth[i]!;
+      if(horizontal){
+        const y=reverse?32-d:0;
+        c.fillStyle=shallows;c.fillRect(i,reverse?y-1:d,1,1);
+        c.fillStyle=sand;c.fillRect(i,reverse?y-3:d+1,1,2);
+        if(i%9===0){c.fillStyle=highlight;c.fillRect(i,reverse?y-3:d+1,1,1);}
+      }else{
+        const x=reverse?32-d:0;
+        c.fillStyle=shallows;c.fillRect(reverse?x-1:d,i,1,1);
+        c.fillStyle=sand;c.fillRect(reverse?x-3:d+1,i,2,1);
+        if(i%9===0){c.fillStyle=highlight;c.fillRect(reverse?x-3:d+1,i,1,1);}
+      }
+    }
+  };
+  if(n)edge(true,false);
+  if(s)edge(true,true);
+  if(w)edge(false,false);
+  if(e)edge(false,true);
+  // Shoreline highlights follow the diagonally carved corners as well.
+  for(const [active,right,bottom] of [
+    [ne&&!n&&!e,true,false],[se&&!s&&!e,true,true],
+    [sw&&!s&&!w,false,true],[nw&&!n&&!w,false,false],
+  ] as const){
+    if(!active)continue;
+    for(let yy=0;yy<5;yy++)for(let xx=0;xx<5;xx++){
+      if(xx+yy!==5)continue;
+      c.fillStyle=sand;
+      c.fillRect(right?31-xx:xx,bottom?31-yy:yy,1,1);
+    }
   }
   shoreCache.set(mask,canvas);
   return canvas;
 }
-export function drawCoast(ctx:CanvasRenderingContext2D,x:number,y:number,size:number,north:boolean,east:boolean,south:boolean,west:boolean,_northEast=false,_southEast=false,_southWest=false,_northWest=false):void {
-  const mask=(north?1:0)|(east?2:0)|(south?4:0)|(west?8:0);
+export function drawCoast(ctx:CanvasRenderingContext2D,x:number,y:number,size:number,
+  north:boolean,east:boolean,south:boolean,west:boolean,
+  northEast=false,southEast=false,southWest=false,northWest=false):void {
+  const mask=(north?1:0)|(east?2:0)|(south?4:0)|(west?8:0)|
+    (northEast?16:0)|(southEast?32:0)|(southWest?64:0)|(northWest?128:0);
   if(!mask)return;
   ctx.save();
   ctx.imageSmoothingEnabled=false;
