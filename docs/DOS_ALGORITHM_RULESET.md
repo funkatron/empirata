@@ -321,7 +321,7 @@ Static dump (observer rows → target cols; order army, fighter, destroyer, tran
 1. Inside the same sight walk (`0x1E8A0–0x1E8E0`): when a neighboring enemy tile passes the matrix, units on the observer’s tile matching the observer type have order byte cleared to `0`.
 2. Contact helper around `0x19E2C`: units on a contact tile with order ∈ `{1, 6, 0xC}` also clear to `0`.
 
-Order name table near `0x2FD6E`: `None=0`, `Sentry=1`, `Random=2`, `Move To=3`, `Land on=4`, `Escort=5`, `Patrol from=6`, … **Order `0xC`** is written by delayed-order paths (`0x1D7E1`, `0x1DDF1`) — the Wait/sleep standing order (menu string `Wait` at `0x3056F`). Wake set = **Sentry + Patrol-from + Wait**.
+Order name table at `0x2FD7B`: `None=0`, `Sentry=1`, `Random=2`, `Move To=3`, `Land on=4`, `Escort=5`, `Patrol from=6`, `Move=7`, `Load=8`. **Order `0xC`** is written by `0x1D7E1` and `0x1DDF1` (menu string `Wait` is `0x3056F`; the name-slot string at index 12 is ` - `). Its direction picker is `0x4600`, not order 5's picker. Wake set = **Sentry + Patrol-from + order `0xC`**.
 
 **Empirata:** detection matrix + **sentry/patrol/skip** wake on adjacent fresh contact (`updateAllKnowledge`). Sub→sub matrix per tests; parity **partial** on wake timing vs `0x19E2C` helper.
 
