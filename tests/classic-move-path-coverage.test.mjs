@@ -5,7 +5,6 @@ import {
   classicHomeRepairStep,
   classicMoveToStep,
   classicPatrolStep,
-  classicRimAwarePreferredIndex,
   classicRoutePath,
   classicUnitView,
   embarkedCargoCount,
@@ -14,6 +13,7 @@ import {
 } from '../dist/engine/index.js';
 
 // Focused coverage for ALG-AI-001 helpers in classic-move.ts and classic-path.ts.
+// Rim-bearing behavior lives in alg-ai-001-rim.test.mjs (DOS ring, #192).
 // Fixtures chart terrain and city intel directly so results depend only on the
 // faction's PlayerView, never on live omniscient state.
 
@@ -271,18 +271,4 @@ test('classicRoutePath follows a corridor and fails when the corridor is cut', (
   assert.deepEqual(path, [10, 11, 12, 13, 14, 15].map(x => ({ x, y: 10 })));
   g.knowledge.blue.terrain[10 * g.width + 12] = null;
   assert.equal(classicRoutePath(g, a, { x: 15, y: 10 }, 1), null);
-});
-
-// ---- classicRimAwarePreferredIndex --------------------------------------------
-
-test('classicRimAwarePreferredIndex turns a bottom-rim index-5 bearing back to index 1', () => {
-  const g = blankLab('sea');
-  const ship = army('d1', { x: 50, y: g.height - 2 }, { kind: 'destroyer' });
-  assert.equal(classicRimAwarePreferredIndex(g, ship, 5), 1);
-});
-
-test('classicRimAwarePreferredIndex leaves interior bearings unchanged', () => {
-  const g = blankLab('sea');
-  const ship = army('d1', { x: 50, y: 30 }, { kind: 'destroyer' });
-  for (let i = 0; i < 8; i++) assert.equal(classicRimAwarePreferredIndex(g, ship, i), i);
 });
