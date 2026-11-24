@@ -539,22 +539,21 @@ Combat/production **efficiency** words (`6368`, `6CB6`) stay independent; defaul
 
 **Anchor:** city-recount / elimination spine `0xDF58` (called from end-turn `0xE818` via `0xDF58`). After counting cities per owner into locals and scanning for surviving armies:
 
-**Crush (eliminated) [D]:** if a still-active player (`638E==0`) has **zero** owned armies (type 0) with valid location, set `638E=1`, `dec ES:6C7C` (living sides), show “Player #%d has been CRUSHED!”.
+**Order inside `0xDF58` [D]** (`agents/alg-ai-004-df58-crush-order-trace-2026-11-24.md`): for each player still at `638E==0`, a **computer** (`63C0==0`) is offered resign **before** any crush test; a human skips the offer. Crush runs only when that player's city tally is already 0 **and** the following unit scan finds no type-0 unit with `84E != 0`. Then `638E=1`, `dec ES:6C7C`, and “Player #%d has been CRUSHED!”.
 
-**Resign offer [D]** — only when all of:
+**Resign offer [D]** — computer only, and only when all of:
 
 ```text
-player is computer          // ES:63C0[p] == 0
 ES:646C == 1                // exactly one human in the game
 ES:6C7C == 2                // exactly two sides still alive
-ES:6D8E[p] > 100            // that computer's turn counter > 100
+ES:6D8E[p] > 100            // cmp 0x64; jle skips
 ES:4F8[p] == 0              // has not offered yet
-cities[p] < ES:6384 / 4     // holds fewer than 25% of all cities
+cities[p] + [bp-0xe] < ES:6384 >> 2
 ```
 
-Then set `4F8[p]=1`, dialog “The computer wishes|to resign!|Do you accept?”. On accept (`ax==1`), zero that player’s city-count local and continue elimination bookkeeping (`bp-10 = 0xD8F1` sentinel). Decline leaves the computer in play (flag stays set so it will not re-ask).
+`[bp-0xe]` is the owner-0 city tally and is not zeroed in this function **[?]**. Then set `4F8[p]=1` and dialog “The computer wishes|to resign!|Do you accept?”. Accept (`ax==1`) zeros the city-tally local and sets `[bp-0x10] = 0xD8F1`, which keeps the army count `> 0` so **accept does not set `638E`**. Decline leaves the computer in play (`4F8` stays set).
 
-**Empirata:** `classic-resign.ts` + UI `respondClassicResign`; predicate and accept transfer aligned **[T]** — see `agents/alg-ai-004-resign-bookkeeping-2026-11-18.md`.
+**Empirata:** `classic-resign.ts` + UI `respondClassicResign`. Predicate matches the gates except the owner-0 add. Accept still removes every computer unit immediately, which `0xDF58` does not.
 
 ---
 
@@ -581,7 +580,7 @@ Then set `4F8[p]=1`, dialog “The computer wishes|to resign!|Do you accept?”.
 | ALG-AI-001 move/order | `classicEscortStationCandidates`, `classicResolveLegalDirection`, `classicEscortCloseRangeGoal`; `agents/alg-ai-001-4c52-empirata-parity-2026-11-18.md` | **staged partial**: chart (v0.6.9); rim/`0x4C52` (v0.6.10); escort `0x4600` (v0.6.12); station `1D09:03C2` 20× random `(2n+1)²` probe (v0.6.17) |
 | ALG-AI-002 production | `classic-production.ts` + `chooseClassicCityProduction`; `tests/alg-ai-002-*.test.mjs` | **staged partial**: `0x3ADC` stale+fresh **[D]**; `0x30EB` live recount **[D]**; `0x393A`/`0x3B45` tree order **[D]** Raiden trace |
 | ALG-AI-003 setup grades | `classic-grades.ts`, `combat.ts` (`dosAiCombatFactor`); `tests/alg-ai-003-grades.test.mjs` | grade A/B selectable; **combat `840` factor [D]** when `aiPolicy.kind==='classic-dos'` |
-| ALG-AI-004 resign offer | `classic-resign.ts`, `respondClassicResign`, `gameOutcome`; `agents/alg-ai-004-resign-bookkeeping-2026-11-18.md` | predicate + one-shot offer + accept city transfer / unit removal **[T]** (v0.6.14); `0xDF58` crush ordering not traced |
+| ALG-AI-004 resign offer | `classic-resign.ts`, `respondClassicResign`, `gameOutcome`; `agents/alg-ai-004-df58-crush-order-trace-2026-11-24.md` | crush-vs-resign order **[D]**; accept still deletes units immediately (**differs** from the `0xD8F1` sentinel) |
 
 ---
 
