@@ -426,7 +426,7 @@ Computer movement-phase pass limit is **1** (ALG-013); humans get **100**.
 
 | Piece | Behavior |
 |---|---|
-| Move-To order `0x3F64` | Fighter low-fuel gate: if `180C[fighter] >= 0` use thresh **14**, else **10**; if fuel `<=` thresh return `1` (force `0x4462` reissue). Otherwise fall through to **Random** `0x3F0C`. |
+| Move-To order `0x3F64` / picker `0x45A2` [D] | Fighter (`8AD0==1`) low-fuel gate: if `180C >= 0` thresh **14**, else **10**; if fuel `<=` thresh return status **1** (no Random). Everyone else falls through to **Random** `0x3F0C` (`rand()%16==0` ring step). Picker `0x44EA` then `0x45A2`: copy `8AD6`, `call 0x4C52`, store the result back to `ES:24A`. No `0x4714`. Trace: `agents/alg-ai-001-order3-45a2-trace-2026-11-24.md`. |
 | Land/Escort/Move `0x400E` | If already at goal loc, or fighter cannot reach before fuel (`dist > fuel`), return `1`. Escort also aborts if target tile owner byte ≠ current player. Else `1A9E:006C` reachability → boolean. |
 | Goal step `0x4714` | If `goal == unit_loc` return **`-1`** (stay). Else call pathfinder `1A9E:014A` with the unit’s **passability mask** (below). On failure clear order to `0` and call `1E46:09C4`. Returns chosen direction in out-param. |
 | Pathfinder budget `1A9E:014A` | Cap search radius at `min(0x7D, 2*chebyshev(goal,start)+0x19)`. Recurses with depth budget; tie-break uses `rand()%2`. |
