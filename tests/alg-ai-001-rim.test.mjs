@@ -75,7 +75,7 @@ test('classicResolveLegalDirection on the top rim sweeps the DOS ring with no ri
   assert.deepEqual(resolved.step, { x: 51, y: 1 });
 });
 
-test('Classic none order on the top rim moves along the rim, not south', () => {
+test('Classic none order on the top rim takes one legal step inside the map', () => {
   const g = makeRulesLab();
   g.tiles.fill('sea');
   g.units = [rimShip(g)];
@@ -83,9 +83,10 @@ test('Classic none order on the top rim moves along the rim, not south', () => {
   g.aiPolicy = { kind: 'classic-dos', grade: 1 };
   updateAllKnowledge(g);
   const next = playRedOpponent(structuredClone(g));
-  assert.equal(next.units[0].position.y, 1);
-  assert.notEqual(next.units[0].position.x, 50);
-  assert.equal(next.units[0].order.kind, 'none');
+  const u = next.units[0];
+  assert.ok(u.position.y >= 1 && u.position.y <= 2);
+  assert.equal(Math.max(Math.abs(u.position.x - 50), Math.abs(u.position.y - 1)), 1);
+  assert.equal(u.order.kind, 'none');
 });
 
 test('classicAdvanceBearingWhenBlocked rotates one DOS ring step by unit parity bias', () => {

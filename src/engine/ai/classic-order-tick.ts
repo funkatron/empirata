@@ -30,7 +30,11 @@ export function classicRotateDirectionIndex(engineIndex: number, steps: number):
   return CLASSIC_DOS_DIRECTION_ORDER[dos]!;
 }
 
-/** Recovered ALG-AI-001 dispatch row for DOS order 0 (None). */
+/**
+ * Legacy fallback bearing for `classicDirectionIndex`. DOS order 0 has **no** bearing
+ * (`0x3E00` returns status 1; `0x44EA` returns −1). The classic executor handles None via
+ * `classicIdleNoneStep`; see `agents/alg-ai-001-none-order-trace-2026-11-24.md`.
+ */
 export const CLASSIC_ORDER_NONE_DIRECTION_INDEX = 1;
 
 export function classicNoneOrderBearing(): Readonly<Coord> {
@@ -61,6 +65,18 @@ export function classicRandomRotationBias(unit: Unit): number {
 /** Rotate preferred compass when every neighbor is blocked (`0x4C52` exhaust). */
 export function classicAdvanceBearingWhenBlocked(unit: Unit, preferredIndex: number): number {
   return classicRotateDirectionIndex(preferredIndex, classicRandomRotationBias(unit));
+}
+
+/**
+ * ALG-AI-001 `03BF:0C46` (linear `0x4836`) [D]: wander heading for idle units.
+ * `r = rand() % 24`; when `r >= 8`, `r = (r & 7) | 1`. `r` is a DOS ring index, so
+ * diagonals (odd DOS indices) are about five times as likely as each orthogonal.
+ */
+export function classicWanderHeadingRoll(game: Game): { game: Game; directionIndex: number } {
+  const draw = nextRandom15(game.rng);
+  let dos = draw.value % 24;
+  if (dos >= 8) dos = (dos & 7) | 1;
+  return { game: { ...game, rng: draw.next }, directionIndex: CLASSIC_DOS_DIRECTION_ORDER[dos]! };
 }
 
 /** ALG-AI-001 order 2 (Random): `rand%16==0` rotates compass index, else keep bearing. */

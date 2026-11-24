@@ -9,6 +9,7 @@ import { classicEscortStep } from './classic-escort.js';
 import {
   classicArmyConquestStep,
   classicHomeRepairStep,
+  classicIdleNoneStep,
   classicMoveToStep,
   classicPatrolStep,
   embarkedCargoCount,
@@ -26,12 +27,10 @@ import { classicResolveLegalDirection } from './classic-path.js';
 import {
   classicAdvanceBearingWhenBlocked,
   classicDamagedShipSeeksPort,
-  classicDirectionIndex,
   classicFighterMoveToExhausted,
   classicRandomOrderTick,
   classicSanitizeTransportOrder,
   classicSentryEngageTarget,
-  classicStandingOrderTick,
 } from './classic-order-tick.js';
 import { directions } from '../world.js';
 import { getPlayerView } from '../knowledge.js';
@@ -115,6 +114,7 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
         }
       }
       let step: Coord | null = null;
+      let wandered = false;
       if (classicFighterMoveToExhausted(current)) {
         g = ops.setOrder(g, unit.id, { kind: 'go-home' }, true);
       }
@@ -176,40 +176,19 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
                 );
               }
             }
-          } else {
-            const tick = classicStandingOrderTick(current.order);
-            if (tick?.kind === 'bear') {
-              g = ops.setOrder(g, unit.id, { kind: 'go-direction', direction: { ...tick.direction } }, true);
-              let positioned = g.units.find(u => u.id === unit.id);
-              if (positioned) {
-                const idx = directions.findIndex(
-                  d => d.x === tick.direction.x && d.y === tick.direction.y,
-                );
-                const preferred = idx >= 0 ? idx : classicDirectionIndex(positioned);
-                const resolved = classicResolveLegalDirection(g, positioned, preferred, grade);
-                if (resolved.directionIndex !== null) {
-                  g = ops.setOrder(
-                    g,
-                    unit.id,
-                    { kind: 'go-direction', direction: { ...directions[resolved.directionIndex]! } },
-                    true,
-                  );
-                }
-                positioned = g.units.find(u => u.id === unit.id);
-                if (positioned) step = resolved.step;
-                if (!step && positioned) {
-                  const nextIdx = classicAdvanceBearingWhenBlocked(positioned, preferred);
-                  g = ops.setOrder(
-                    g,
-                    unit.id,
-                    { kind: 'go-direction', direction: { ...directions[nextIdx]! } },
-                    true,
-                  );
-                }
-              }
-            }
+          } else if (current.order.kind === 'none') {
+            // DOS order 0 (None) returns status 1 → type reissue `0x4462`; there is no
+            // default bearing. See agents/alg-ai-001-none-order-trace-2026-11-24.md.
+            const idle = classicIdleNoneStep(g, current, grade);
+            g = idle.game;
+            step = idle.step;
+            wandered = idle.wandered;
           }
         }
+      }
+      if (!wandered) {
+        const live = g.units.find(u => u.id === unit.id);
+        if (live?.classicWander) delete live.classicWander;
       }
       if (!step) continue;
       try {

@@ -184,6 +184,26 @@ export type ClassicLegalDirectionResult = {
   directionIndex: number | null;
 };
 
+/**
+ * ALG-AI-001 order `0x10` wander step (`0x4542`) [D]. Probe the heading three DOS ring
+ * steps back (`8ADE = 3 * 8ADC`) with the move check `12C2:099C`; when that side is
+ * open keep the current heading, otherwise start the `0x4C52` sweep from that side.
+ * Exhaustion returns no step (DOS `-1`) and leaves the stored heading unchanged.
+ */
+export function classicArmyWanderStep(
+  game: Game,
+  unit: Unit,
+  heading: number,
+  grade: DosComputerGrade,
+): ClassicLegalDirectionResult {
+  const view = getPlayerView(game, unit.owner);
+  const back = classicRotateDirectionIndex(heading, -3 * classicRandomRotationBias(unit));
+  const d = directions[back]!;
+  const side = { x: unit.position.x + d.x, y: unit.position.y + d.y };
+  const sideOpen = playable(game, side) && classicTilePassableChart(game, view, unit.owner, unit, side, grade);
+  return classicResolveLegalDirection(game, unit, sideOpen ? heading : back, grade);
+}
+
 /** ALG-AI-001 `0x4C52`: try up to eight rotations from a preferred compass index. */
 export function classicResolveLegalDirection(
   game: Game,

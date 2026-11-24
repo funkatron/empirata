@@ -93,6 +93,11 @@ export function importSave(json:string):Game {
         (p.metric!=='sea'&&p.metric!=='city')||!finiteInt(p.bestDistance)||p.bestDistance<0||!finiteInt(p.cargo)||p.cargo<0)
         throw new Error('Invalid AI mission progress.');
     }
+    if(u.classicWander!==undefined){
+      const w=u.classicWander;
+      if(!w||!Number.isInteger(w.direction)||w.direction<0||w.direction>7)
+        throw new Error('Invalid classic wander heading.');
+    }
     if(u.aiAvoidObjective!==undefined){
       const a=u.aiAvoidObjective;
       if(u.kind!=='transport'||!a||!cityIds.has(a.id)||!finiteInt(a.until)||a.until<1)

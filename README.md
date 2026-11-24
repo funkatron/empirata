@@ -4,9 +4,11 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
-## Version 0.6.18 — Classic DOS compass ring (`0x4C52`)
+## Version 0.6.18 — Classic DOS compass ring and idle units
 
-Classic AI direction sweeps, blocked-bearing turns and Random turns now rotate around the **DOS compass ring** (E, NE, N, NW, W, SW, S, SE from table `2E32:6300`), not Empirata's row-major `directions` order. The top-rim "start south" heuristic from v0.6.10 is removed: DOS `0x4C52` has no rim special case, so a rim unit now slides along the rim. Trace: `agents/alg-ai-001-compass-order-trace-2026-11-24.md`.
+Classic AI direction sweeps, blocked-bearing turns and Random turns now rotate around the **DOS compass ring** (E, NE, N, NW, W, SW, S, SE from table `2E32:6300`), not Empirata's row-major `directions` order. The top-rim "start south" heuristic from v0.6.10 is removed: DOS `0x4C52` has no rim special case.
+
+Units with **None** no longer march north. Matching DOS (`0x3E00` → `0x4462` → `0x44EA`), an idle army garrisons its city unless uncharted land lies two squares out (`0x485E`), and otherwise wanders with a DOS-weighted random heading that hugs walls (`0x4836`, `0x4542`). Idle ships and fighters roll a heading the same way. Saves gain an optional `classicWander` unit field. Traces: `agents/alg-ai-001-compass-order-trace-2026-11-24.md`, `agents/alg-ai-001-none-order-trace-2026-11-24.md`.
 
 ## Version 0.6.17 — Escort station random window (`1D09:03C2`)
 
