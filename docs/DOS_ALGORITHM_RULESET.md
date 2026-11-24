@@ -419,6 +419,8 @@ Computer movement-phase pass limit is **1** (ALG-013); humans get **100**.
 5. **`0x44EA`** picks a legal direction from the (possibly updated) order via another jump table (`0x451C`).
 6. **`0x47E0`** [D] only branches on type: army `1F23:0146` (`0x1F376`), fighter `1F23:0C26` (`0x1FE56`), ships 2…7 `1D09:047E` (`0x1D50E`). Each callee may write the direction from `12C2:115F` (adjacent class `0xFF`, not own) or `03BF:0E3A` (`0x4A2A`, masked neighbor), then `0x4C52` unless the direction is already `−1` (army still legalizes `−1` when its own chart class is `0xFF`). Ships also call `0x1DF56` and, on one `0x4A2A` success, set `dir = (dir + rand%3 + 3) & 7`. Trace: `agents/alg-ai-001-type-step-47e0-trace-2026-11-24.md`.
 
+**Army strategic probes [D]** (`agents/alg-ai-001-army-strategic-trace-2026-11-24.md`): `12C2:0845` returns 1 only for a type-0 unit on a city-class tile whose `62FE` neighbors 9…1 are on-map-safe. `0x1F454` assigns order `0x0F` and `24A` = one city loc, random start, Chebyshev ≤ 20 when `62F6 ≠ 0` else ≤ 12 (`1A9E:000C` **[?]**). `0x1F5F4` assigns order 5 from the first of 20 per-player map indexes within 12. `0x1F6AA` assigns order 1 and `24A` = a type-3 unit in order `0xE` within 10 (`1E46:08A7` **[?]**).
+
 **Random wander detail [D]:** `0x3F0C` first rejects the step if neighbor probe `1E46:0C7F` fails; else `rand()%16` gate, then `dir = (dir + 8ADC) & 7`.
 
 **`ES:24A` / `8AD6` overload [D]:** for compass orders the word is direction `0…7`; for Escort / path-follow it is a **target unit index** (Sentry engage writes the observer location into the target’s `24A`). Direction picker `0x45E4` pushes `84E[8AD6]` as the path goal for `0x4714`.
