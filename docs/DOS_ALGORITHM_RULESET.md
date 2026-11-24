@@ -417,7 +417,7 @@ Computer movement-phase pass limit is **1** (ALG-013); humans get **100**.
 
 4. If step 3 returns nonzero, **`0x4462`** re-issues type-specific far helpers (army/fighter/ship families) that can rewrite order/direction.
 5. **`0x44EA`** picks a legal direction from the (possibly updated) order via another jump table (`0x451C`).
-6. **`0x47E0`** type-specializes the chosen direction pointer: army `1F23:0146`, fighter `1F23:0C26`, ships `1D09:047E`.
+6. **`0x47E0`** [D] only branches on type: army `1F23:0146` (`0x1F376`), fighter `1F23:0C26` (`0x1FE56`), ships 2…7 `1D09:047E` (`0x1D50E`). Each callee may write the direction from `12C2:115F` (adjacent class `0xFF`, not own) or `03BF:0E3A` (`0x4A2A`, masked neighbor), then `0x4C52` unless the direction is already `−1` (army still legalizes `−1` when its own chart class is `0xFF`). Ships also call `0x1DF56` and, on one `0x4A2A` success, set `dir = (dir + rand%3 + 3) & 7`. Trace: `agents/alg-ai-001-type-step-47e0-trace-2026-11-24.md`.
 
 **Random wander detail [D]:** `0x3F0C` first rejects the step if neighbor probe `1E46:0C7F` fails; else `rand()%16` gate, then `dir = (dir + 8ADC) & 7`.
 
