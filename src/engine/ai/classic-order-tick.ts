@@ -3,6 +3,33 @@ import { nextRandom15 } from '../rng.js';
 import { STATS } from '../units.js';
 import { directions } from '../world.js';
 
+/**
+ * DOS direction index → engine `directions` index [D].
+ * DOS table `2E32:6300` (linear `0x34620`) holds location deltas in the order
+ * E, NE, N, NW, W, SW, S, SE — a counter-clockwise ring. Engine `directions` is
+ * row-major (NW, N, NE, W, E, SW, S, SE), so every DOS `±1` rotation must go
+ * through this map. See `agents/alg-ai-001-compass-order-trace-2026-11-24.md`.
+ */
+export const CLASSIC_DOS_DIRECTION_ORDER: ReadonlyArray<number> = Object.freeze([4, 2, 1, 0, 3, 5, 6, 7]);
+
+const ENGINE_TO_DOS_DIRECTION: ReadonlyArray<number> = Object.freeze(
+  directions.map((_, engineIndex) => CLASSIC_DOS_DIRECTION_ORDER.indexOf(engineIndex)),
+);
+
+/** Engine `directions` index → DOS ring index. */
+export function classicDosDirectionIndex(engineIndex: number): number {
+  const dos = ENGINE_TO_DOS_DIRECTION[engineIndex];
+  if (dos === undefined || dos < 0) throw new Error(`Invalid direction index ${engineIndex}`);
+  return dos;
+}
+
+/** Rotate an engine direction index by `steps` around the DOS ring (`+1` = counter-clockwise). */
+export function classicRotateDirectionIndex(engineIndex: number, steps: number): number {
+  const ring = CLASSIC_DOS_DIRECTION_ORDER.length;
+  const dos = (((classicDosDirectionIndex(engineIndex) + steps) % ring) + ring) % ring;
+  return CLASSIC_DOS_DIRECTION_ORDER[dos]!;
+}
+
 /** Recovered ALG-AI-001 dispatch row for DOS order 0 (None). */
 export const CLASSIC_ORDER_NONE_DIRECTION_INDEX = 1;
 
@@ -33,8 +60,7 @@ export function classicRandomRotationBias(unit: Unit): number {
 
 /** Rotate preferred compass when every neighbor is blocked (`0x4C52` exhaust). */
 export function classicAdvanceBearingWhenBlocked(unit: Unit, preferredIndex: number): number {
-  const bias = classicRandomRotationBias(unit);
-  return (preferredIndex + bias + directions.length) % directions.length;
+  return classicRotateDirectionIndex(preferredIndex, classicRandomRotationBias(unit));
 }
 
 /** ALG-AI-001 order 2 (Random): `rand%16==0` rotates compass index, else keep bearing. */
@@ -42,7 +68,7 @@ export function classicRandomOrderTick(game: Game, unit: Unit): { game: Game; di
   const draw = nextRandom15(game.rng);
   let index = classicDirectionIndex(unit);
   if (draw.value % 16 === 0) {
-    index = (index + classicRandomRotationBias(unit) + directions.length) % directions.length;
+    index = classicRotateDirectionIndex(index, classicRandomRotationBias(unit));
   }
   return { game: { ...game, rng: draw.next }, directionIndex: index };
 }

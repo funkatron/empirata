@@ -18,7 +18,7 @@ Related: **Random** `0x3F0C` uses `rand()%16` to rotate bearing; **None** uses a
 | DOS piece | Code | Notes |
 |-----------|------|-------|
 | 8-way ±1 probe | `classicResolveLegalDirection` in `src/engine/ai/classic-path.ts` | Uses `classicRandomRotationBias(unit)` for ±1 order; chart passability via `classicTilePassableChart` (v0.6.9) |
-| Rim illegal step | `classicRimAwarePreferredIndex` | Heuristic: at `y===1` with north blocked, start rotation from south (index 5) |
+| Rim illegal step | (removed v0.6.18) | DOS `0x4C52` has no rim case [D]; border tiles fail the tile probe. Rotation uses the DOS ring via `classicRotateDirectionIndex` (`agents/alg-ai-001-compass-order-trace-2026-11-24.md`) |
 | Exhaust / stay | `classicAdvanceBearingWhenBlocked` + executor | When no step after 8 tries, advance `go-direction` bearing for the **next** activation (DOS **`-1`** analogue: no move this pass) |
 | Standing orders | `classic-executor.ts` | `none` / `random` paths call resolve + persist winning index before `moveUnit` |
 
