@@ -1,3 +1,4 @@
+export * from './clone.js';
 export * from './types.js';
 export * from './units.js';
 export * from './world.js';

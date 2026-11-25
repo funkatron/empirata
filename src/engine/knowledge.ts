@@ -1,4 +1,5 @@
 import { unitLabel } from './unit-names.js';
+import { clonePlain } from './clone.js';
 import type { City, CityIntel, FactionId, Game, Knowledge, PlayerCell, PlayerView, Unit } from './types.js';
 import { directions, index, inMap } from './world.js';
 
@@ -128,7 +129,7 @@ export function mergeSpectatorPlayerViews(blue: PlayerView, red: PlayerView): Pl
   for (const sighting of [...blue.enemies, ...red.enemies]) {
     const prev = enemiesById.get(sighting.id);
     if (!prev) {
-      enemiesById.set(sighting.id, structuredClone(sighting));
+      enemiesById.set(sighting.id, clonePlain(sighting));
       continue;
     }
     enemiesById.set(sighting.id, {
@@ -183,8 +184,8 @@ export function getPlayerView(game:Game,faction:FactionId):PlayerView {
     return {terrain,visible:visible.has(i),city:terrain===null?null:(intel?{...intel}:null)};
   });
   return {width:game.width,height:game.height,active:game.active,round:game.round,cells,
-    ownCities:game.cities.filter(c=>c.owner===faction).map(c=>structuredClone(c)),
-    ownUnits:game.units.filter(u=>u.owner===faction).map(u=>structuredClone(u)),
-    enemies:k.sightings.map(s=>({...structuredClone(s),stale:!k.freshEnemies.includes(s.id)})),
+    ownCities:game.cities.filter(c=>c.owner===faction).map(c=>clonePlain(c)),
+    ownUnits:game.units.filter(u=>u.owner===faction).map(u=>clonePlain(u)),
+    enemies:k.sightings.map(s=>({...clonePlain(s),stale:!k.freshEnemies.includes(s.id)})),
     events:game.events.filter(e=>e.recipient===null||e.recipient===faction).slice(-30).map(e=>({...e}))};
 }
