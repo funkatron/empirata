@@ -1,21 +1,59 @@
 name: Compare reconnaissance AI
 
+# Modern-AI reconnaissance benchmark (~15 min). Modern AI strategy is frozen
+# (AGENTS.md), so this no longer runs on every engine PR. It runs:
+#   - nightly on main, and on manual dispatch;
+#   - on PRs labelled `run-compare` (e.g. AI scouting changes), on every push
+#     while the label stays on;
+#   - on PRs that change the comparison scripts, fixtures, maps or this file.
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '17 7 * * *'
   pull_request:
-    paths:
-      - 'src/engine/**'
-      - 'scripts/compare-reconnaissance.mjs'
-      - 'scripts/compare-seeded-reconnaissance.mjs'
-      - 'scripts/reconnaissance-fixture.mjs'
-      - 'scripts/campaign-maps.mjs'
-      - '.github/workflows/compare-reconnaissance.yml'
+    types: [opened, synchronize, reopened, labeled]
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
+  gate:
+    # Ignore label events for any label other than run-compare.
+    if: github.event.action != 'labeled' || github.event.label.name == 'run-compare'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          HAS_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'run-compare') }}
+        run: |
+          run=false
+          if [ "$EVENT" != "pull_request" ] || [ "$HAS_LABEL" = "true" ]; then
+            run=true
+          else
+            files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --jq '.[].filename')
+            for f in $files; do
+              case "$f" in
+                scripts/compare-reconnaissance.mjs|scripts/compare-seeded-reconnaissance.mjs|scripts/reconnaissance-fixture.mjs|scripts/campaign-maps.mjs|.github/workflows/compare-reconnaissance.yml)
+                  run=true ;;
+              esac
+            done
+          fi
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+          echo "compare: run=$run (event=$EVENT label=$HAS_LABEL)" >> "$GITHUB_STEP_SUMMARY"
+
   compare:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    concurrency:
+      group: compare-recon-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:

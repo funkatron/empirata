@@ -12,7 +12,7 @@ Roadmap: [P3 — Documentation accuracy](../docs/ROADMAP.md#p3-documentation-acc
 | “74 passing tests” | `npm test` reports **432** tests (`tests/*.test.mjs`, 84 files) |
 | Line ~92.45% / branch ~88.28% | Latest run: **94.84%** line / **91.47%** branch / **96.48%** func (`dist/engine/*.js`) |
 | “Logistics … not implemented yet” | Embark/disembark, carriers, load/unload ship, cargo combat, overload (ALG-011) implemented + tested |
-| Sparse AI coverage note | 40+ `ai-*.test.mjs` fixtures; modern AI in `src/engine/ai/`; compare-reconnaissance workflow on PRs |
+| Sparse AI coverage note | 40+ `ai-*.test.mjs` fixtures; modern AI in `src/engine/ai/`; compare-reconnaissance workflow (nightly, manual, or `run-compare` PR label since 2026-11-25) |
 | Browser / smoke policy | Default CI: `npm test` + `smoke/bundle.mjs` + `smoke/observer-batching.mjs`; UI subset in verify workflow; `test:observer`, map-paint, Playwright flows **opt-in** workflows |
 | Coverage gates 85/80% | Unchanged in `package.json` `test:coverage` flags |
 
