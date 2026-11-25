@@ -37,7 +37,7 @@ On every PR and on `main` pushes that touch non-`docs/**` paths:
 
 Pages deploy runs on `main` after verify; a green verify on a PR does not by itself prove production Pages freshness.
 
-**Opt-in workflows** (not required for a normal engine PR): compare-reconnaissance, held-out evaluation, map screenshots, Playwright capture-production, replay-uploaded-save, etc.
+**Opt-in workflows** (not required for a normal engine PR): compare-reconnaissance (nightly on `main`, manual dispatch, or PRs touching its own scripts/workflow), held-out evaluation, map screenshots, Playwright capture-production, replay-uploaded-save, etc.
 
 ## npm scripts (testing-related)
 

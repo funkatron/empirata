@@ -1,10 +1,14 @@
 name: Compare reconnaissance AI
 
+# Modern-AI reconnaissance benchmark (~15 min). Modern AI strategy is frozen
+# (AGENTS.md), so this no longer runs on every engine PR: it runs nightly on
+# main, on demand, and on PRs that change the comparison itself.
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '17 7 * * *'
   pull_request:
     paths:
-      - 'src/engine/**'
       - 'scripts/compare-reconnaissance.mjs'
       - 'scripts/compare-seeded-reconnaissance.mjs'
       - 'scripts/reconnaissance-fixture.mjs'
