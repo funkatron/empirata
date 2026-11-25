@@ -20,7 +20,7 @@ test('diagonal-only sea neighbors never paint shoreline spurs',()=>{
 test('shoreline water shape is composited from terrain atlas',()=>{
   assert.match(art,/for\(let y=0;y<32;y\+\+\)for\(let x=0;x<32;x\+\+\)/);
   assert.match(art,/globalCompositeOperation='source-in'/);
-  assert.match(art,/drawImage\(atlas,0,32,32,32,0,0,32,32\)/);
+  assert.match(art,/drawImage\(atlasSource,0,32,32,32,0,0,32,32\)/);
   assert.match(art,/const edge=\(horizontal:boolean,reverse:boolean\)/);
 });
 

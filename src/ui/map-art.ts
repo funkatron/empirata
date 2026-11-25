@@ -17,9 +17,26 @@ const harbor=new Path2D('M3 11V8H9V5H15V8H21V11Z M10 10H14V18H20V15H23V20L20 23H
 // Authored pixel-art sprite atlas: 8 land sprites on row 0, 8 sea on row 1.
 // Decorative variants never change Empire's land/sea movement or combat rules.
 const atlas=new Image();
+// Every drawImage from an SVG <img> re-rasterizes its vector paths (5k+ in
+// the atlas), so a full terrain rebuild took seconds. Rasterize once on load
+// and stamp tiles from this bitmap canvas instead.
+let atlasSource:CanvasImageSource=atlas;
 let atlasReady=false;
 export function isTerrainAtlasReady():boolean{return atlasReady;}
-atlas.onload=()=>{atlasReady=true;shoreCache.clear();window.dispatchEvent(new Event('empirata-terrain-ready'));};
+function rasterizeAtlas(image:HTMLImageElement):CanvasImageSource {
+  const width=image.naturalWidth||256,height=image.naturalHeight||64;
+  const canvas=document.createElement('canvas');
+  canvas.width=width;canvas.height=height;
+  const c=canvas.getContext('2d');
+  if(!c)return image;
+  c.imageSmoothingEnabled=false;
+  c.drawImage(image,0,0,width,height);
+  return canvas;
+}
+atlas.onload=()=>{
+  atlasSource=rasterizeAtlas(atlas);
+  atlasReady=true;shoreCache.clear();window.dispatchEvent(new Event('empirata-terrain-ready'));
+};
 atlas.src='./terrain-atlas.svg';
 function tileVariant(column:number,row:number):number {
   // The eight variants share matching perimeter pixels, allowing arbitrary
@@ -35,10 +52,11 @@ export function drawTerrain(ctx:CanvasRenderingContext2D,terrain:Terrain|null,x:
     ctx.fillStyle=terrain==='land'?'#6f9746':'#134c78';
     ctx.fillRect(x,y,size+.25,size+.25);return;
   }
-  ctx.save();
+  // Toggle only the smoothing flag; a full save/restore per tile is costly.
+  const smoothing=ctx.imageSmoothingEnabled;
   ctx.imageSmoothingEnabled=false;
-  ctx.drawImage(atlas,tileVariant(column,row)*32,terrain==='land'?0:32,32,32,x,y,size+.25,size+.25);
-  ctx.restore();
+  ctx.drawImage(atlasSource,tileVariant(column,row)*32,terrain==='land'?0:32,32,32,x,y,size+.25,size+.25);
+  ctx.imageSmoothingEnabled=smoothing;
 }
 
 // Shore overlay is assembled from neighboring *known* sea cells.
@@ -81,7 +99,7 @@ function shoreSprite(mask:number):HTMLCanvasElement {
   if(atlasReady){
     wc.globalCompositeOperation='source-in';
     wc.imageSmoothingEnabled=false;
-    wc.drawImage(atlas,0,32,32,32,0,0,32,32);
+    wc.drawImage(atlasSource,0,32,32,32,0,0,32,32);
     wc.globalCompositeOperation='source-over';
   }else{
     wc.globalCompositeOperation='source-in';
@@ -131,10 +149,10 @@ export function drawCoast(ctx:CanvasRenderingContext2D,x:number,y:number,size:nu
   const mask=(north?1:0)|(east?2:0)|(south?4:0)|(west?8:0)|
     (northEast?16:0)|(southEast?32:0)|(southWest?64:0)|(northWest?128:0);
   if(!mask)return;
-  ctx.save();
+  const smoothing=ctx.imageSmoothingEnabled;
   ctx.imageSmoothingEnabled=false;
   ctx.drawImage(shoreSprite(mask),x,y,size+.25,size+.25);
-  ctx.restore();
+  ctx.imageSmoothingEnabled=smoothing;
 }
 
 function drawSymbol(ctx:CanvasRenderingContext2D,path:Path2D,x:number,y:number,size:number,ink:string,loaded=false):void {
