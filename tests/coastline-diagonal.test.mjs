@@ -17,7 +17,7 @@ test('diagonal corners contribute to sprite cache key and actual corner mask',()
   assert.match(art,/nw&&!n&&!w/);
 });
 test('coast water samples the same atlas sea row instead of a separate blue',()=>{
-  assert.match(art,/wc\.drawImage\(atlas,0,32,32,32,0,0,32,32\)/);
+  assert.match(art,/wc\.drawImage\(atlasSource,0,32,32,32,0,0,32,32\)/);
   assert.match(art,/globalCompositeOperation='source-in'/);
   assert.match(art,/shoreCache\.clear\(\)/);
 });

@@ -4,6 +4,10 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.6.19 — Faster terrain drawing
+
+The terrain sprite atlas (`terrain-atlas.svg`) is rasterized to a bitmap canvas once when it loads. Tiles and coast overlays are stamped from that bitmap instead of re-rasterizing the SVG's vector paths on every `drawImage`, and the per-tile `save()`/`restore()` is replaced by toggling only `imageSmoothingEnabled`. A full terrain layer rebuild drops from seconds to tens of milliseconds; artwork is pixel-identical. No gameplay change.
+
 ## Version 0.6.18 — Classic DOS compass ring and idle units
 
 Classic AI direction sweeps, blocked-bearing turns and Random turns now rotate around the **DOS compass ring** (E, NE, N, NW, W, SW, S, SE from table `2E32:6300`), not Empirata's row-major `directions` order. The top-rim "start south" heuristic from v0.6.10 is removed: DOS `0x4C52` has no rim special case.
