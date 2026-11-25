@@ -13,6 +13,9 @@
 4. UI pan/zoom uses animation-frame-coalesced paint and cached terrain/fog. Preserve cache invalidation and do not trigger expensive inspector/event rebuilds without state changes.
 5. CvC playback yields between `labRoundPhases`; Pause finishes an in-flight round at a valid blue-turn boundary. Autosaves use compact, latest-wins IndexedDB writes. Preserve ordinary export format.
 
+## Parity gate (golden hashes)
+`tests/golden-parity-classic.test.mjs` and `tests/golden-parity-modern.test.mjs` run 150 rounds (seed 17, standard density, continents + islands) and assert the first 16 hex digits of SHA-256(`exportSave`) plus `rng.draws` (`tests/golden-parity.mjs`). Performance PRs must leave them unchanged. A PR that changes gameplay on purpose updates `GOLDEN` and says why.
+
 ## Completed evidence and limits
 - PR #88: seeded faction-swapped captured-city production and save/reload tests.
 - PR #89: optional WebKit checks for both CvC factions (0/6 → 3/6 → 0/5) and human production selector; 16 screenshots. The original reported production-stall symptom was not reproduced. No claim of historical DOS scheduling parity.
