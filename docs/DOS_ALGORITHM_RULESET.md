@@ -402,7 +402,7 @@ Computer movement-phase pass limit is **1** (ALG-013); humans get **100**.
 
 | Order | Name (string table) | Handler |
 |---|---|---|
-| 0 | None | `0x3E00`: return status **1** (same channel as other handlers → `0x4462` reissue); **not** a direction index [D] (2026-11-24 compass trace) |
+| 0 | None | `0x3E00`: return status **1** → `0x4462` type reissue; `0x44EA` returns **−1** (stay) for order 0. No default bearing. Idle armies: city garrison `0x11` unless explore probe `0x485E` hits, else wander `0x10` (`0x4836` heading, `0x4542` step) [D]. See `agents/alg-ai-001-none-order-trace-2026-11-24.md` |
 | 1 | Sentry | `0x3E7C` — wake/engage checks vs adjacent enemies |
 | 2 | Random | `0x3F0C` — with probability `rand()%16 == 0`, rotate dir by `8ADC` |
 | 3 | Move To | `0x3F64` |
@@ -580,7 +580,7 @@ Then set `4F8[p]=1`, dialog “The computer wishes|to resign!|Do you accept?”.
 | ALG-011 overload | `src/engine/cargo-overload.ts`, `tests/alg-011-overload.test.mjs` | deterministic survivor policy tested |
 | ALG-012 detection | `src/engine/knowledge.ts`, `tests/alg-012-*.test.mjs` | matrix + sentry/patrol/skip wake (v0.6.15); sub-only gaps per tests |
 | ALG-013 docking | `stayUnit`, `dockShip`, `tests/alg-013-docking.test.mjs` | explicit stay/arrival repair tested; turn-phase trace pending |
-| ALG-AI-001 move/order | `classicEscortStationCandidates`, `classicResolveLegalDirection`, `classicEscortCloseRangeGoal`; `agents/alg-ai-001-4c52-empirata-parity-2026-11-18.md` | **staged partial**: chart (v0.6.9); rim/`0x4C52` (v0.6.10); escort `0x4600` (v0.6.12); station `1D09:03C2` 20× random `(2n+1)²` probe (v0.6.17) |
+| ALG-AI-001 move/order | `classicEscortStationCandidates`, `classicResolveLegalDirection`, `classicEscortCloseRangeGoal`; `agents/alg-ai-001-4c52-empirata-parity-2026-11-18.md` | **staged partial**: chart (v0.6.9); rim/`0x4C52` (v0.6.10); escort `0x4600` (v0.6.12); station `1D09:03C2` 20× random `(2n+1)²` probe (v0.6.17); DOS ring rotation + rim heuristic removed; None = type reissue / wander / garrison (v0.6.18) |
 | ALG-AI-002 production | `classic-production.ts` + `chooseClassicCityProduction`; `tests/alg-ai-002-*.test.mjs` | **staged partial**: `0x3ADC` stale+fresh **[D]**; `0x30EB` live recount **[D]**; `0x393A`/`0x3B45` tree order **[D]** Raiden trace |
 | ALG-AI-003 setup grades | `classic-grades.ts`, `combat.ts` (`dosAiCombatFactor`); `tests/alg-ai-003-grades.test.mjs` | grade A/B selectable; **combat `840` factor [D]** when `aiPolicy.kind==='classic-dos'` |
 | ALG-AI-004 resign offer | `classic-resign.ts`, `respondClassicResign`, `gameOutcome`; `agents/alg-ai-004-resign-bookkeeping-2026-11-18.md` | predicate + one-shot offer + accept city transfer / unit removal **[T]** (v0.6.14); `0xDF58` crush ordering not traced |

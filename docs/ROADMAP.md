@@ -12,7 +12,7 @@
 
 Use this section for **what to work on now**. Older dated sections below are historical context and detailed specifications.
 
-**Product (v0.6.16):** New campaigns default to **Classic DOS grade 1**; **Modern (experimental)** remains selectable and is not an active strategy track. Rules-lab saves without `aiPolicy` keep modern for fixture compatibility.
+**Product (v0.6.18):** New campaigns default to **Classic DOS grade 1**; **Modern (experimental)** remains selectable and is not an active strategy track. Rules-lab saves without `aiPolicy` keep modern for fixture compatibility.
 
 **Live queue:** [Q31 multi-track handoff](../agents/q31-multi-track-handoff-2026-11-21.md) and [classic migration slices](../agents/classic-migration-slices.md). Do not reopen finished Q31 tracks:
 
