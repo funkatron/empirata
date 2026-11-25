@@ -1,5 +1,5 @@
 import { unitLabel } from './unit-names.js';
-import type { CityIntel, FactionId, Game, Knowledge, PlayerCell, PlayerView, Unit } from './types.js';
+import type { City, CityIntel, FactionId, Game, Knowledge, PlayerCell, PlayerView, Unit } from './types.js';
 import { directions, index, inMap, cityAt } from './world.js';
 
 /** ALG-012: recovered DOS 8x8 observer/target detection matrix. */
@@ -160,9 +160,15 @@ export function getPlayerView(game:Game,faction:FactionId):PlayerView {
   if(!game.players.some(p=>p.id===faction)) throw new Error('Unknown faction');
   const k=game.knowledge[faction];
   const visible=new Set(k.visible);
+  // Cell → city index, built in reverse so the first city at a cell wins (same as `cityAt`).
+  const cityByCell=new Map<number,City>();
+  for(let ci=game.cities.length-1;ci>=0;ci--){
+    const c=game.cities[ci]!;
+    if(c.position.x<0||c.position.y<0||c.position.x>=game.width||c.position.y>=game.height) continue;
+    cityByCell.set(c.position.y*game.width+c.position.x,c);
+  }
   const cells:PlayerCell[]=k.terrain.map((terrain,i)=>{
-    const x=i%game.width,y=Math.floor(i/game.width);
-    const actual=cityAt(game,{x,y});
+    const actual=cityByCell.get(i);
     const intel=actual ? (k.cities[actual.id]??null) : null;
     // City lookup only checks whether a known city exists; never reads live city properties.
     return {terrain,visible:visible.has(i),city:terrain===null?null:(intel?{...intel}:null)};
