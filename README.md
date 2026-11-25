@@ -4,6 +4,15 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.7.0 — Interface review (Raskin principles)
+
+- **Visible, cancellable orders.** Move To, Go Direction, Patrol and Escort show a banner on the map with **Confirm** and **Cancel**. The first tap previews the path; tapping the same square again, or Confirm, gives the order. Escape also cancels.
+- **Undo.** **↶ Undo** (or `U`, ⌘/Ctrl+Z) reverses your moves, orders and production changes within the turn. Anything that rolls dice (combat) clears the undo history. Starting a new game or scenario no longer asks for confirmation: Undo restores the previous game.
+- **Reports name things and link to them.** Reports show unit and city names, never internal IDs (lost cargo is now named too). Tap a name to select the unit or city and centre the map on it.
+- **Feedback near the map.** Messages appear in a strip under the map instead of the page footer. Recent combat is marked on the map, and cities producing nothing get a dashed ring.
+- **Awaiting orders.** The Overview shows how many units and cities need orders; **Next ▸** (or `N`) steps through them.
+- **Layout.** 44 px touch targets for orders and map controls; the most common orders come first; the Reports list fills the sidebar; the Game menu puts Start campaign under its settings and the Lab scenarios last; computer-vs-computer games hide the controls that do not apply.
+
 ## Version 0.6.21 — Faster AI turns (city index)
 
 `getPlayerView` now builds a cell → city index once per call instead of scanning the city list for each of the map's cells. Same results: the first city listed at a cell still wins, and saves and RNG draws are byte-identical (golden parity check, seed 17, 150 rounds). Measured on a 2-vCPU VM (Node 22, mean of 2 runs): classic AI games **2.3–2.4× faster**, modern AI **1.3–1.4× faster**.
