@@ -4,6 +4,10 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.6.21 — Faster AI turns (city index)
+
+`getPlayerView` now builds a cell → city index once per call instead of scanning the city list for each of the map's cells. Same results: the first city listed at a cell still wins, and saves and RNG draws are byte-identical (golden parity check, seed 17, 150 rounds). Measured on a 2-vCPU VM (Node 22, mean of 2 runs): classic AI games **2.3–2.4× faster**, modern AI **1.3–1.4× faster**.
+
 ## Version 0.6.20 — Idle ships and fighters drift like DOS
 
 An idle classic ship or fighter that is still following its wander heading now takes the DOS order 3 tick (`0x3F64` → `0x3F0C`) before the legal-direction sweep: one `rand()` per move, and on `% 16 == 0` the heading turns one step around the compass ring (direction set by unit parity). The move that first rolls a heading takes no tick; an off-map neighbor skips the draw and rolls a fresh heading; a fighter at or below its fuel threshold takes no draw. Armies are unchanged. Trace: `agents/alg-ai-001-order3-45a2-trace-2026-11-24.md`.
