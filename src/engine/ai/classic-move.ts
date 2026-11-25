@@ -6,7 +6,13 @@ import {
   classicResolveLegalDirection,
   classicRouteStep,
 } from './classic-path.js';
-import { CLASSIC_DOS_DIRECTION_ORDER, classicWanderHeadingRoll } from './classic-order-tick.js';
+import {
+  CLASSIC_DOS_DIRECTION_ORDER,
+  classicRandomRotationBias,
+  classicRotateDirectionIndex,
+  classicWanderHeadingRoll,
+} from './classic-order-tick.js';
+import { nextRandom15 } from '../rng.js';
 import { classicTilePassableChart } from './classic-passability.js';
 import { getPlayerView } from '../knowledge.js';
 import { directions, index, playable } from '../world.js';
@@ -181,6 +187,36 @@ export function classicCityArmyExploreProbe(game: Game, unit: Unit, grade: DosCo
  *   not traced yet, so they use the plain `0x4C52` sweep from that heading [?].
  * The heading is kept on `unit.classicWander` (DOS `ES:24A`).
  */
+/**
+ * ALG-AI-001 order 3 dispatch `0x3F64` → `0x3F0C` [D] for an idle ship or fighter that
+ * already holds a heading (`agents/alg-ai-001-order3-45a2-trace-2026-11-24.md`):
+ * if the neighbor in that heading is off-map (`1E46:0C7F`), status 1 sends the unit back
+ * to its type reissue, which writes a fresh `0x4836` heading — returned here as
+ * `undefined` with no draw. Otherwise draw `rand()`; on `% 16 == 0` step the heading
+ * one ring place by the unit parity (`8ADC`). Picker `0x45A2` then legalizes it.
+ * Fighters: `0x3F64` skips `0x3F0C` (no draw) when fuel is at or below the threshold
+ * (14 when `180C >= 0`, else 10). Empirata uses the same threshold as
+ * `classicFighterMoveToExhausted` (10 when not aboard) and keeps the heading; what the
+ * DOS fighter reissue then writes is untraced [?].
+ */
+export function classicOrder3RandomTick(
+  game: Game,
+  unit: Unit,
+  heading: number,
+): { game: Game; directionIndex: number | undefined } {
+  if (unit.kind === 'fighter' && !unit.aboard && (unit.fuel ?? 0) <= 10) {
+    return { game, directionIndex: heading };
+  }
+  const d = directions[heading]!;
+  if (!playable(game, { x: unit.position.x + d.x, y: unit.position.y + d.y })) {
+    return { game, directionIndex: undefined };
+  }
+  const draw = nextRandom15(game.rng);
+  const next =
+    draw.value % 16 === 0 ? classicRotateDirectionIndex(heading, classicRandomRotationBias(unit)) : heading;
+  return { game: { ...game, rng: draw.next }, directionIndex: next };
+}
+
 export function classicIdleNoneStep(
   game: Game,
   unit: Unit,
@@ -197,6 +233,11 @@ export function classicIdleNoneStep(
   let g = game;
   // Leaving a city always rolls a fresh heading (`0x1F34C`: order was `0x11`, not `0x10`).
   let heading = inOwnCity ? undefined : unit.classicWander?.direction;
+  if (heading !== undefined && unit.kind !== 'army') {
+    const tick = classicOrder3RandomTick(g, unit, heading);
+    g = tick.game;
+    heading = tick.directionIndex;
+  }
   if (heading === undefined) {
     const roll = classicWanderHeadingRoll(g);
     g = roll.game;

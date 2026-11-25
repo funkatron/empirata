@@ -5,6 +5,7 @@ import {
   classicArmyWanderStep,
   classicCityArmyExploreProbe,
   classicIdleNoneStep,
+  classicOrder3RandomTick,
   classicRandomRotationBias,
   classicRotateDirectionIndex,
   classicWanderHeadingRoll,
@@ -179,4 +180,85 @@ test('save validation accepts a classic wander heading and rejects an invalid on
   assert.deepEqual(back.units[0].classicWander, { direction: 7 });
   g.units[0].classicWander = { direction: 8 };
   assert.throws(() => importSave(exportSave(g)), /classic wander/);
+});
+
+// Order 3 (idle ship/fighter with a heading): dispatch 0x3F64 -> 0x3F0C draws rand()%16
+// and steps the heading one ring place on 0, before picker 0x45A2 legalizes it.
+// See agents/alg-ai-001-order3-45a2-trace-2026-11-24.md.
+
+function seedWhere(pred) {
+  for (let seed = 1; seed < 100000; seed++) {
+    if (pred(nextRandom15({ seed, draws: 0 }).value)) return { seed, draws: 0 };
+  }
+  throw new Error('no seed');
+}
+
+test('order 3 tick rotates the heading one ring step when rand%16 == 0', () => {
+  const g = lab('sea');
+  const ship = redArmy('rd', { x: 50, y: 30 }, { kind: 'destroyer', classicWander: { direction: 4 } });
+  g.units = [ship];
+  g.rng = seedWhere(v => v % 16 === 0);
+  const tick = classicOrder3RandomTick(g, ship, 4);
+  assert.equal(tick.directionIndex, classicRotateDirectionIndex(4, classicRandomRotationBias(ship)));
+  assert.notEqual(tick.directionIndex, 4);
+  assert.equal(tick.game.rng.draws, 1);
+});
+
+test('order 3 tick keeps the heading when rand%16 != 0', () => {
+  const g = lab('sea');
+  const ship = redArmy('rd', { x: 50, y: 30 }, { kind: 'destroyer' });
+  g.rng = seedWhere(v => v % 16 !== 0);
+  const tick = classicOrder3RandomTick(g, ship, 4);
+  assert.equal(tick.directionIndex, 4);
+  assert.equal(tick.game.rng.draws, 1);
+});
+
+test('order 3 tick: off-map neighbor skips the draw and asks for a fresh heading', () => {
+  const g = lab('sea');
+  const ship = redArmy('rd', { x: 1, y: 30 }, { kind: 'destroyer' });
+  const west = directions.findIndex(d => d.x === -1 && d.y === 0);
+  const tick = classicOrder3RandomTick(g, ship, west);
+  assert.equal(tick.directionIndex, undefined);
+  assert.equal(tick.game.rng.draws, g.rng.draws);
+});
+
+test('order 3 tick: low-fuel fighter takes no draw and keeps its heading', () => {
+  const g = lab('sea');
+  const fighter = redArmy('rf', { x: 50, y: 30 }, { kind: 'fighter', fuel: 10 });
+  const tick = classicOrder3RandomTick(g, fighter, 4);
+  assert.equal(tick.directionIndex, 4);
+  assert.equal(tick.game.rng.draws, g.rng.draws);
+});
+
+test('idle ship: a freshly rolled heading takes no order 3 tick (one draw)', () => {
+  const g = lab('sea');
+  const ship = redArmy('rd', { x: 50, y: 30 }, { kind: 'destroyer' });
+  g.units = [ship];
+  chart(g);
+  const idle = classicIdleNoneStep(g, ship, 1);
+  assert.equal(idle.game.rng.draws, g.rng.draws + 1);
+});
+
+test('idle ship: a held heading takes the tick before the legal sweep', () => {
+  const g = lab('sea');
+  const ship = redArmy('rd', { x: 50, y: 30 }, { kind: 'destroyer', classicWander: { direction: 4 } });
+  g.units = [ship];
+  chart(g);
+  g.rng = seedWhere(v => v % 16 === 0);
+  const turned = classicRotateDirectionIndex(4, classicRandomRotationBias(ship));
+  const idle = classicIdleNoneStep(g, ship, 1);
+  assert.equal(idle.game.rng.draws, 1);
+  assert.equal(idle.game.units[0].classicWander.direction, turned);
+  const d = directions[turned];
+  assert.deepEqual(idle.step, { x: 50 + d.x, y: 30 + d.y });
+});
+
+test('idle army with a held heading takes no order 3 tick', () => {
+  const g = lab();
+  const army = redArmy('ra', { x: 50, y: 30 }, { classicWander: { direction: 4 } });
+  g.units = [army];
+  chart(g);
+  const before = g.rng.draws;
+  const idle = classicIdleNoneStep(g, army, 1);
+  assert.equal(idle.game.rng.draws, before);
 });
