@@ -58,7 +58,7 @@ Full per-direction move check: `loc + delta[dir]`; off-map (`1E46:0C7F`) → 0; 
 | `0x485E` | `classicCityArmyExploreProbe` |
 | Army type AI, None branch | `classicIdleNoneStep` (strategic analogues `classicArmyConquestStep` etc. run first in the executor) |
 | `ES:24A` heading | `Unit.classicWander.direction` (engine index; save-validated) |
-| Ship/fighter order 3 | rolled heading + plain `0x4C52` sweep **[?]** until `0x45A2` is traced |
+| Ship/fighter order 3 | rolled heading; on later moves `classicOrder3RandomTick` (`0x3F64` → `0x3F0C`, `rand%16` ring step) then the `0x4C52` sweep (`0x45A2`) [D] — v0.6.20 |
 
 `12C2:0845`, `0x1F454`, `0x1F5F4`, `0x1F6AA` are not traced here; Empirata's existing army strategic steps stand in for them.
 

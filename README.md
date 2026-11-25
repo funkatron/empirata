@@ -4,6 +4,10 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.6.20 — Idle ships and fighters drift like DOS
+
+An idle classic ship or fighter that is still following its wander heading now takes the DOS order 3 tick (`0x3F64` → `0x3F0C`) before the legal-direction sweep: one `rand()` per move, and on `% 16 == 0` the heading turns one step around the compass ring (direction set by unit parity). The move that first rolls a heading takes no tick; an off-map neighbor skips the draw and rolls a fresh heading; a fighter at or below its fuel threshold takes no draw. Armies are unchanged. Trace: `agents/alg-ai-001-order3-45a2-trace-2026-11-24.md`.
+
 ## Version 0.6.19 — Faster terrain drawing
 
 The terrain sprite atlas (`terrain-atlas.svg`) is rasterized to a bitmap canvas once when it loads. Tiles and coast overlays are stamped from that bitmap instead of re-rasterizing the SVG's vector paths on every `drawImage`, and the per-tile `save()`/`restore()` is replaced by toggling only `imageSmoothingEnabled`. A full terrain layer rebuild drops from seconds to tens of milliseconds; artwork is pixel-identical. No gameplay change.
