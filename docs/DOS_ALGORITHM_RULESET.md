@@ -321,7 +321,7 @@ Static dump (observer rows → target cols; order army, fighter, destroyer, tran
 1. Inside the same sight walk (`0x1E8A0–0x1E8E0`): when a neighboring enemy tile passes the matrix, units on the observer’s tile matching the observer type have order byte cleared to `0`.
 2. Contact helper around `0x19E2C`: units on a contact tile with order ∈ `{1, 6, 0xC}` also clear to `0`.
 
-Order name table near `0x2FD6E`: `None=0`, `Sentry=1`, `Random=2`, `Move To=3`, `Land on=4`, `Escort=5`, `Patrol from=6`, … **Order `0xC`** is written by delayed-order paths (`0x1D7E1`, `0x1DDF1`) — the Wait/sleep standing order (menu string `Wait` at `0x3056F`). Wake set = **Sentry + Patrol-from + Wait**.
+Order name table at `0x2FD7B`: `None=0`, `Sentry=1`, `Random=2`, `Move To=3`, `Land on=4`, `Escort=5`, `Patrol from=6`, `Move=7`, `Load=8`. **Order `0xC`** is written by `0x1D7E1` and `0x1DDF1` (menu string `Wait` is `0x3056F`; the name-slot string at index 12 is ` - `). Its direction picker is `0x4600`, not order 5's picker. Wake set = **Sentry + Patrol-from + order `0xC`**.
 
 **Empirata:** detection matrix + **sentry/patrol/skip** wake on adjacent fresh contact (`updateAllKnowledge`). Sub→sub matrix per tests; parity **partial** on wake timing vs `0x19E2C` helper.
 
@@ -402,21 +402,24 @@ Computer movement-phase pass limit is **1** (ALG-013); humans get **100**.
 
 | Order | Name (string table) | Handler |
 |---|---|---|
-| 0 | None | `0x3E00`: return status **1** → `0x4462` type reissue; `0x44EA` returns **−1** (stay) for order 0. No default bearing. Idle armies: city garrison `0x11` unless explore probe `0x485E` hits, else wander `0x10` (`0x4836` heading, `0x4542` step) [D]. See `agents/alg-ai-001-none-order-trace-2026-11-24.md` |
-| 1 | Sentry | `0x3E7C` — wake/engage checks vs adjacent enemies |
-| 2 | Random | `0x3F0C` — with probability `rand()%16 == 0`, rotate dir by `8ADC` |
-| 3 | Move To | `0x3F64` |
-| 4/5/7 | Land on / Escort / Move | shared `0x3E18` → `0x400E` |
-| 6 | Patrol from | `0x3F9A` |
-| 8 | Load | `0x4086` |
-| 9…0xB | (further tactical) | `0x40E4` / `0x4152` / `0x41C0` |
-| 0xC | Wait | `0x421E` |
-| 0xD…0xF | | `0x424A` / `0x42BC` / `0x4418` |
-| 0x10–0x11 | | same as None |
+| 0 | None | `0x3E00`: return status **1** → `0x4462` type reissue; `0x44EA` returns **−1** (stay) for order 0. No default bearing. Idle armies: city garrison `0x11` unless explore probe `0x485E` hits, else wander `0x10` (`0x4836` heading, `0x4542` step) [D]. Picker underflows to stay **−1**. See `agents/alg-ai-001-none-order-trace-2026-11-24.md` |
+| 1 | Sentry | `0x3E7C`. Picker `0x45E4` → `0x4714` |
+| 2 | Random | `0x3F0C`. Picker `0x45A2` |
+| 3 | Move To | `0x3F64` (Random for non-low-fuel). Picker `0x45A2` |
+| 4 / 5 / 7 | Land on / **Escort** / Move | shared `0x400E`. Picker `0x46FC`: heading if `8AD6<=7`, else `0x4714` |
+| 6 | Patrol from | `0x3F9A`. Picker `0x45E4` |
+| 8 | Load | `0x4086`. Picker `0x46FC` |
+| 9…0xB | strings `Armies` / `Fighters` / `Patrol ` **[?]** as displayed names | `0x40E4` / `0x4152` / `0x41C0`. Picker `0x46FC` |
+| 0xC | writers `0x1D7E1`, `0x1DDF1`; name-slot text is ` - ` (menu `Wait` is `0x3056F`) | dispatch `0x421E`. **Picker `0x4600`** |
+| 0xD…0xF | | `0x424A` / `0x42BC` / `0x4418`. Picker `0x46FC` |
+| 0x10 | | dispatch status 1. Picker `0x4542` |
+| 0x11 | | dispatch status 1. Picker returns **−1** |
 
 4. If step 3 returns nonzero, **`0x4462`** re-issues type-specific far helpers (army/fighter/ship families) that can rewrite order/direction.
 5. **`0x44EA`** picks a legal direction from the (possibly updated) order via another jump table (`0x451C`).
-6. **`0x47E0`** type-specializes the chosen direction pointer: army `1F23:0146`, fighter `1F23:0C26`, ships `1D09:047E`.
+6. **`0x47E0`** [D] only branches on type: army `1F23:0146` (`0x1F376`), fighter `1F23:0C26` (`0x1FE56`), ships 2…7 `1D09:047E` (`0x1D50E`). Each callee may write the direction from `12C2:115F` (adjacent class `0xFF`, not own) or `03BF:0E3A` (`0x4A2A`, masked neighbor), then `0x4C52` unless the direction is already `−1` (army still legalizes `−1` when its own chart class is `0xFF`). Ships also call `0x1DF56` and, on one `0x4A2A` success, set `dir = (dir + rand%3 + 3) & 7`. Trace: `agents/alg-ai-001-type-step-47e0-trace-2026-11-24.md`.
+
+**Army strategic probes [D]** (`agents/alg-ai-001-army-strategic-trace-2026-11-24.md`): `12C2:0845` returns 1 only for a type-0 unit on a city-class tile whose `62FE` neighbors 9…1 are on-map-safe. `0x1F454` assigns order `0x0F` and `24A` = one city loc, random start, Chebyshev ≤ 20 when `62F6 ≠ 0` else ≤ 12 (`1A9E:000C` **[?]**). `0x1F5F4` assigns order 5 from the first of 20 per-player map indexes within 12. `0x1F6AA` assigns order 1 and `24A` = a type-3 unit in order `0xE` within 10 (`1E46:08A7` **[?]**).
 
 **Direction table [D] (2026-11-24):** 8 word location deltas at `2E32:6300` (linear `0x34620`), indexed by DOS dir `0…7`: `+1, −99, −100, −101, −1, +99, +100, +101` = **E, NE, N, NW, W, SW, S, SE** (counter-clockwise ring). All `±1` rotations below are ring steps. Empirata `directions` is row-major and needs a DOS→engine map `[4,2,1,0,3,5,6,7]`. See `agents/alg-ai-001-compass-order-trace-2026-11-24.md`.
 
@@ -428,14 +431,14 @@ Computer movement-phase pass limit is **1** (ALG-013); humans get **100**.
 
 | Piece | Behavior |
 |---|---|
-| Move-To order `0x3F64` | Fighter low-fuel gate: if `180C[fighter] >= 0` use thresh **14**, else **10**; if fuel `<=` thresh return `1` (force `0x4462` reissue). Otherwise fall through to **Random** `0x3F0C`. |
-| Land/Escort/Move `0x400E` | If already at goal loc, or fighter cannot reach before fuel (`dist > fuel`), return `1`. Escort also aborts if target tile owner byte ≠ current player. Else `1A9E:006C` reachability → boolean. |
+| Move-To order `0x3F64` / picker `0x45A2` [D] | Fighter (`8AD0==1`) low-fuel gate: if `180C >= 0` thresh **14**, else **10**; if fuel `<=` thresh return status **1** (no Random). Everyone else falls through to **Random** `0x3F0C` (`rand()%16==0` ring step). Picker `0x44EA` then `0x45A2`: copy `8AD6`, `call 0x4C52`, store the result back to `ES:24A`. No `0x4714`. Trace: `agents/alg-ai-001-order3-45a2-trace-2026-11-24.md`. |
+| Land/Escort/Move `0x400E` | If `8AD6 == 8AD8`, or a fighter's Chebyshev(`8AD6`,`8AD8`) `>` fuel, return status 1. Order **5**: if `6C82[chart[8AD6]] ==` player, return status 1 (the old "≠" wording was backwards). Else `1A9E:006C`; status 1 when it returns 0. |
 | Goal step `0x4714` | If `goal == unit_loc` return **`-1`** (stay). Else call pathfinder `1A9E:014A` with the unit’s **passability mask** (below). On failure clear order to `0` and call `1E46:09C4`. Returns chosen direction in out-param. |
 | Pathfinder budget `1A9E:014A` | Cap search radius at `min(0x7D, 2*chebyshev(goal,start)+0x19)`. Recurses with depth budget; tie-break uses `rand()%2`. |
 | Passability test [D] | Map glyph `t = ES:234[loc]` (knowledge layer; cities store `10*owner − 6`). Mask byte at `DS:(base + player*0x22 + t)` must be **nonzero** or the tile is blocked (`0x1ACE0`, `0x1AE87`). |
-| Legalize dir `0x4C52` | From current dir, try up to **8** rotations by `±1` (unit-index parity); accept first that passes `12C2:099C` and tile probe `0x4B52`. Else write direction **`-1`**. First probe is the current dir; sign: unit index odd → `+1`, even → `−1`. No rim/border special case in this routine [D]. |
-| Escort close-range `0x4600` | If dist to target `< 4`, switch on target’s order; may call `0x4714` or `1D09:03C2` for a stationing tile. |
-| Escort station `1D09:03C2` [D] | **`0x46C2` → `1D09:03C2` (`0x1D452`)**: radius **`n=3`**; window **`(2n+1)²`**; **`0x14`** probes; each probe **two** `25E6:0F64` → `0x26DC4` draws, **`idiv (2n+1)`**, add **`baseQuot/baseRem`** from target `loc/100` and `loc%100` minus **`n`** (Empirata **Y/X**), clamp imul leg **`[1,0x3A]`**, add leg **`[1,0x62]`**, index **`Y*100+X`**, then **`1A9E:006C`** — **first hit**. **`0x1DF56`** is only called from **`0x1D50E`** (`1D09:047E`), which **`0x47E0`** reaches at **`0x482C`** for ship types **2…7** — not from a failed 20-probe. Second `0x1D452` use: **`0x1D39F`** inside **`1D09:020E`** (from **`0x449E`**) with **`n=10`** around a distant friendly city when `180C < 0` and distance **`> 10`** — not in Empirata. Empirata **v0.6.17+**: escort `n=3` window + `classicUnitReachableGoal`. Trace: `agents/alg-ai-001-03c2-rand-tile-2026-11-23.md`. |
+| Legalize dir `0x4C52` | From current dir, try up to **8** rotations by `±1` (unit-index parity); accept first that passes `12C2:099C` and tile probe `0x4B52`. Else write direction **`-1`**. First probe is the current dir; sign: unit index odd → `+1`, even → `−1`. No X/Y rim test. A None unit does not stay for being on the north edge: order 0 returns status 1, `0x4462` rewrites the order, and `0x4542` runs only for order `0x10`. Trace: `agents/alg-ai-001-4c52-rim-static-2026-11-24.md`. |
+| Order `0xC` picker `0x4600` [D] | Not the string-table Escort (order 5). `0x44EA` reaches `0x4600` only for order **0xC**. If dist to the `24A` target `< 4`, switch on that target’s order; may call `0x4714` or `1D09:03C2`. Trace: `agents/alg-ai-001-order-numbering-trace-2026-11-24.md`. |
+| Escort station `1D09:03C2` [D] | **`0x46C2` → `1D09:03C2` (`0x1D452`)**: radius **`n=3`**; window **`(2n+1)²`**; **`0x14`** probes; each probe **two** `25E6:0F64` → `0x26DC4` draws, **`idiv (2n+1)`**, add **`baseQuot/baseRem`** from target `loc/100` and `loc%100` minus **`n`** (Empirata **Y/X**), clamp imul leg **`[1,0x3A]`**, add leg **`[1,0x62]`**, index **`Y*100+X`**, then **`1A9E:006C`** — **first hit**. **`0x1DF56`** is only called from **`0x1D50E`** (`1D09:047E`), which **`0x47E0`** reaches at **`0x482C`** for ship types **2…7** — not from a failed 20-probe. Second `0x1D452` use: **`0x1D39F`** in carrier reissue **`1D09:020E`** (type **6** at `0x449E`) with **`n=10`** around the nearest friendly city (`1098` owner, `E06==1`) when `180C < 0` and distance **`> 10`**; success sets order **`0xA`**. Not in Empirata. Trace: `agents/alg-ai-001-reissue-1d39f-trace-2026-11-24.md`. Empirata **v0.6.17+**: escort `n=3` window + `classicUnitReachableGoal`. Trace: `agents/alg-ai-001-03c2-rand-tile-2026-11-23.md`. |
 
 **Passability masks (`0x22` = 34 bytes) [D]:**
 
