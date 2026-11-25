@@ -14,11 +14,12 @@ import {createRenderer} from './render.js';
 import type {RenderParams} from './render.js';
 import {endgameModal} from './endgame.js';
 import {resignModal} from './resign.js';
+import {combatSites,referenceTarget,reportsHtml} from './reports.js';
 import {knownUnitName,selectedUnitBlock,selectedCityBlock,spectatorUnitBlock,spectatorCityBlock,text} from './inspector-panel.js';
 import {applyAiPolicyToMenu,applyRecipeToMenu,currentMenuRecipe,readCampaignAiPolicy,seedSource,syncCampaignClassicGrade,syncCampaignSeedControls} from './game-menu.js';
 import {advanceLabRound,endTurn,labRoundPhases,exportSave,getPlayerView,importSave,loadLocal,makeRulesLab,makeCloseQuartersLab,makeAiInvasionLab,makeAiVsAiLab,makeAiVsAiSkirmishLab,makeCampaignMap,mergeSpectatorPlayerViews,
   moveUnit,disembarkArmy,launchFighter,loadShip,unloadShip,runMoveToOrders,saveLocally,selectProduction,setOrder,
-  STATS,unitName,cityName,gameOutcome,readableReport,
+  STATS,unitName,cityName,gameOutcome,readableReport,movementAllowance,
   formatMapSeedLine,mapRecipeFromCampaign,parseMapRecipe,randomCampaignSeed,serializeMapRecipe,parseCampaignSeed,
   isCampaignLayout,isMapAlgorithm,isCityDensity,classicResignPendingFor,respondClassicResign,hasBlockingClassicResign,formatAiPolicyLabel,resolveAiPolicy,unitOrderGoals,unitOrderPath} from '../engine/index.js';
 import type {AiPolicy,CampaignLayout,CampaignMode,City,CityDensity,Coord,Game,MapAlgorithm,MapRecipe,Unit,UnitType,PlayerView} from '../engine/index.js';
@@ -37,7 +38,8 @@ const resignOffer=resignModal(
   el('resignTitle'),
   canvas,
   accept=>{
-    if(!dispatch(()=>respondClassicResign(game,accept)))return;
+    if(!dispatch(()=>respondClassicResign(game,accept),false,null))return;
+    undoStack=[];syncUndoButton();
     uiMessage(accept?'Resignation accepted. Cities transferred.':'Resignation declined.');
   },
 );
@@ -95,9 +97,24 @@ const touches=new Map<number,{x:number;y:number}>();
 let pinch:{distance:number;scale:number;worldX:number;worldY:number}|null=null;
 let suppressTap=false;
 let hydrated=false;
-let choosingDestination=false;
-let choosingOrder:'move-to'|'patrol'|'go-direction'|'escort'='move-to';
+type OrderModeKind='move-to'|'patrol'|'go-direction'|'escort';
+/** A visible, cancellable order mode: first tap previews, second tap (or Confirm) commits. */
+let orderMode:{kind:OrderModeKind;unitId:string;target:Coord|null}|null=null;
+const ORDER_LABEL:Record<OrderModeKind,string>={'move-to':'Move To','patrol':'Patrol','go-direction':'Go Direction','escort':'Escort'};
+const ORDER_PROMPT:Record<OrderModeKind,string>={
+  'move-to':'tap a destination',
+  'patrol':'tap the far end of the patrol route',
+  'go-direction':'tap a square next to the unit to pick a bearing',
+  'escort':'tap a friendly unit to escort',
+};
 let lastInspectorKey='';
+/** Undo history for this turn's player actions. Cleared by any random draw (combat) or round change. */
+type UndoEntry={game:Game;label:string;selectedUnit:string|null;selectedCity:string|null};
+let undoStack:UndoEntry[]=[];
+/** The game a New game / scenario start replaced, restorable with Undo until the next action. */
+let replacedGame:UndoEntry|null=null;
+/** Combat reported from this event id onward is marked on the map. */
+let combatMarkersSince=Number.MAX_SAFE_INTEGER;
 let lastEventsKey='';
 const stackDialog=el('stackDialog') as HTMLDialogElement;
 const gameMenuDialog=el('gameMenuDialog') as HTMLDialogElement;
@@ -188,11 +205,52 @@ function paintOrderOverlays(displayUnits:Array<{id:string;owner:'blue'|'red'|'gr
     }
   }
 }
+/** Player units still able to move with no standing order, then cities producing nothing. */
+function awaitingItems():Array<{unit?:string;city?:string;position:Coord}> {
+  if(game.scenario==='ai-vs-ai'||gameOutcome(game).state==='finished')return [];
+  const units=view.ownUnits.filter(u=>!u.aboard&&u.order.kind==='none'&&movementAllowance(u)-u.spent>0)
+    .map(u=>({unit:u.id,position:u.position}));
+  const cities=view.ownCities.filter(c=>!c.production).map(c=>({city:c.id,position:c.position}));
+  return [...units,...cities];
+}
+function nextAwaiting():void {
+  if(game.scenario==='ai-vs-ai')return;
+  const items=awaitingItems();
+  if(!items.length){uiMessage('Every unit has orders and every city is producing. Press Next round when ready.');return;}
+  cancelOrderMode();
+  const current=items.findIndex(i=>i.unit?i.unit===selectedUnit:i.city===selectedCity);
+  const item=items[(current+1)%items.length]!;
+  selectedUnit=item.unit??null;selectedCity=item.city??null;spectatorContact=null;spectatorCity=null;
+  focus(item.position);refresh();
+}
+function paintPlayerMarkers():void {
+  if(game.scenario==='ai-vs-ai')return;
+  const w=canvas.clientWidth,h=canvas.clientHeight;
+  const visible=(p:Coord)=>{const x=p.x*tileSize-cameraX,y=p.y*tileSize-cameraY;return x>-tileSize&&y>-tileSize&&x<w&&y<h;};
+  ctx.save();
+  // Idle cities: dashed gold ring.
+  ctx.strokeStyle='#f0dd9b';ctx.lineWidth=Math.max(1.5,tileSize*.06);ctx.setLineDash([Math.max(3,tileSize*.12),Math.max(2,tileSize*.08)]);
+  for(const city of view.ownCities){
+    if(city.production||!visible(city.position))continue;
+    const x=city.position.x*tileSize-cameraX,y=city.position.y*tileSize-cameraY,inset=Math.max(1,tileSize*.04);
+    ctx.strokeRect(x+inset,y+inset,tileSize-2*inset,tileSize-2*inset);
+  }
+  // Recent combat: red burst in the tile corner.
+  ctx.setLineDash([]);ctx.strokeStyle='#ff6b5e';ctx.lineWidth=Math.max(1.5,tileSize*.07);
+  for(const site of combatSites(view,game,combatMarkersSince)){
+    if(!visible(site))continue;
+    const cx=site.x*tileSize-cameraX+tileSize*.8,cy=site.y*tileSize-cameraY+tileSize*.2,r=Math.max(3,tileSize*.16);
+    ctx.beginPath();
+    for(let i=0;i<4;i++){const a=i*Math.PI/4;ctx.moveTo(cx-Math.cos(a)*r,cy-Math.sin(a)*r);ctx.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);}
+    ctx.stroke();
+  }
+  ctx.restore();
+}
 function buildRenderParams():RenderParams{
   const displayUnits=[...view.enemies.map(e=>({id:e.id,kind:e.kind,position:e.position,owner:e.owner,stale:e.stale})),
     ...view.ownUnits.filter(u=>!u.aboard).map(u=>({id:u.id,kind:u.kind,position:u.position,owner:u.owner,stale:false}))];
   return {view,game,tileSize,cameraX,cameraY,revealSpectatorTerrain,selectedUnit,selectedCity,spectatorContact,spectatorCity,
-    postPaint:()=>paintOrderOverlays(displayUnits)};
+    postPaint:()=>{paintOrderOverlays(displayUnits);paintPlayerMarkers();paintOrderPreview();}};
 }
 function invalidateMapLayer():void{renderer.invalidateMapLayer();}
 function paint():void{renderer.paint(buildRenderParams());}
@@ -282,20 +340,58 @@ function startRoundPlayback(repeat:boolean):void {
   };
   playback=setTimeout(tick,repeat?750:0);
 }
-function dispatch(operation:()=>Game,deferObserverRefresh=false):boolean {
+function dispatch(operation:()=>Game,deferObserverRefresh=false,undoLabel:string|null='last action'):boolean {
   if(gameOutcome(game).state==='finished'){uiMessage('Game over. Inspect the map, export the save, or start a new game.');return false;}
   try {
     const before=game.nextEventId;
+    const recordUndo=undoLabel!==null&&!deferObserverRefresh&&game.scenario!=='ai-vs-ai';
+    const snapshot=recordUndo?structuredClone(game):null;
+    const draws=recordUndo?game.rng.draws:0;
     game=operation();
+    if(snapshot){
+      replacedGame=null;
+      if(game.rng.draws!==draws)undoStack=[];
+      else{undoStack.push({game:snapshot,label:undoLabel!,selectedUnit,selectedCity});if(undoStack.length>30)undoStack.shift();}
+      syncUndoButton();
+    }
     if(deferObserverRefresh){observerRefreshPending=true;return true;}
     view=spectatorView();
     if(selectedUnit&&!view.ownUnits.some(u=>u.id===selectedUnit))selectedUnit=null;
     refresh();
     const result=view.events.filter(e=>e.id>=before&&e.kind==='combat').at(-1);
-    if(result)uiMessage(readableReport(result.message,[...view.ownUnits,...view.enemies],game.cities));
+    if(result){
+      if(combatMarkersSince>before)combatMarkersSince=before;
+      uiMessage(`${readableReport(result.message,[...view.ownUnits,...view.enemies],game.cities)} Combat cannot be undone.`);
+    }
     void saveLocally(game).catch(()=>uiMessage('Local save unavailable; use Export JSON.'));
     return true;
   } catch(error) {uiMessage(error instanceof Error?error.message:String(error));return false;}
+}
+function syncUndoButton():void {
+  const button=el('undoButton') as HTMLButtonElement;
+  const next=undoStack.at(-1)??replacedGame;
+  button.disabled=!next||gameOutcome(game).state==='finished'&&!replacedGame;
+  const label=next?(undoStack.length?`Undo ${next.label}`:'Undo: restore the previous game'):'Nothing to undo';
+  button.title=label;button.setAttribute('aria-label',label);
+}
+function undo():void {
+  const entry=undoStack.pop()??replacedGame;
+  if(!entry){uiMessage('Nothing to undo.');return;}
+  const restoringGame=entry===replacedGame;
+  replacedGame=null;
+  pausePlayback();
+  orderMode=null;
+  game=entry.game;selectedUnit=entry.selectedUnit;selectedCity=entry.selectedCity;spectatorContact=null;spectatorCity=null;
+  if(restoringGame){resultModal.reset();observer='blue';spectatorMode='both';invalidateMapLayer();}
+  refresh();syncUndoButton();
+  void saveLocally(game).catch(()=>uiMessage('Local save unavailable; use Export JSON.'));
+  uiMessage(restoringGame?'Previous game restored.':`Undid ${entry.label}.`);
+}
+/** Keep the outgoing game so a New game / scenario start can be undone (replaces confirm dialogs). */
+function rememberReplacedGame():void {
+  replacedGame={game,label:'new game',selectedUnit,selectedCity};
+  undoStack=[];
+  combatMarkersSince=Number.MAX_SAFE_INTEGER;
 }
 function resize():void{
   const rect=canvas.getBoundingClientRect(),ratio=window.devicePixelRatio||1;
@@ -395,6 +491,73 @@ function showCityStack(pos:Coord):boolean {
   stackDialog.showModal();
   return true;
 }
+function syncOrderModeUi():void {
+  const banner=el('orderBanner');
+  const unit=orderMode?view.ownUnits.find(u=>u.id===orderMode!.unitId):undefined;
+  if(!orderMode||!unit){banner.hidden=true;}
+  else{
+    banner.hidden=false;
+    const label=ORDER_LABEL[orderMode.kind];
+    const t=orderMode.target;
+    el('orderBannerText').textContent=t
+      ?`${label} → ${t.x}, ${t.y}. Tap it again or press Confirm.`
+      :`${label} for ${unitName(unit)}: ${ORDER_PROMPT[orderMode.kind]}.`;
+    (el('orderConfirm') as HTMLButtonElement).disabled=!t;
+  }
+  const pressed:Record<string,OrderModeKind>={moveToButton:'move-to',directionButton:'go-direction',patrolButton:'patrol',escortButton:'escort'};
+  for(const [id,kind] of Object.entries(pressed)){
+    const button=document.getElementById(id);
+    if(button)button.setAttribute('aria-pressed',String(orderMode?.kind===kind));
+  }
+}
+function startOrderMode(kind:OrderModeKind,unitId:string):void {
+  if(orderMode?.kind===kind&&orderMode.unitId===unitId){cancelOrderMode();return;}
+  orderMode={kind,unitId,target:null};
+  syncOrderModeUi();schedulePaint();
+}
+function cancelOrderMode():void {
+  if(!orderMode)return;
+  orderMode=null;syncOrderModeUi();schedulePaint();
+}
+/** The order the current mode would give, for preview and commit. */
+function pendingOrder():Unit['order']|null {
+  if(!orderMode?.target)return null;
+  const unit=view.ownUnits.find(u=>u.id===orderMode!.unitId);
+  if(!unit)return null;
+  const pos=orderMode.target,origin=unit.position;
+  if(orderMode.kind==='escort'){
+    const target=view.ownUnits.find(u=>u.id!==unit.id&&!u.aboard&&u.position.x===pos.x&&u.position.y===pos.y);
+    return target?{kind:'escort',targetId:target.id}:null;
+  }
+  if(orderMode.kind==='go-direction')return {kind:'go-direction',direction:{x:Math.sign(pos.x-origin.x),y:Math.sign(pos.y-origin.y)}};
+  if(orderMode.kind==='patrol')return {kind:'patrol',from:{...origin},to:{...pos},outbound:true};
+  return {kind:'move-to',destination:{...pos}};
+}
+function commitOrderMode():void {
+  const mode=orderMode,order=pendingOrder();
+  if(!mode||!order)return;
+  orderMode=null;syncOrderModeUi();
+  const name=knownUnitName(view,mode.unitId);
+  if(dispatch(()=>runMoveToOrders(setOrder(game,mode.unitId,order)),false,`${ORDER_LABEL[mode.kind]} for ${name}`))
+    uiMessage(`${ORDER_LABEL[mode.kind]} order given to ${name}.`);
+}
+function paintOrderPreview():void {
+  const order=pendingOrder();
+  if(!orderMode||!order)return;
+  const unit=view.ownUnits.find(u=>u.id===orderMode!.unitId);
+  if(!unit)return;
+  const t=orderMode.target!;
+  let path:Coord[]|null=null;
+  if(order.kind==='go-direction'){
+    path=[unit.position];
+    for(let i=1;i<=4;i++)path.push({x:unit.position.x+order.direction.x*i,y:unit.position.y+order.direction.y*i});
+  }else if(order.kind!=='escort'){
+    try{path=unitOrderPath(game,{...unit,order});}catch{path=null;}
+    if(!path)path=[unit.position,t];
+  }
+  if(path)drawPathOverlay(path,'#f0dd9b');
+  drawGoalMarker(t.x*tileSize-cameraX,t.y*tileSize-cameraY,'#f0dd9b');
+}
 function tapTile(pos:Coord,allowPicker=true):void {
   if(allowPicker&&zoomToCellForTap(pos))return;
   if(game.scenario==='ai-vs-ai'){
@@ -418,25 +581,19 @@ function tapTile(pos:Coord,allowPicker=true):void {
     if(chosen)revealSpectatorInspector();
     return;
   }
-  if(choosingDestination&&selectedUnit){
-    choosingDestination=false;
-    const id=selectedUnit;
-    const origin=view.ownUnits.find(u=>u.id===id)?.position;
-    if(!origin)return;
-    const dx=pos.x-origin.x,dy=pos.y-origin.y;
-    if(choosingOrder==='escort'){
-      const target=view.ownUnits.find(u=>u.id!==id&&!u.aboard&&u.position.x===pos.x&&u.position.y===pos.y);
-      if(!target){uiMessage('Tap a different friendly unit to escort.');return;}
-      if(dispatch(()=>runMoveToOrders(setOrder(game,id,{kind:'escort',targetId:target.id}))))
-        uiMessage(`${knownUnitName(view,id)} is escorting ${unitName(target)}.`);
-      return;
+  if(orderMode){
+    if(pos.x<0||pos.y<0||pos.x>=game.width||pos.y>=game.height)return;
+    const unit=view.ownUnits.find(u=>u.id===orderMode!.unitId);
+    if(!unit){cancelOrderMode();return;}
+    if(orderMode.kind==='escort'&&!view.ownUnits.some(u=>u.id!==unit.id&&!u.aboard&&u.position.x===pos.x&&u.position.y===pos.y)){
+      uiMessage('Escort: tap a different friendly unit.');return;
     }
-    const order=choosingOrder==='go-direction'?
-      {kind:'go-direction' as const,direction:{x:Math.sign(dx),y:Math.sign(dy)}}:
-      choosingOrder==='patrol'?{kind:'patrol' as const,from:{...origin},to:pos,outbound:true}:
-      {kind:'move-to' as const,destination:pos};
-    if(dispatch(()=>runMoveToOrders(setOrder(game,id,order))))
-      uiMessage(`${choosingOrder} order assigned for ${knownUnitName(view,id)}.`);
+    if(orderMode.kind==='go-direction'&&pos.x===unit.position.x&&pos.y===unit.position.y){
+      uiMessage('Go Direction: tap a square next to the unit, not the unit itself.');return;
+    }
+    if(orderMode.target&&orderMode.target.x===pos.x&&orderMode.target.y===pos.y){commitOrderMode();return;}
+    orderMode.target={...pos};
+    syncOrderModeUi();schedulePaint();
     return;
   }
   if(pos.x<0||pos.y<0||pos.x>=game.width||pos.y>=game.height)return;
@@ -466,7 +623,7 @@ function tapTile(pos:Coord,allowPicker=true):void {
     const unit=view.ownUnits.find(u=>u.id===selectedUnit);
     if(unit&&Math.max(Math.abs(unit.position.x-pos.x),Math.abs(unit.position.y-pos.y))===1){
       const targetCity=cell?.city?.owner!=='blue'?cell?.city:null;
-      if(dispatch(()=>moveUnit(game,selectedUnit!,pos))&&targetCity){
+      if(dispatch(()=>moveUnit(game,selectedUnit!,pos),false,`move of ${unitName(unit)}`)&&targetCity){
         const newlyOwned=view.ownCities.find(c=>c.id===targetCity.id);
         if(newlyOwned){selectedUnit=null;selectedCity=newlyOwned.id;refresh();}
       }
@@ -500,26 +657,20 @@ function bindInspectorControls(unit:Unit|undefined,city:City|undefined):void {
         uiMessage(`${unitName(unit)}: select a carried unit, then tap a legal landing square.`);
     });
   }
-  const moveButton=document.getElementById('moveToButton');
-  if(moveButton&&unit)moveButton.addEventListener('click',()=>{choosingOrder='move-to';choosingDestination=true;uiMessage('Tap a map tile to set destination. Drag to pan.');});
-  for(const [button,kind,hint] of [['directionButton','go-direction','Tap an adjacent tile to choose a compass bearing.'],['patrolButton','patrol','Tap a destination for the patrol route.']] as const){
-    document.getElementById(button)?.addEventListener('click',()=>{choosingOrder=kind;choosingDestination=true;uiMessage(hint);});
+  for(const [button,kind] of [['moveToButton','move-to'],['directionButton','go-direction'],['patrolButton','patrol'],['escortButton','escort']] as const){
+    document.getElementById(button)?.addEventListener('click',()=>{if(unit)startOrderMode(kind,unit.id);});
   }
   document.getElementById('homeButton')?.addEventListener('click',()=>{
     if(unit&&dispatch(()=>runMoveToOrders(setOrder(game,unit.id,{kind:'go-home'}))))
       uiMessage(`${unitName(unit)} returning to a friendly city.`);
   });
-  document.getElementById('escortButton')?.addEventListener('click',()=>{
-    choosingOrder='escort';choosingDestination=true;
-    uiMessage('Tap another friendly unit to escort. Drag to pan.');
-  });
   const productionSelect=document.getElementById('productionSelect') as HTMLSelectElement | null;
   if(productionSelect&&city)productionSelect.addEventListener('change',()=>{
-    if(productionSelect.value)dispatch(()=>selectProduction(game,city.id,productionSelect.value as UnitType));
+    if(productionSelect.value)dispatch(()=>selectProduction(game,city.id,productionSelect.value as UnitType),false,`production change in ${cityName(city.id)}`);
   });
   for(const [button,kind] of [['sentryButton','sentry'],['clearButton','none'],['skipButton','skip']] as const){
     const target=document.getElementById(button);
-    if(target&&unit)target.addEventListener('click',()=>dispatch(()=>setOrder(game,unit.id,{kind})));
+    if(target&&unit)target.addEventListener('click',()=>dispatch(()=>setOrder(game,unit.id,{kind}),false,`order for ${unitName(unit)}`));
   }
 }
 function refresh():void {
@@ -547,10 +698,19 @@ function refresh():void {
     el('spectatorRed').textContent=`${red.cities} cities · ${red.units} units`;
   }
   el('round').textContent=`ROUND ${game.round}`;
+  document.body.classList.toggle('cvc',game.scenario==='ai-vs-ai');
+  const awaiting=awaitingItems();
+  const awaitingUnits=awaiting.filter(i=>i.unit).length,idleCities=awaiting.length-awaitingUnits;
+  el('awaitingCount').textContent=game.scenario==='ai-vs-ai'?'—':String(awaiting.length);
+  (el('nextUnit') as HTMLButtonElement).disabled=!awaiting.length;
+  el('nextUnit').setAttribute('aria-label',`Next unit or city awaiting orders: ${awaitingUnits} units, ${idleCities} cities`);
+  el('nextUnit').title=`${awaitingUnits} ${awaitingUnits===1?'unit':'units'} without orders · ${idleCities} idle ${idleCities===1?'city':'cities'} (N)`;
+  syncOrderModeUi();syncUndoButton();
   el('cityCount').textContent=String(view.ownCities.length);
   el('unitCount').textContent=String(view.ownUnits.length);
   const policyBanner=game.campaignMap?` · ${formatAiPolicyLabel(resolveAiPolicy(game)).toUpperCase()}`:'';
-  el('scenarioName').textContent=game.campaignMap?`${game.scenario==='ai-vs-ai'?'COMPUTER vs COMPUTER':'USER vs COMPUTER'} · ${game.campaignMap.layout.toUpperCase()} · ${(game.campaignMap.algorithm??'ellipse-v1').toUpperCase()} · ${(game.campaignMap.density??'sparse').toUpperCase()} · SEED ${game.campaignMap.seed}${policyBanner}`:game.scenario==='ai-vs-ai'?'COMPUTER vs COMPUTER · EXPERIMENTAL':game.scenario==='ai-invasion'?'AI INVASION · DEMONSTRATION':game.scenario==='close-quarters'?'CLOSE QUARTERS · PLAYABLE':'CLASSIC RULES LAB';
+  el('scenarioName').title=game.campaignMap?`${game.campaignMap.layout} · ${game.campaignMap.algorithm??'ellipse-v1'} · ${game.campaignMap.density??'sparse'} · seed ${game.campaignMap.seed}${policyBanner}`:'';
+  el('scenarioName').textContent=game.campaignMap?`${game.scenario==='ai-vs-ai'?'COMPUTER vs COMPUTER':'CAMPAIGN'} · ${game.campaignMap.layout.toUpperCase()} · SEED ${game.campaignMap.seed}${policyBanner}`:game.scenario==='ai-vs-ai'?'COMPUTER vs COMPUTER · EXPERIMENTAL':game.scenario==='ai-invasion'?'AI INVASION · DEMONSTRATION':game.scenario==='close-quarters'?'CLOSE QUARTERS · PLAYABLE':'CLASSIC RULES LAB';
   el('threatCount').textContent=String(view.enemies.filter(u=>!u.stale).length);
   const unit=view.ownUnits.find(u=>u.id===selectedUnit);
   const city=view.ownCities.find(c=>c.id===selectedCity);
@@ -580,13 +740,13 @@ function refresh():void {
         <p class="stat-note">Remembered city intelligence. Production is not visible.</p>`:
         '<p>City intelligence unavailable.</p>';
     }
-    else inspector.innerHTML=game.scenario==='ai-vs-ai'?'<p>Both factions are computer-controlled. Alternate the map viewpoint each round or choose a fixed side. The scorecards show both players’ own totals.</p>':'<p>Select a blue unit, then tap an adjacent enemy to attack. Select a city to assign production. Red will respond on the next round using a preliminary rules-bound AI.</p>';
+    else inspector.innerHTML=game.scenario==='ai-vs-ai'?'<p>Tap a unit or city on the map to inspect it.</p>':'<p>Tap a blue unit or city, or press Next.</p>';
     bindInspectorControls(unit,city);
   }
   const eventsKey=view.events.map(e=>e.id).join(',');
   if(eventsKey!==lastEventsKey){
     lastEventsKey=eventsKey;
-    el('events').innerHTML=[...view.events].reverse().slice(0,8).map(e=>`<div class="report"><span>ROUND ${e.round} / ${e.kind.toUpperCase()}</span>${text(readableReport(e.message,[...view.ownUnits,...view.enemies],Object.values(view.cells.flatMap(c=>c.city?[c.city]:[]))))}</div>`).join('')||'<p>No reports.</p>';
+    el('events').innerHTML=reportsHtml(view,game);
   }
   const outcome=gameOutcome(game),finished=outcome.state==='finished';
   el('gameResult').hidden=!finished;
@@ -665,13 +825,19 @@ canvas.addEventListener('pointercancel',ev=>finishPointer(ev,true));
 el('fitWorld').addEventListener('click',fitWorld);
 canvas.addEventListener('wheel',ev=>{ev.preventDefault();beginZoomGesture();zoom(ev.deltaY<0?2:-2);},{passive:false});
 document.addEventListener('keydown',ev=>{
-  if(stackDialog.open||resignOffer.isOpen()||(el('endgameDialog') as HTMLDialogElement).open||gameMenuDialog.open||ev.ctrlKey||ev.metaKey||ev.altKey)return;
+  if(stackDialog.open||resignOffer.isOpen()||(el('endgameDialog') as HTMLDialogElement).open||gameMenuDialog.open||ev.altKey)return;
   const target=ev.target as HTMLElement;
-  if(target.matches('input,textarea,select,button,[contenteditable="true"]'))return;
+  if(target.matches('input,textarea,select,[contenteditable="true"]'))return;
+  if((ev.ctrlKey||ev.metaKey)&&ev.key.toLowerCase()==='z'&&!ev.shiftKey){ev.preventDefault();undo();return;}
+  if(ev.ctrlKey||ev.metaKey)return;
+  if(target.matches('button')&&ev.key!=='Escape')return;
+  if(ev.key==='u'){undo();return;}
+  if(ev.key==='n'){nextAwaiting();return;}
   const moves:Record<string,Coord>={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},
     q:{x:-1,y:-1},e:{x:1,y:-1},z:{x:-1,y:1},c:{x:1,y:1}};
   if(ev.key==='Escape'){
-    choosingDestination=false;selectedUnit=null;selectedCity=null;spectatorContact=null;spectatorCity=null;refresh();return;
+    if(orderMode){cancelOrderMode();return;}
+    selectedUnit=null;selectedCity=null;spectatorContact=null;spectatorCity=null;refresh();return;
   }
   if(ev.key==='+'||ev.key==='='){beginZoomGesture();zoom(3);return;}
   if(ev.key==='-'){beginZoomGesture();zoom(-3);return;}
@@ -687,14 +853,35 @@ el('nextRound').addEventListener('click',()=>{
   setMapActivity('Computer turn','Resolving round…');
   requestAnimationFrame(()=>{
     window.setTimeout(()=>{
-      const ok=dispatch(()=>advanceLabRound(game));
+      const since=game.nextEventId;
+      const ok=dispatch(()=>advanceLabRound(game),false,null);
       setMapActivity(null);
+      if(ok){undoStack=[];combatMarkersSince=since;syncUndoButton();paint();}
       if(ok)uiMessage(`Round ${game.round}. Red has completed its response turn.`);
     },0);
   });
 });
 el('zoomIn').addEventListener('click',()=>{beginZoomGesture();zoom(4);});
 el('zoomOut').addEventListener('click',()=>{beginZoomGesture();zoom(-4);});
+el('events').addEventListener('click',ev=>{
+  const link=(ev.target as HTMLElement).closest<HTMLElement>('.report-link');
+  if(!link)return;
+  const unitId=link.dataset.unit??null,cityId=link.dataset.city??null;
+  const at=referenceTarget(view,unitId?{unit:unitId}:{city:cityId??''});
+  if(!at){uiMessage('That is no longer on your map.');return;}
+  cancelOrderMode();
+  selectedUnit=null;selectedCity=null;spectatorContact=null;spectatorCity=null;
+  if(unitId){
+    if(view.ownUnits.some(u=>u.id===unitId))selectedUnit=unitId;else spectatorContact=unitId;
+  }else if(cityId){
+    if(view.ownCities.some(c=>c.id===cityId))selectedCity=cityId;else spectatorCity=cityId;
+  }
+  focus(at);refresh();
+});
+el('undoButton').addEventListener('click',()=>undo());
+el('nextUnit').addEventListener('click',()=>nextAwaiting());
+el('orderConfirm').addEventListener('click',()=>commitOrderMode());
+el('orderCancel').addEventListener('click',()=>{cancelOrderMode();uiMessage('Order cancelled.');});
 el('recenter').addEventListener('click',()=>focus(view.ownUnits.find(u=>u.id===selectedUnit)?.position??view.ownCities[0]?.position??{x:8,y:25}));
 function downloadText(filename:string,text:string):void{
   const data=new Blob([text],{type:'application/json'}),url=URL.createObjectURL(data);
@@ -721,7 +908,7 @@ el('saveFile').addEventListener('change',async()=>{
   const input=el('saveFile') as HTMLInputElement,file=input.files?.[0];if(!file)return;
   pausePlayback();
   try{const loaded=importSave(await file.text());if(loaded.active!=='blue')throw new Error('This lab UI only supports saves during the blue faction turn.');
-    resultModal.reset();spectatorContact=null;spectatorCity=null;choosingDestination=false;game=loaded;selectedUnit=null;selectedCity=null;
+    resultModal.reset();spectatorContact=null;spectatorCity=null;orderMode=null;game=loaded;selectedUnit=null;selectedCity=null;
     if(loaded.campaignMap)syncMenuFromCampaign(loaded.campaignMap);
     invalidateMapLayer();
     refresh();void saveLocally(game);uiMessage('Saved game imported.');}
@@ -765,15 +952,15 @@ gameMenuDialog.addEventListener('close',()=>{
   if(gameMenuReturnFocus){gameMenuReturnFocus.focus();gameMenuReturnFocus=null;}
 });
 function startScenario(kind:'close-quarters'|'classic-lab'|'ai-invasion'|'ai-vs-ai'|'ai-skirmish'):void{
-  if(!window.confirm('Start a new test scenario? This will replace the current local autosave. Export JSON first if you want to keep it.'))return;
   closeGameMenu();
-  pausePlayback();resultModal.reset();spectatorContact=null;spectatorCity=null;observer='blue';spectatorMode='both';choosingDestination=false;game=kind==='ai-skirmish'?makeAiVsAiSkirmishLab():kind==='ai-vs-ai'?makeAiVsAiLab():kind==='ai-invasion'?makeAiInvasionLab():kind==='close-quarters'?makeCloseQuartersLab():makeRulesLab();
+  rememberReplacedGame();
+  pausePlayback();resultModal.reset();spectatorContact=null;spectatorCity=null;observer='blue';spectatorMode='both';orderMode=null;game=kind==='ai-skirmish'?makeAiVsAiSkirmishLab():kind==='ai-vs-ai'?makeAiVsAiLab():kind==='ai-invasion'?makeAiInvasionLab():kind==='close-quarters'?makeCloseQuartersLab():makeRulesLab();
   selectedUnit=kind==='ai-invasion'||kind==='ai-vs-ai'||kind==='ai-skirmish'?null:'u1';selectedCity=null;invalidateMapLayer();refresh();focus(kind==='ai-invasion'?{x:76,y:29}:{x:9,y:25});
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; export JSON.'));
-  uiMessage(game.scenario==='ai-vs-ai'?'Computer vs computer ready. Choose rounds per advance, then use Play or Advance.':kind==='ai-invasion'?'AI Invasion ready: press Next round to watch the Red landing operation.':kind==='close-quarters'?'Close Quarters ready: select a blue unit and tap an adjacent enemy or gold city to attack.':'Classic rules lab reset.');
+  syncUndoButton();
+  uiMessage(`${game.scenario==='ai-vs-ai'?'Computer vs computer ready. Press Play.':kind==='ai-invasion'?'AI Invasion ready. Press Next round to watch the landing.':kind==='close-quarters'?'Close Quarters ready. Select a blue unit, then tap an adjacent enemy or city.':'Classic rules lab reset.'} Undo restores your previous game.`);
 }
 function startCampaign(layout?:CampaignLayout,seed?:number,mode?:CampaignMode,algorithm?:MapAlgorithm,density?:CityDensity,aiPolicy?:AiPolicy):void{
-  if(!window.confirm('Start a new campaign? This replaces the current local autosave. Export JSON or a map recipe first if you want to keep it.'))return;
   const source=seedSource();
   const chosenMode=mode??(el('campaignMode') as HTMLSelectElement).value as CampaignMode;
   const chosenAlgorithm=algorithm??(el('campaignAlgorithm') as HTMLSelectElement).value as MapAlgorithm;
@@ -789,6 +976,7 @@ function startCampaign(layout?:CampaignLayout,seed?:number,mode?:CampaignMode,al
   }
   if(chosenSeed===undefined){uiMessage('Enter a positive integer seed between 1 and 4294967295.');return;}
   closeGameMenu();
+  rememberReplacedGame();
   (el('campaignLayout') as HTMLSelectElement).value=layoutRaw;
   (el('campaignMode') as HTMLSelectElement).value=chosenMode;
   (el('campaignAlgorithm') as HTMLSelectElement).value=chosenAlgorithm;
@@ -798,13 +986,14 @@ function startCampaign(layout?:CampaignLayout,seed?:number,mode?:CampaignMode,al
   syncCampaignSeedControls();
   const policy=aiPolicy??readCampaignAiPolicy();
   applyAiPolicyToMenu(policy);
-  pausePlayback();resultModal.reset();spectatorContact=null;spectatorCity=null;observer='blue';spectatorMode='both';choosingDestination=false;
+  pausePlayback();resultModal.reset();spectatorContact=null;spectatorCity=null;observer='blue';spectatorMode='both';orderMode=null;
   game=makeCampaignMap(layoutRaw,chosenSeed,chosenMode,false,{algorithm:chosenAlgorithm,density:chosenDensity,aiPolicy:policy});
   selectedUnit=null;selectedCity=null;invalidateMapLayer();refresh();
   const home=game.cities.find(city=>city.owner==='blue');if(home)focus(home.position);
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; use Export JSON.'));
   const opponent=formatAiPolicyLabel(policy);
-  uiMessage(chosenMode==='ai-vs-ai'?`Computer versus computer started on ${layoutRaw} (${chosenAlgorithm}, ${chosenDensity}), seed ${chosenSeed}. Opponent: ${opponent}. Use Play or Advance to watch.`:`User versus computer started on ${layoutRaw} (${chosenAlgorithm}, ${chosenDensity}), seed ${chosenSeed}. Opponent: ${opponent}. Select your city to set production, then advance rounds.`);
+  syncUndoButton();
+  uiMessage(chosenMode==='ai-vs-ai'?`Computer vs computer on ${layoutRaw}, seed ${chosenSeed} (${opponent}). Press Play. Undo restores your previous game.`:`New campaign on ${layoutRaw}, seed ${chosenSeed} (${opponent}). Your city is marked: tap it to choose production. Undo restores your previous game.`);
 }
 el('campaignSeedSource').addEventListener('change',()=>syncCampaignSeedControls());
 el('campaignAiPolicy').addEventListener('change',()=>syncCampaignClassicGrade());

@@ -54,3 +54,37 @@
 .ai-spectator .spectator-fog-toggle{display:flex;align-items:center;gap:9px;margin:12px 0 5px;color:#e6d59d;line-height:1.5;cursor:pointer}
 .ai-spectator .spectator-fog-toggle input{width:18px;height:18px;flex:none;margin:0;accent-color:#d8bd78;cursor:pointer}
 .ai-spectator .spectator-fog-note{margin:0 0 8px;color:#aac2d1;font-size:10px;line-height:1.55}
+/* v0.7 UI review (Raskin): visible modes, undo, feedback at the locus of attention. */
+.toolbar{height:56px}
+.toolbar-left{min-width:0;flex:1;overflow:hidden}
+.toolbar-left .live-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toolbar-left #mapStatus{white-space:nowrap}
+.toolbar-actions{display:flex;flex:none}
+.toolbar-actions button{min-height:44px;font-size:13px;padding:6px 12px}
+.toolbar-right button{width:44px;height:44px;font-size:20px}
+.map-message{min-height:40px;flex:none;font-size:12px;color:#e6edef;display:flex;align-items:center;padding:6px 16px;border-top:1px solid #273e4e;background:#111d26;line-height:1.45}
+.order-banner{position:absolute;top:12px;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;background:#1f2f1fe8;border:2px solid #f0dd9b;border-radius:10px;padding:8px 10px 8px 14px;color:#f2e5ba;font-size:13px;font-weight:700;z-index:7;box-shadow:0 4px 18px #0009}
+.order-banner[hidden]{display:none!important}
+.order-banner-actions{display:flex;gap:8px}
+.order-banner button{min-height:44px;min-width:88px}
+button[aria-pressed="true"]{background:#f0dd9b;color:#1c2429;border-color:#f0dd9b;font-weight:700}
+.actions button{min-height:44px;font-size:12px;padding:8px 12px}
+.order-actions button{flex:1 1 30%}
+.order-more button{font-size:11px;color:#c3d3da}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
+.card-head h2{margin:0}
+.next-unit{min-height:44px;padding:6px 14px;font-weight:700}
+.report-link{background:none;border:0;border-bottom:1px dotted #8cc9e6;border-radius:0;padding:0;margin:0;color:#9fd8f2;font:inherit;cursor:pointer;min-height:0;text-align:left}
+.report-link:hover,.report-link:focus-visible{background:#294458;color:#fff}
+.report-gone{color:#8fa3ae}
+.sidebar .side-content{min-height:100%}
+.events{flex:1;display:flex;flex-direction:column;min-height:220px}
+.events #events{max-height:none;flex:1 1 0;min-height:160px;overflow:auto}
+.key-fog{background:#0d1923;outline:1px solid #5f7a8a}
+input[readonly]{opacity:.5}
+body.cvc #nextRound,body.cvc .topstate .faction,body.cvc .toolbar-actions,body.cvc #nextUnit{visibility:hidden;pointer-events:none}
+body:not(.cvc) .statrow-cvc{display:none}
+.game-dialog-start{padding:6px 0 4px;border:0;background:none;box-shadow:none}
+.report .report-gone{display:inline;color:#8fa3ae;font-size:inherit}
+body.cvc .statrow-player{display:none}
+body.cvc .topstate .separator{visibility:hidden}

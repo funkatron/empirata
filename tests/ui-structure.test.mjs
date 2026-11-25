@@ -45,7 +45,7 @@ test('CvC observer has a checked-by-default full-map fog toggle',()=>{
 test('Game menu and map toolbar expose screen-reader labels',()=>{
   assert.match(html,/id="gameMenu"[^>]*aria-label="Game menu, campaigns and saved games"/);
   assert.match(html,/class="game-dialog-body" role="region" aria-label="Campaign setup, test scenarios, and save files"/);
-  assert.match(html,/class="game-dialog-footer"[^>]*>[\s\S]*id="startCampaign"/);
+  assert.match(html,/class="game-dialog-footer[^"]*"[^>]*>[\s\S]*id="startCampaign"/);
   assert.match(html,/id="recenter" aria-label="Focus selection or home city"/);
   assert.match(html,/class="toolbar-right" role="toolbar" aria-label="Map zoom and recenter"/);
 });
