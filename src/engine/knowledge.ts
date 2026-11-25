@@ -1,6 +1,6 @@
 import { unitLabel } from './unit-names.js';
 import type { City, CityIntel, FactionId, Game, Knowledge, PlayerCell, PlayerView, Unit } from './types.js';
-import { directions, index, inMap, cityAt } from './world.js';
+import { directions, index, inMap } from './world.js';
 
 /** ALG-012: recovered DOS 8x8 observer/target detection matrix. */
 export function canDetect(observer:Unit['kind']|'city', target:Unit['kind']):boolean {
@@ -39,10 +39,11 @@ export function updateKnowledge(game:Game, faction:FactionId): void {
   const detected=(kind:Unit['kind'],cell:number)=>detection.get(kind)?.has(cell)??false;
   const freshEnemies=new Set<string>();
   const previousSightings=new Map(k.sightings.map(s=>[s.id,s]));
+  const cityByCell=citiesByCell(game);
   for(const i of visible) {
     k.terrain[i]=game.tiles[i] ?? null;
     const pos={x:i%game.width,y:Math.floor(i/game.width)};
-    const city=cityAt(game,pos);
+    const city=cityByCell.get(i);
     if(city){
       const known=k.cities[city.id];
       const isOwned=city.owner===faction;
@@ -155,18 +156,26 @@ export function mergeSpectatorPlayerViews(blue: PlayerView, red: PlayerView): Pl
   };
 }
 
+/**
+ * Cell index → city, built in reverse so the first city listed at a cell wins (same as
+ * `cityAt`). Off-map cities are skipped so `y*width + x` cannot alias another cell.
+ */
+function citiesByCell(game:Pick<Game,'cities'|'width'|'height'>):Map<number,City> {
+  const byCell=new Map<number,City>();
+  for(let ci=game.cities.length-1;ci>=0;ci--){
+    const c=game.cities[ci]!;
+    if(c.position.x<0||c.position.y<0||c.position.x>=game.width||c.position.y>=game.height) continue;
+    byCell.set(c.position.y*game.width+c.position.x,c);
+  }
+  return byCell;
+}
+
 /** The sole reader contract for player UI and future AI. */
 export function getPlayerView(game:Game,faction:FactionId):PlayerView {
   if(!game.players.some(p=>p.id===faction)) throw new Error('Unknown faction');
   const k=game.knowledge[faction];
   const visible=new Set(k.visible);
-  // Cell → city index, built in reverse so the first city at a cell wins (same as `cityAt`).
-  const cityByCell=new Map<number,City>();
-  for(let ci=game.cities.length-1;ci>=0;ci--){
-    const c=game.cities[ci]!;
-    if(c.position.x<0||c.position.y<0||c.position.x>=game.width||c.position.y>=game.height) continue;
-    cityByCell.set(c.position.y*game.width+c.position.x,c);
-  }
+  const cityByCell=citiesByCell(game);
   const cells:PlayerCell[]=k.terrain.map((terrain,i)=>{
     const actual=cityByCell.get(i);
     const intel=actual ? (k.cities[actual.id]??null) : null;
