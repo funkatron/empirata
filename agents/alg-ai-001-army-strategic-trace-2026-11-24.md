@@ -1,5 +1,7 @@
 # ALG-AI-001 army strategic probes
 
+> **Correction (2026-11-25):** `12C2:0845` tests class **3 = transport glyph** (army aboard a transport), not a city. `1A9E:000C` and `1E46:08A7` are now identified. See `alg-ai-001-army-predicates-trace-2026-11-25.md` and `alg-ai-001-contact-tables-trace-2026-11-25.md`.
+
 ```text
 RUN_ID: army-strategic-1f454-2026-11-24
 TRACE_ID: army-strategic-1f454

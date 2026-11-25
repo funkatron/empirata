@@ -1,5 +1,7 @@
 # ALG-AI-001 carrier reissue `0x1D39F` (`n=10`)
 
+> **Update (2026-11-25):** `0x1DE2A` is the ship hunt routine; see `alg-ai-001-carrier-1de2a-trace-2026-11-25.md`.
+
 ```text
 RUN_ID: reissue-1d39f-2026-11-24
 TRACE_ID: reissue-1d39f

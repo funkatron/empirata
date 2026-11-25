@@ -1,5 +1,7 @@
 # ALG-AI-001 order numbers vs picker table
 
+> **Update (2026-11-25):** order `0xC` is computer ship escort, not Wait; see `alg-ai-001-wait-order-0xc-trace-2026-11-25.md`.
+
 ```text
 RUN_ID: order-numbering-check-2026-11-24
 TRACE_ID: order-numbering-check
