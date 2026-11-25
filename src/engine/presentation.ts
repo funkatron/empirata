@@ -21,17 +21,51 @@ export function gameOutcome(game:Game):GameOutcome {
   if(survivors.length>1)return {state:'ongoing'};
   return {state:'finished',winner:survivors[0]?.id??null,eliminated:game.players.filter(p=>p.id!==survivors[0]?.id).map(p=>p.id)};
 }
-/** Sanitize reports using only the supplied player view's known identities. */
-export function readableReport(message:string,units:ReadonlyArray<{id:string}>,cities:ReadonlyArray<{id:string}>):string {
+/** One piece of a player-facing report: plain text, or a named unit/city reference. */
+export type ReportPart =
+  | {text:string}
+  | {unit:string;name:string}
+  | {city:string;name:string};
+
+/** Split an engine report into plain text and named unit/city references.
+ * Engine messages carry `id (Name)` unit labels and raw city ids; players only
+ * ever see names. Internal algorithm tags such as `(ALG-AI-003)` are dropped.
+ */
+export function reportParts(message:string,units:ReadonlyArray<{id:string}>,cities:ReadonlyArray<{id:string}>):ReportPart[] {
   const ids=new Set(units.map(u=>u.id));
   // Unwrap legacy production first so its type does not consume the unit label.
-  let result=message.replace(/(completed (?:Army|Fighter|Destroyer|Transport|Submarine|Cruiser|Carrier|Battleship)) \((.+)\)\.$/,'$1: $2.');
-  // Strip the diagnostic wrapper, retaining parentheses inside a naval name.
-  result=result.replace(/(^|[^\w-])([\w-]+) \(((?:[^()]|\([^()]*\))*)\)/g,
-    (all,prefix,id,name)=>ids.has(id)||/^u\d+$/.test(id)?prefix+name:all);
+  let text=message.replace(/(completed (?:Army|Fighter|Destroyer|Transport|Submarine|Cruiser|Carrier|Battleship)) \((.+)\)\.$/,'$1: $2.');
+  text=text.replace(/\s*\(ALG-[A-Z0-9-]+\)/g,'');
+  type Hit={start:number;end:number;part:ReportPart};
+  const hits:Hit[]=[];
+  // Unit labels: `id (Name)`, retaining parentheses inside a naval name.
+  for(const m of text.matchAll(/(^|[^\w-])([\w-]+) \(((?:[^()]|\([^()]*\))*)\)/g)){
+    const [,prefix,id,name]=m;
+    if(!(ids.has(id!)||/^u\d+$/.test(id!)))continue;
+    const start=m.index!+prefix!.length;
+    hits.push({start,end:m.index!+m[0].length,part:{unit:id!,name:name!}});
+  }
+  const covered=(i:number)=>hits.some(h=>i>=h.start&&i<h.end);
   for(const city of [...cities].sort((a,b)=>b.id.length-a.id.length)){
     const escaped=city.id.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-    result=result.replace(new RegExp(`(?<![\\w-])${escaped}(?![\\w-])`,'g'),()=>cityName(city.id));
+    for(const m of text.matchAll(new RegExp(`(?<![\\w-])${escaped}(?![\\w-])`,'g'))){
+      if(covered(m.index!))continue;
+      hits.push({start:m.index!,end:m.index!+m[0].length,part:{city:city.id,name:cityName(city.id)}});
+    }
   }
-  return result;
+  hits.sort((a,b)=>a.start-b.start);
+  const parts:ReportPart[]=[];
+  let at=0;
+  for(const hit of hits){
+    if(hit.start<at)continue;
+    if(hit.start>at)parts.push({text:text.slice(at,hit.start)});
+    parts.push(hit.part);at=hit.end;
+  }
+  if(at<text.length)parts.push({text:text.slice(at)});
+  return parts;
+}
+
+/** Sanitize reports using only the supplied player view's known identities. */
+export function readableReport(message:string,units:ReadonlyArray<{id:string}>,cities:ReadonlyArray<{id:string}>):string {
+  return reportParts(message,units,cities).map(p=>'text' in p?p.text:p.name).join('');
 }

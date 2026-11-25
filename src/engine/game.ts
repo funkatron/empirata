@@ -285,7 +285,7 @@ export function moveUnit(game:Game,id:string,to:Coord,protectedCargo:ReadonlySet
     throw new Error('Only friendly city ports may host multiple units on one square; use embarkArmy, boardFighter, or a port.');
   // ALG-011: overload destroys surplus cargo instead of blocking ship movement.
   for(const cargoId of resolveCargoOverload(g,unit))
-    log(g,unit.owner,'movement',`Cargo ${cargoId} was lost when ${unitLabel(unit)} exceeded capacity.`);
+    log(g,unit.owner,'movement',`${unitLabel({id:cargoId,owner:unit.owner,kind:unit.kind==='carrier'?'fighter':'army'})} was lost when ${unitLabel(unit)} exceeded capacity.`);
   // Ships leaving a friendly port pick up eligible co-located troops automatically.
   const departurePort=cityAt(g,unit.position);
   if((unit.kind==='transport'||unit.kind==='carrier')&&departurePort?.owner===unit.owner)

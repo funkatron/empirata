@@ -90,7 +90,7 @@ export function adjudicateCombat(game:Game, record:CombatRecord,mutable=false):G
   removeUnitAndCargo(g,defeated.id);
   // ALG-011: damaged transport/carrier retains highest-slot cargo first.
   for(const id of resolveCargoOverload(g,winner)){
-    log(g,winner.owner,`Cargo ${id} was lost when ${unitLabel(winner)} exceeded capacity.`);
+    log(g,winner.owner,`${unitLabel({id,owner:winner.owner,kind:winner.kind==='carrier'?'fighter':'army'})} was lost when ${unitLabel(winner)} exceeded capacity.`);
   }
   if(winner.id===attacker.id){
     attacker.spent++;
