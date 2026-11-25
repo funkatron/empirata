@@ -1,5 +1,7 @@
 # ALG-AI-001 type step `0x47E0`
 
+> **Update (2026-11-25):** ship masks are in DS (`DS:4BD0`, `DS:4BDC`), decoded in `alg-ai-001-contact-tables-trace-2026-11-25.md`.
+
 ```text
 RUN_ID: type-step-47e0-2026-11-24
 TRACE_ID: type-step-47e0

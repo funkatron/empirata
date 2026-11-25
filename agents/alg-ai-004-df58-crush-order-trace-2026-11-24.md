@@ -1,5 +1,7 @@
 # ALG-AI-004 `0xDF58` crush order
 
+> **Correction (2026-11-25):** `0xD8F1` is −9999 signed, so **accept crushes the computer** (game over), and the owner-0 tally **is** zeroed. See `alg-ai-004-resign-accept-effects-trace-2026-11-25.md`.
+
 ```text
 RUN_ID: resign-df58-2026-11-24
 TRACE_ID: resign-df58
