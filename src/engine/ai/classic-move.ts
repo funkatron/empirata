@@ -1,8 +1,15 @@
 import type { Coord, FactionId, Game, PlayerView, Unit } from '../types.js';
 import type { DosComputerGrade } from './classic-grades.js';
-import { classicKnowledgeArmyPassable, classicRouteStep } from './classic-path.js';
+import {
+  classicArmyWanderStep,
+  classicKnowledgeArmyPassable,
+  classicResolveLegalDirection,
+  classicRouteStep,
+} from './classic-path.js';
+import { CLASSIC_DOS_DIRECTION_ORDER, classicWanderHeadingRoll } from './classic-order-tick.js';
+import { classicTilePassableChart } from './classic-passability.js';
 import { getPlayerView } from '../knowledge.js';
-import { directions, index } from '../world.js';
+import { directions, index, playable } from '../world.js';
 
 function distance(a: Coord, b: Coord): number {
   return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
@@ -140,4 +147,66 @@ export function classicArmyConquestStep(
     cursor = previous;
   }
   return { x: cursor % game.width, y: Math.floor(cursor / game.width) };
+}
+/** DOS probe order for `0x485E`: diagonals NE, NW, SW, SE, then N, W, S, E (DOS indices). */
+const CITY_EXPLORE_DOS_ORDER: ReadonlyArray<number> = Object.freeze([1, 3, 5, 7, 2, 4, 6, 0]);
+
+/**
+ * ALG-AI-001 `03BF:0C6E` (linear `0x485E`) [D]: from an army in a city, is there a legal
+ * first step whose tile two steps out is on the map and still uncharted (chart glyph 0)?
+ * DOS uses this only as a gate; the direction it finds is discarded.
+ */
+export function classicCityArmyExploreProbe(game: Game, unit: Unit, grade: DosComputerGrade): boolean {
+  const view = getPlayerView(game, unit.owner);
+  for (const dos of CITY_EXPLORE_DOS_ORDER) {
+    const d = directions[CLASSIC_DOS_DIRECTION_ORDER[dos]!]!;
+    const first = { x: unit.position.x + d.x, y: unit.position.y + d.y };
+    if (!playable(game, first) || !classicTilePassableChart(game, view, unit.owner, unit, first, grade)) continue;
+    const second = { x: unit.position.x + 2 * d.x, y: unit.position.y + 2 * d.y };
+    if (!playable(game, second)) continue;
+    if (view.cells[second.y * game.width + second.x]?.terrain === null) return true;
+  }
+  return false;
+}
+
+/**
+ * ALG-AI-001 idle unit with order 0 (None) [D except where noted].
+ * DOS `0x3E00` returns status 1, so `0x4462` runs the type AI and `0x44EA` picks no
+ * direction for order 0. When the type AI finds nothing:
+ * - army on a city tile (`0x1F271`): order `0x11` garrison, unless the explore probe
+ *   `0x485E` finds uncharted land two steps out; then it wanders with a fresh heading;
+ * - other army: order `0x10` wander, heading from `0x4836` unless already wandering,
+ *   step via `0x4542` (`classicArmyWanderStep`);
+ * - ships / fighters: order 3 with a `0x4836` heading. The order-3 picker `0x45A2` is
+ *   not traced yet, so they use the plain `0x4C52` sweep from that heading [?].
+ * The heading is kept on `unit.classicWander` (DOS `ES:24A`).
+ */
+export function classicIdleNoneStep(
+  game: Game,
+  unit: Unit,
+  grade: DosComputerGrade,
+): { game: Game; step: Coord | null; wandered: boolean } {
+  const inOwnCity =
+    unit.kind === 'army' &&
+    game.cities.some(
+      c => c.owner === unit.owner && c.position.x === unit.position.x && c.position.y === unit.position.y,
+    );
+  if (inOwnCity && !classicCityArmyExploreProbe(game, unit, grade)) {
+    return { game, step: null, wandered: false };
+  }
+  let g = game;
+  // Leaving a city always rolls a fresh heading (`0x1F34C`: order was `0x11`, not `0x10`).
+  let heading = inOwnCity ? undefined : unit.classicWander?.direction;
+  if (heading === undefined) {
+    const roll = classicWanderHeadingRoll(g);
+    g = roll.game;
+    heading = roll.directionIndex;
+  }
+  const resolved =
+    unit.kind === 'army'
+      ? classicArmyWanderStep(g, unit, heading, grade)
+      : classicResolveLegalDirection(g, unit, heading, grade);
+  const live = g.units.find(u => u.id === unit.id);
+  if (live) live.classicWander = { direction: resolved.directionIndex ?? heading };
+  return { game: g, step: resolved.step, wandered: true };
 }

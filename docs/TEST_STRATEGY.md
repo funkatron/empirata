@@ -10,15 +10,16 @@ Updated 2026-11-16. Target ruleset: Interstel DOS v2.05C. Historical DOS binary 
 
 ## Current coverage (local, Node 24)
 
-Measured on `main` after `npm ci` + `npm test` (2026-11-16, commit `41bf9fe`; reconcile with latest `main` if counts drift):
+Measured on `main` with `npm test` (2026-11-24, commit `416841a`; reconcile with latest `main` if counts drift):
 
 | Metric | Value |
 |--------|--------|
-| Tests | **510** pass, 0 fail (`tests/*.test.mjs`, 103 files) |
-| Line coverage | **~94.9%** (`dist/engine/*.js`) |
-| Branch coverage | **~91.3%** |
-| Function coverage | **~96.5%** |
-| Typical wall time | ~100 s engine suite (includes build; target remains “fast enough for every PR”) |
+| Tests | **557** pass, 0 fail (`tests/*.test.mjs`, 115 files) |
+| Line coverage | **~91.9%** (`dist/engine/**/*.js`, including `ai/`) |
+| Branch coverage | **~92.5%** |
+| Function coverage | **~94.6%** |
+
+The coverage glob includes `dist/engine/ai/` (classic and modern policies). Before 2026-11-24 it was `dist/engine/*.js`, which silently excluded that folder. Gates are **aggregate**, so weak individual files can hide behind well-covered ones. Lowest classic-AI files at this measurement: `classic-move.js` (~52% lines), `classic-path.js` (~75% lines), `classic-escort.js` (~61% branches). Outside `ai/`: `order-intent.js` (~11% lines), `save.js` (~76% lines).
 
 Reports intentionally **exclude** `src/ui` and test files; UI regression uses a separate subset in CI (below).
 

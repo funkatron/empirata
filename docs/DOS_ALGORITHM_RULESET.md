@@ -402,7 +402,7 @@ Computer movement-phase pass limit is **1** (ALG-013); humans get **100**.
 
 | Order | Name (string table) | Handler |
 |---|---|---|
-| 0 | None | status **1** (reissue), not a direction. Picker underflows to stay **−1** |
+| 0 | None | `0x3E00`: return status **1** → `0x4462` type reissue; `0x44EA` returns **−1** (stay) for order 0. No default bearing. Idle armies: city garrison `0x11` unless explore probe `0x485E` hits, else wander `0x10` (`0x4836` heading, `0x4542` step) [D]. Picker underflows to stay **−1**. See `agents/alg-ai-001-none-order-trace-2026-11-24.md` |
 | 1 | Sentry | `0x3E7C`. Picker `0x45E4` → `0x4714` |
 | 2 | Random | `0x3F0C`. Picker `0x45A2` |
 | 3 | Move To | `0x3F64` (Random for non-low-fuel). Picker `0x45A2` |
@@ -421,6 +421,8 @@ Computer movement-phase pass limit is **1** (ALG-013); humans get **100**.
 
 **Army strategic probes [D]** (`agents/alg-ai-001-army-strategic-trace-2026-11-24.md`): `12C2:0845` returns 1 only for a type-0 unit on a city-class tile whose `62FE` neighbors 9…1 are on-map-safe. `0x1F454` assigns order `0x0F` and `24A` = one city loc, random start, Chebyshev ≤ 20 when `62F6 ≠ 0` else ≤ 12 (`1A9E:000C` **[?]**). `0x1F5F4` assigns order 5 from the first of 20 per-player map indexes within 12. `0x1F6AA` assigns order 1 and `24A` = a type-3 unit in order `0xE` within 10 (`1E46:08A7` **[?]**).
 
+**Direction table [D] (2026-11-24):** 8 word location deltas at `2E32:6300` (linear `0x34620`), indexed by DOS dir `0…7`: `+1, −99, −100, −101, −1, +99, +100, +101` = **E, NE, N, NW, W, SW, S, SE** (counter-clockwise ring). All `±1` rotations below are ring steps. Empirata `directions` is row-major and needs a DOS→engine map `[4,2,1,0,3,5,6,7]`. See `agents/alg-ai-001-compass-order-trace-2026-11-24.md`.
+
 **Random wander detail [D]:** `0x3F0C` first rejects the step if neighbor probe `1E46:0C7F` fails; else `rand()%16` gate, then `dir = (dir + 8ADC) & 7`.
 
 **`ES:24A` / `8AD6` overload [D]:** for compass orders the word is direction `0…7`; for Escort / path-follow it is a **target unit index** (Sentry engage writes the observer location into the target’s `24A`). Direction picker `0x45E4` pushes `84E[8AD6]` as the path goal for `0x4714`.
@@ -434,7 +436,7 @@ Computer movement-phase pass limit is **1** (ALG-013); humans get **100**.
 | Goal step `0x4714` | If `goal == unit_loc` return **`-1`** (stay). Else call pathfinder `1A9E:014A` with the unit’s **passability mask** (below). On failure clear order to `0` and call `1E46:09C4`. Returns chosen direction in out-param. |
 | Pathfinder budget `1A9E:014A` | Cap search radius at `min(0x7D, 2*chebyshev(goal,start)+0x19)`. Recurses with depth budget; tie-break uses `rand()%2`. |
 | Passability test [D] | Map glyph `t = ES:234[loc]` (knowledge layer; cities store `10*owner − 6`). Mask byte at `DS:(base + player*0x22 + t)` must be **nonzero** or the tile is blocked (`0x1ACE0`, `0x1AE87`). |
-| Legalize dir `0x4C52` | From current dir, try up to **8** rotations by `±1` (unit-index parity); accept first that passes `12C2:099C` and tile probe `0x4B52`. Else write direction **`-1`**. No X/Y rim test. A None unit does not stay for being on the north edge: order 0 returns status 1, `0x4462` rewrites the order, and `0x4542` runs only for order `0x10`. Trace: `agents/alg-ai-001-4c52-rim-static-2026-11-24.md`. |
+| Legalize dir `0x4C52` | From current dir, try up to **8** rotations by `±1` (unit-index parity); accept first that passes `12C2:099C` and tile probe `0x4B52`. Else write direction **`-1`**. First probe is the current dir; sign: unit index odd → `+1`, even → `−1`. No X/Y rim test. A None unit does not stay for being on the north edge: order 0 returns status 1, `0x4462` rewrites the order, and `0x4542` runs only for order `0x10`. Trace: `agents/alg-ai-001-4c52-rim-static-2026-11-24.md`. |
 | Order `0xC` picker `0x4600` [D] | Not the string-table Escort (order 5). `0x44EA` reaches `0x4600` only for order **0xC**. If dist to the `24A` target `< 4`, switch on that target’s order; may call `0x4714` or `1D09:03C2`. Trace: `agents/alg-ai-001-order-numbering-trace-2026-11-24.md`. |
 | Escort station `1D09:03C2` [D] | **`0x46C2` → `1D09:03C2` (`0x1D452`)**: radius **`n=3`**; window **`(2n+1)²`**; **`0x14`** probes; each probe **two** `25E6:0F64` → `0x26DC4` draws, **`idiv (2n+1)`**, add **`baseQuot/baseRem`** from target `loc/100` and `loc%100` minus **`n`** (Empirata **Y/X**), clamp imul leg **`[1,0x3A]`**, add leg **`[1,0x62]`**, index **`Y*100+X`**, then **`1A9E:006C`** — **first hit**. **`0x1DF56`** is only called from **`0x1D50E`** (`1D09:047E`), which **`0x47E0`** reaches at **`0x482C`** for ship types **2…7** — not from a failed 20-probe. Second `0x1D452` use: **`0x1D39F`** in carrier reissue **`1D09:020E`** (type **6** at `0x449E`) with **`n=10`** around the nearest friendly city (`1098` owner, `E06==1`) when `180C < 0` and distance **`> 10`**; success sets order **`0xA`**. Not in Empirata. Trace: `agents/alg-ai-001-reissue-1d39f-trace-2026-11-24.md`. Empirata **v0.6.17+**: escort `n=3` window + `classicUnitReachableGoal`. Trace: `agents/alg-ai-001-03c2-rand-tile-2026-11-23.md`. |
 
@@ -581,7 +583,7 @@ Then set `4F8[p]=1`, dialog “The computer wishes|to resign!|Do you accept?”.
 | ALG-011 overload | `src/engine/cargo-overload.ts`, `tests/alg-011-overload.test.mjs` | deterministic survivor policy tested |
 | ALG-012 detection | `src/engine/knowledge.ts`, `tests/alg-012-*.test.mjs` | matrix + sentry/patrol/skip wake (v0.6.15); sub-only gaps per tests |
 | ALG-013 docking | `stayUnit`, `dockShip`, `tests/alg-013-docking.test.mjs` | explicit stay/arrival repair tested; turn-phase trace pending |
-| ALG-AI-001 move/order | `classicEscortStationCandidates`, `classicResolveLegalDirection`, `classicEscortCloseRangeGoal`; `agents/alg-ai-001-4c52-empirata-parity-2026-11-18.md` | **staged partial**: chart (v0.6.9); rim/`0x4C52` (v0.6.10); escort `0x4600` (v0.6.12); station `1D09:03C2` 20× random `(2n+1)²` probe (v0.6.17) |
+| ALG-AI-001 move/order | `classicEscortStationCandidates`, `classicResolveLegalDirection`, `classicEscortCloseRangeGoal`; `agents/alg-ai-001-4c52-empirata-parity-2026-11-18.md` | **staged partial**: chart (v0.6.9); rim/`0x4C52` (v0.6.10); escort `0x4600` (v0.6.12); station `1D09:03C2` 20× random `(2n+1)²` probe (v0.6.17); DOS ring rotation + rim heuristic removed; None = type reissue / wander / garrison (v0.6.18) |
 | ALG-AI-002 production | `classic-production.ts` + `chooseClassicCityProduction`; `tests/alg-ai-002-*.test.mjs` | **staged partial**: `0x3ADC` stale+fresh **[D]**; `0x30EB` live recount **[D]**; `0x393A`/`0x3B45` tree order **[D]** Raiden trace |
 | ALG-AI-003 setup grades | `classic-grades.ts`, `combat.ts` (`dosAiCombatFactor`); `tests/alg-ai-003-grades.test.mjs` | grade A/B selectable; **combat `840` factor [D]** when `aiPolicy.kind==='classic-dos'` |
 | ALG-AI-004 resign offer | `classic-resign.ts`, `respondClassicResign`, `gameOutcome`; `agents/alg-ai-004-resign-bookkeeping-2026-11-18.md` | predicate + one-shot offer + accept city transfer / unit removal **[T]** (v0.6.14); `0xDF58` crush ordering not traced |
