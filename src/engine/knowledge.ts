@@ -1,6 +1,6 @@
 import { unitLabel } from './unit-names.js';
 import { clonePlain } from './clone.js';
-import type { City, CityIntel, FactionId, Game, Knowledge, PlayerCell, PlayerView, Unit } from './types.js';
+import type { City, CityIntel, FactionId, Game, Knowledge, PlayerCell, PlayerView, Terrain, Unit } from './types.js';
 import { directions, index, inMap } from './world.js';
 
 /** ALG-012: recovered DOS 8x8 observer/target detection matrix. */
@@ -173,18 +173,78 @@ function citiesByCell(game:Pick<Game,'cities'|'width'|'height'>):Map<number,City
   return byCell;
 }
 
-/** The sole reader contract for player UI and future AI. */
-export function getPlayerView(game:Game,faction:FactionId):PlayerView {
-  if(!game.players.some(p=>p.id===faction)) throw new Error('Unknown faction');
-  const k=game.knowledge[faction];
+type CellCache={
+  cells:readonly PlayerCell[]; width:number; cities:Game['cities']; cityCount:number;
+  terrain:Array<Terrain|null>; visible:number[]; intel:Map<string,CityIntel>;
+};
+/**
+ * Cell grids keyed by the live Knowledge object. Ops mutate games in place, so every call
+ * re-checks a snapshot of the inputs (terrain, visible, city intel, city list) before reuse.
+ * The check is far cheaper than allocating a new 6,000-cell grid. Cells are frozen because
+ * views share them.
+ */
+const cellCache=new WeakMap<Knowledge,CellCache>();
+
+function sameArray<T>(a:readonly T[],b:readonly T[]):boolean {
+  if(a.length!==b.length)return false;
+  for(let i=0;i<a.length;i++) if(a[i]!==b[i])return false;
+  return true;
+}
+
+function sameIntel(snapshot:Map<string,CityIntel>,cities:Record<string,CityIntel>):boolean {
+  let n=0;
+  for(const id in cities){
+    const live=cities[id]!,seen=snapshot.get(id);
+    if(!seen||seen.id!==live.id||seen.owner!==live.owner||seen.production!==live.production||
+      seen.productionKnown!==live.productionKnown)return false;
+    n++;
+  }
+  return n===snapshot.size;
+}
+
+function buildCells(game:Game,k:Knowledge,frozen:boolean):PlayerCell[] {
   const visible=new Set(k.visible);
   const cityByCell=citiesByCell(game);
-  const cells:PlayerCell[]=k.terrain.map((terrain,i)=>{
+  const freeze=frozen?Object.freeze:<T,>(o:T)=>o;
+  return k.terrain.map((terrain,i)=>{
     const actual=cityByCell.get(i);
     const intel=actual ? (k.cities[actual.id]??null) : null;
     // City lookup only checks whether a known city exists; never reads live city properties.
-    return {terrain,visible:visible.has(i),city:terrain===null?null:(intel?{...intel}:null)};
+    const city=terrain===null?null:(intel?freeze({...intel}):null);
+    return freeze({terrain,visible:visible.has(i),city});
   });
+}
+
+function cachedCells(game:Game,k:Knowledge):readonly PlayerCell[] {
+  const hit=cellCache.get(k);
+  if(hit&&hit.width===game.width&&hit.cities===game.cities&&hit.cityCount===game.cities.length&&
+    sameArray(hit.terrain,k.terrain)&&sameArray(hit.visible,k.visible)&&sameIntel(hit.intel,k.cities))
+    return hit.cells;
+  const cells=Object.freeze(buildCells(game,k,true));
+  const intel=new Map<string,CityIntel>();
+  for(const id in k.cities) intel.set(id,{...k.cities[id]!});
+  cellCache.set(k,{cells,width:game.width,cities:game.cities,cityCount:game.cities.length,
+    terrain:k.terrain.slice(),visible:k.visible.slice(),intel});
+  return cells;
+}
+
+/** The sole reader contract for player UI and future AI. Returns fresh, mutable cells. */
+export function getPlayerView(game:Game,faction:FactionId):PlayerView {
+  return playerView(game,faction,false);
+}
+
+/**
+ * Same view, but `cells` is a shared, frozen grid reused while the faction's knowledge is
+ * unchanged. For engine AI readers that never mutate the view (classic executor helpers).
+ */
+export function getPlayerViewShared(game:Game,faction:FactionId):PlayerView {
+  return playerView(game,faction,true);
+}
+
+function playerView(game:Game,faction:FactionId,shared:boolean):PlayerView {
+  if(!game.players.some(p=>p.id===faction)) throw new Error('Unknown faction');
+  const k=game.knowledge[faction];
+  const cells=shared?(cachedCells(game,k) as PlayerCell[]):buildCells(game,k,false);
   const fresh=new Set(k.freshEnemies);
   return {width:game.width,height:game.height,active:game.active,round:game.round,cells,
     ownCities:game.cities.filter(c=>c.owner===faction).map(c=>clonePlain(c)),

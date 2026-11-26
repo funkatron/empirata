@@ -3,7 +3,7 @@ import { directions } from '../world.js';
 import type { DosComputerGrade } from './classic-grades.js';
 import { classicPathBudget, classicTilePassableChart } from './classic-passability.js';
 import { classicRandomRotationBias, classicRotateDirectionIndex } from './classic-order-tick.js';
-import { getPlayerView } from '../knowledge.js';
+import { getPlayerViewShared } from '../knowledge.js';
 import { index, playable } from '../world.js';
 
 /** ALG-AI-002 `0x3ADC` army passability on charted PlayerView cells (ES:234 analogue). */
@@ -63,7 +63,7 @@ export function classicUnitReachableGoal(
   const goalIdx = index(game, destination);
   const startIdx = index(game, start);
   if (startIdx === goalIdx) return true;
-  const view = getPlayerView(game, unit.owner);
+  const view = getPlayerViewShared(game, unit.owner);
   const budget = classicPathBudget(start, destination);
   const visited = new Set<number>([startIdx]);
   const queue: Array<{ idx: number; depth: number }> = [{ idx: startIdx, depth: 0 }];
@@ -98,7 +98,7 @@ export function classicRouteStep(
   const startIdx = index(game, start);
   if (startIdx === goalIdx) return null;
   if (!classicUnitReachableGoal(game, unit, destination, grade)) return null;
-  const view = getPlayerView(game, unit.owner);
+  const view = getPlayerViewShared(game, unit.owner);
   const budget = classicPathBudget(start, destination);
   const visited = new Set<number>([startIdx]);
   const parent = new Map<number, number>();
@@ -142,7 +142,7 @@ export function classicRoutePath(
   const startIdx = index(game, start);
   if (startIdx === goalIdx) return [{ ...start }];
   if (!classicUnitReachableGoal(game, unit, destination, grade)) return null;
-  const view = getPlayerView(game, unit.owner);
+  const view = getPlayerViewShared(game, unit.owner);
   const budget = classicPathBudget(start, destination);
   const visited = new Set<number>([startIdx]);
   const parent = new Map<number, number>();
@@ -196,7 +196,7 @@ export function classicArmyWanderStep(
   heading: number,
   grade: DosComputerGrade,
 ): ClassicLegalDirectionResult {
-  const view = getPlayerView(game, unit.owner);
+  const view = getPlayerViewShared(game, unit.owner);
   const back = classicRotateDirectionIndex(heading, -3 * classicRandomRotationBias(unit));
   const d = directions[back]!;
   const side = { x: unit.position.x + d.x, y: unit.position.y + d.y };
@@ -211,7 +211,7 @@ export function classicResolveLegalDirection(
   preferredIndex: number,
   grade: DosComputerGrade,
 ): ClassicLegalDirectionResult {
-  const view = getPlayerView(game, unit.owner);
+  const view = getPlayerViewShared(game, unit.owner);
   // DOS sweep: first probe is the preferred dir, then ±1 around the DOS ring.
   // No rim/border special case exists in `0x4C52` [D]; border tiles fail the tile probe.
   const bias = classicRandomRotationBias(unit);

@@ -2,7 +2,7 @@ import type { Coord, Game, Unit } from '../types.js';
 import type { DosComputerGrade } from './classic-grades.js';
 import { classicTilePassableChart } from './classic-passability.js';
 import { classicRouteStep, classicUnitReachableGoal } from './classic-path.js';
-import { getPlayerView } from '../knowledge.js';
+import { getPlayerViewShared } from '../knowledge.js';
 import { nextRandom15 } from '../rng.js';
 import { playable } from '../world.js';
 
@@ -46,7 +46,7 @@ export function classicEscortStationCandidates(
   grade: DosComputerGrade,
   radius: number = CLASSIC_ESCORT_STATION_RADIUS,
 ): { game: Game; candidates: Coord[] } {
-  const view = getPlayerView(game, unit.owner);
+  const view = getPlayerViewShared(game, unit.owner);
   const span = 2 * radius + 1;
   const baseY = target.position.y - radius;
   const baseX = target.position.x - radius;
