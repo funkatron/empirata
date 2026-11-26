@@ -29,7 +29,18 @@ export function classicResignCityShare(game: Game, faction: FactionId): number {
   return game.cities.length ? owned / game.cities.length : 0;
 }
 
-/** ALG-AI-004 predicate table (no UI accept/decline yet). */
+/**
+ * ALG-AI-004 city tally (`0xDF58`, compare at `0xE12D–0xE142`) [D]: the computer's cities plus
+ * neutral (owner 0) cities must be below `cityCount >> 2`. Owner 0's tally is zeroed before the
+ * count (`0xDF5F–0xDF78`), so neutral cities always count.
+ */
+export function classicResignCityTally(game: Game, faction: FactionId): { tally: number; threshold: number } {
+  let tally = 0;
+  for (const c of game.cities) if (c.owner === faction || c.owner === null) tally++;
+  return { tally, threshold: game.cities.length >> 2 };
+}
+
+/** ALG-AI-004 predicate table. */
 export function shouldOfferClassicResign(game: Game, computer: FactionId): boolean {
   if (game.scenario === 'ai-vs-ai') return false;
   if (resolveAiPolicy(game).kind !== 'classic-dos') return false;
@@ -37,7 +48,8 @@ export function shouldOfferClassicResign(game: Game, computer: FactionId): boole
   if (livingFactions(game).length !== 2) return false;
   if (game.round <= 100) return false;
   if (game.classicResignOffered?.[computer]) return false;
-  return classicResignCityShare(game, computer) < 0.25;
+  const { tally, threshold } = classicResignCityTally(game, computer);
+  return tally < threshold;
 }
 
 export function humanRecipients(game: Game, computer: FactionId): FactionId[] {

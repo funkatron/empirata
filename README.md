@@ -4,6 +4,10 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.7.2 — Classic resignation counts neutral cities
+
+A classic computer offers to resign only when **its cities plus neutral cities** number fewer than a quarter of all cities, rounded down (`floor(n / 4)`). Previously neutral cities were ignored and a fractional quarter was used, so a computer could offer to resign while most of the map was still unclaimed. This matches DOS `0xDF58`, which zeroes the neutral tally and adds it in (`agents/alg-ai-004-resign-accept-effects-trace-2026-11-25.md`). The other conditions (one human, two sides left, after round 100, offered once) are unchanged.
+
 ## Version 0.7.0 — Interface review (Raskin principles)
 
 - **Visible, cancellable orders.** Move To, Go Direction, Patrol and Escort show a banner on the map with **Confirm** and **Cancel**. The first tap previews the path; tapping the same square again, or Confirm, gives the order. Escape also cancels.

@@ -558,7 +558,7 @@ cities[p] + [bp-0xe] < ES:6384 >> 2
 
 `[bp-0xe]` is the owner-0 (neutral) city tally; the loop at `0xDF5F–0xDF78` zeros all four tallies, owner 0 included [D] (corrected 2026-11-25). Then set `4F8[p]=1` and dialog “The computer wishes|to resign!|Do you accept?” with buttons “`A`ccept|`C`rush Him”. **Accept** (`ax==1`) zeros the player's tally and sets `[bp-0x10] = 0xD8F1` (**−9999** signed); the unit scan adds armies to that, `cmp …,0; jle` is taken, so **accept crushes the computer at once** [D]: `638E=1`, `dec 6C7C` (2 → 1), “Player #%d has been CRUSHED!” / “`G`REAT!”, and `8E24` stays 1 (game over) because `6C7C <= 1`. Units and city owners are not changed. **Crush Him** leaves the computer in play (`4F8` stays set; never offered again). Corrected 2026-11-25 (`agents/alg-ai-004-resign-accept-effects-trace-2026-11-25.md`); the 2026-11-24 note read `0xD8F1` as positive.
 
-**Empirata:** `classic-resign.ts` + UI `respondClassicResign`. Predicate matches the gates except the neutral-city add: DOS tests `(computer + neutral cities) < floor(cityCount / 4)`; Empirata tests `computer / cityCount < 0.25`. Accept ends the game in both; Empirata also transfers cities and removes units first, which is cosmetic because the game is over.
+**Empirata:** `classic-resign.ts` + UI `respondClassicResign`. Predicate matches all gates, including the neutral-city add: `classicResignCityTally` tests `(computer + neutral cities) < cityCount >> 2` (v0.7.2). Accept ends the game in both; Empirata also transfers cities and removes units first, which is cosmetic because the game is over.
 
 ---
 
@@ -585,7 +585,7 @@ cities[p] + [bp-0xe] < ES:6384 >> 2
 | ALG-AI-001 move/order | `classicEscortStationCandidates`, `classicResolveLegalDirection`, `classicEscortCloseRangeGoal`; `agents/alg-ai-001-4c52-empirata-parity-2026-11-18.md` | **staged partial**: chart (v0.6.9); rim/`0x4C52` (v0.6.10); escort `0x4600` (v0.6.12); station `1D09:03C2` 20× random `(2n+1)²` probe (v0.6.17); DOS ring rotation + rim heuristic removed; None = type reissue / wander / garrison (v0.6.18) |
 | ALG-AI-002 production | `classic-production.ts` + `chooseClassicCityProduction`; `tests/alg-ai-002-*.test.mjs` | **staged partial**: `0x3ADC` stale+fresh **[D]**; `0x30EB` live recount **[D]**; `0x393A`/`0x3B45` tree order **[D]** Raiden trace |
 | ALG-AI-003 setup grades | `classic-grades.ts`, `combat.ts` (`dosAiCombatFactor`); `tests/alg-ai-003-grades.test.mjs` | grade A/B selectable; **combat `840` factor [D]** when `aiPolicy.kind==='classic-dos'` |
-| ALG-AI-004 resign offer | `classic-resign.ts`, `respondClassicResign`, `gameOutcome`; `agents/alg-ai-004-df58-crush-order-trace-2026-11-24.md` | crush-vs-resign order **[D]**; accept = immediate crush and game over in DOS, matching Empirata's outcome; city-share test omits neutral cities (**differs**) |
+| ALG-AI-004 resign offer | `classic-resign.ts`, `respondClassicResign`, `gameOutcome`; `agents/alg-ai-004-df58-crush-order-trace-2026-11-24.md` | crush-vs-resign order **[D]**; accept = immediate crush and game over in DOS, matching Empirata's outcome; city tally `(computer + neutral) < cityCount >> 2` **matches** (v0.7.2) |
 
 ---
 
