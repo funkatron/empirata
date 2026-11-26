@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {cityName,gameOutcome,readableReport,makeRulesLab,exportSave,importSave,advanceLabRound,unitLabel} from '../dist/engine/index.js';
+import {cityName,gameOutcome,readableReport,reportParts,makeRulesLab,exportSave,importSave,advanceLabRound,unitLabel} from '../dist/engine/index.js';
 test('Cities retain names through capture and reload without numeric suffixes',()=>{
  const g=makeRulesLab(),names=g.cities.map(c=>cityName(c.id));
  g.cities[0].owner='red';
@@ -46,5 +46,34 @@ test('Legacy infantry and fighter production reports unwrap before unit identifi
   for(const units of [[],[{id:'u1'}]]){
    assert.equal(readableReport(`c-blue completed ${kind} (u1 (${name})).`,units,[{id:'c-blue'}]),`Port Victoria completed ${kind}: ${name}.`);
   }
+ }
+});
+
+test('Report parts expose named unit and city references and drop internal tags',()=>{
+ const parts=reportParts('u3 (Blue 3rd Infantry Division) was lost attacking c-red (ALG-AI-003).',[{id:'u3'}],[{id:'c-red'}]);
+ assert.deepEqual(parts,[
+  {unit:'u3',name:'Blue 3rd Infantry Division'},
+  {text:' was lost attacking '},
+  {city:'c-red',name:cityName('c-red')},
+  {text:'.'},
+ ]);
+});
+
+test('Cargo losses name the lost unit instead of its internal id',()=>{
+ const g=makeRulesLab();
+ const ship={...g.units[0],id:'u50',kind:'transport',owner:'blue'};
+ const lost=unitLabel({id:'u51',owner:'blue',kind:'army'});
+ const shown=readableReport(`${lost} was lost when ${unitLabel(ship)} exceeded capacity.`,[ship],[]);
+ assert.ok(!/\bu\d+\b/.test(shown),shown);
+ assert.match(shown,/^Blue 51st Infantry Division was lost/);
+});
+
+test('Displayed reports never contain raw unit ids for a full lab round',()=>{
+ let g=makeRulesLab();
+ for(let i=0;i<5;i++)g=advanceLabRound(g);
+ for(const e of g.events){
+  const shown=readableReport(e.message,g.units,g.cities);
+  assert.ok(!/(^|[^\w-])u\d+([^\w-]|$)/.test(shown),shown);
+  assert.ok(!/ALG-/.test(shown),shown);
  }
 });
