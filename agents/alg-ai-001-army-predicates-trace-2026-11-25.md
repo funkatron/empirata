@@ -1,5 +1,7 @@
 # ALG-AI-001 army predicates (`1A9E:000C`, `1A9E:004C`, `1E46:08A7`, `0x51A`, `62F6`)
 
+> **Correction (2026-11-26):** `62F2`, `62F4` and `62F6` are not options with default 1. They are grade-B flags `62E8[5…7]`, rewritten by `0xF40F` on every computer turn: **0 on grade 1** (Empirata's default), 1 on grade 2. See `alg-ai-003-mode-flags-trace-2026-11-26.md`.
+
 ```text
 RUN_ID: army-predicates-2026-11-25
 TRACE_ID: army-predicates

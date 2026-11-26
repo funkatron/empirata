@@ -4,12 +4,26 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
-## Version 0.7.1 — Map stays drawn at any zoom
+## Version 0.7.4 — Map stays drawn at any zoom
 
 - **Bug fix:** at maximum zoom the terrain disappeared and only units and cities were drawn. The cached terrain layer was sized to the current zoom and passed the browser's canvas size limit.
 - The terrain layer is now built once at the atlas's native 32 px per tile (3200×1920, about 6.1 megapixels, inside iPad limits) and drawn scaled: crisp when zoomed in, smoothed when zoomed out. Zooming no longer rebuilds it.
 - When your knowledge of the map changes, only the changed squares and their neighbours are redrawn, instead of the whole layer on every refresh.
 - Fog is a 100×60 image scaled up instead of up to 6,000 rectangles; the grid is one path over the visible squares.
+
+## Version 0.7.3 — Classic armies move like DOS
+
+Classic computer armies now follow the DOS army routine instead of heading for any known enemy city:
+
+- **City tasks.** On alternate turns per army, the computer picks a random starting city and sends the army to the first **known neutral** city within 12 squares (20 on grade 2) that it can reach over land or unexplored ground. The task ends when the city is taken or becomes unreachable.
+- **Every move** an army first steps into an adjacent city that is not its own, then toward uncharted land two squares out, then onto an adjacent enemy army, fighter, destroyer or transport. Otherwise it follows its task or keeps wandering.
+- Enemy cities are attacked when an army is next to one; armies no longer path across the map toward them.
+
+In 3-seed computer-vs-computer runs this expands faster on continents. On islands it can stall until transports carry armies, because DOS-style transport boarding within 10 squares is not modelled yet. Trace: `agents/alg-ai-001-army-reissue-trace-2026-11-26.md`.
+
+## Version 0.7.2 — Classic resignation counts neutral cities
+
+A classic computer offers to resign only when **its cities plus neutral cities** number fewer than a quarter of all cities, rounded down (`floor(n / 4)`). Previously neutral cities were ignored and a fractional quarter was used, so a computer could offer to resign while most of the map was still unclaimed. This matches DOS `0xDF58`, which zeroes the neutral tally and adds it in (`agents/alg-ai-004-resign-accept-effects-trace-2026-11-25.md`). The other conditions (one human, two sides left, after round 100, offered once) are unchanged.
 
 ## Version 0.7.0 — Interface review (Raskin principles)
 

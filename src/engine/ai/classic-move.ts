@@ -176,7 +176,9 @@ export function classicCityArmyExploreProbe(game: Game, unit: Unit, grade: DosCo
 }
 
 /**
- * ALG-AI-001 idle unit with order 0 (None) [D except where noted].
+ * ALG-AI-001 idle unit with order 0 (None) [D except where noted]. Classic **armies** no longer
+ * come here: `classicArmyActivation` (classic-army.ts) runs `0x1F238`. The city-tile branch
+ * below was the pre-2026-11-25 reading of glyph class 3 (it is the transport glyph).
  * DOS `0x3E00` returns status 1, so `0x4462` runs the type AI and `0x44EA` picks no
  * direction for order 0. When the type AI finds nothing:
  * - army on a city tile (`0x1F271`): order `0x11` garrison, unless the explore probe

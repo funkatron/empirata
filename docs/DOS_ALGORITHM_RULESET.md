@@ -396,20 +396,20 @@ Computer movement-phase pass limit is **1** (ALG-013); humans get **100**.
 
 **Pipeline [D]** (`0x3BFC` → `0x3D10` → optional `0x4462` → `0x44EA` → `0x47E0`):
 
-1. **Half-HP “go home” for ships** (`0x3D10`): if `type >= 2` and `HP <= DS:63B8[type]/2`, order ≠ `8` (Load), and (if transport) cargo == 0, call `1D09:07B2` (nearest friendly city search, best distance init `0x2710`). On success, reload order/direction from the unit (the helper mutates unit state).
+1. **Half-HP “go home” for ships** (`0x3D10`): if `type >= 2` and `HP <= DS:63B8[type]/2`, order ≠ `8` (repair/Escort), and (if transport) cargo == 0, call `1D09:07B2` (nearest friendly city search, best distance init `0x2710`). On success, reload order/direction from the unit (the helper mutates unit state).
 2. **Transport / carrier order cleanup** (`0x3D76`): empty transport with order ∉ `{8, 0xE}` clears order to `0`. Type-6 path also clears order under `ES:62EA` / negative location checks.
 3. **Order dispatch** jump table at image `0x3E54` (orders `0…0x11`):
 
-| Order | Name (string table) | Handler |
+| Order | Name (status line `0x1310A`, [D] for 0…9; see `agents/alg-ai-001-human-order-display-trace-2026-11-26.md`) | Handler |
 |---|---|---|
-| 0 | None | `0x3E00`: return status **1** → `0x4462` type reissue; `0x44EA` returns **−1** (stay) for order 0. No default bearing. Idle armies: city garrison `0x11` unless explore probe `0x485E` hits, else wander `0x10` (`0x4836` heading, `0x4542` step) [D]. Picker underflows to stay **−1**. See `agents/alg-ai-001-none-order-trace-2026-11-24.md` |
+| 0 | None | `0x3E00`: return status **1** → `0x4462` type reissue; `0x44EA` returns **−1** (stay) for order 0. No default bearing. Idle armies run the army reissue `0x1F238` (corrected 2026-11-26): an army **on a transport glyph** (class 3) gets `0x11` and the `0845` / city task / explore-probe chain; an army **on land** gets the parity-gated city task `0x1F454`, the 20-slot list, transport boarding, else wander `0x10` (`0x4836` heading, `0x4542` step) [D]. See `agents/alg-ai-001-army-reissue-trace-2026-11-26.md`. Picker underflows to stay **−1**. See `agents/alg-ai-001-none-order-trace-2026-11-24.md` |
 | 1 | Sentry | `0x3E7C`. Picker `0x45E4` → `0x4714` |
 | 2 | Random | `0x3F0C`. Picker `0x45A2` |
 | 3 | Move To | `0x3F64` (Random for non-low-fuel). Picker `0x45A2` |
-| 4 / 5 / 7 | Land on / **Escort** / Move | shared `0x400E`. Picker `0x46FC`: heading if `8AD6<=7`, else `0x4714`. Every computer writer of order 5 (`0x1DF0A` ship hunt, `0x1F9DF` fighter, `0x1F66E` army) stores a **map location** in `24A`, never a unit index [D] (`agents/alg-ai-001-wait-order-0xc-trace-2026-11-25.md`) |
-| 6 | Patrol from | `0x3F9A`. Picker `0x45E4` |
-| 8 | Load | `0x4086`. Picker `0x46FC` |
-| 9…0xB | strings `Armies` / `Fighters` / `Patrol ` **[?]** as displayed names | `0x40E4` / `0x4152` / `0x41C0`. Picker `0x46FC`. Order **0xA** [D]: carrier station; `0x4152` sets order **9** on arrival (`8AD6 == 8AD8`), else status 1 when the goal glyph is neither 0 (unknown) nor 2 (sea) (`agents/alg-ai-001-carrier-1de2a-trace-2026-11-25.md`) |
+| 4 / 5 / 7 | `Move <direction>` / `Load Armies\|Fighters` / `Land on <target>` (corrected 2026-11-26; was Land on / Escort / Move from string order) | shared `0x400E`. Picker `0x46FC`: heading if `8AD6<=7`, else `0x4714`. Every computer writer of order 5 (`0x1DF0A` ship hunt, `0x1F9DF` fighter, `0x1F66E` army) stores a **map location** in `24A`, never a unit index [D] (`agents/alg-ai-001-wait-order-0xc-trace-2026-11-25.md`) |
+| 6 | `Patrol` | `0x3F9A`. Picker `0x45E4` |
+| 8 | `Escort <target>` on the status line; also the **ship repair** order written by `1D09:07B2` (`0x1D8E8`) with `24A` = city. Human `E` key writes **8** with an own-ship target [D] (`0x11D8E` → `0x126E0`) | `0x4086`: status 1 when HP is full. Picker `0x46FC` |
+| 9 / 0xA / 0xB | 9 = `Patrol from <target>`; 0xA, 0xB have no status-line label (computer only) | `0x40E4` / `0x4152` / `0x41C0`. Picker `0x46FC`. Order **0xA** [D]: carrier station; `0x4152` sets order **9** on arrival (`8AD6 == 8AD8`), else status 1 when the goal glyph is neither 0 (unknown) nor 2 (sea) (`agents/alg-ai-001-carrier-1de2a-trace-2026-11-25.md`) |
 | 0xC | **Computer ship escort** [D], not Wait. Writers: `0x1D6AA` (`0x1D7E1`) assigns the nearest own type 2/4/5 unit in order 0/3/0xB/0xD to escort unit X, `24A = X`, until `17F6[X]` reaches the caller's limit; `0x1DD44` (`0x1DDF1`) attaches a type 2/4/5/7 ship to a random reachable own transport, `24A` = transport index. Name slot text ` - ` | dispatch `0x421E`: status 1 if `62F2 == 0`, else status 1 only when the escorted unit's `84E` is 0. **Picker `0x4600`** |
 | 0xD…0xF | | `0x424A` / `0x42BC` / `0x4418`. Picker `0x46FC` |
 | 0x10 | | dispatch status 1. Picker `0x4542` |
@@ -532,7 +532,7 @@ Nearby-enemy scout `0x383D` counts owned units within distance `<= 6` of the cit
 
 No `Standard` / `Expert` string literals exist in the image; the two nonzero `840` grades are the binary’s computer difficulty knobs. Results-table header `Difficulty` at `0x317B0` is unrelated (Wins/Losses columns).
 
-**`0xF40F` mode pack [D]:** if current `840 == 0`, skip. Else for `i = 0…11` write `ES:62E8[i] = (840 == 2) ? 1 : 0`. Therefore **`ES:62F0` is `62E8[4]`** — same grade-B flag, not a separate writer. Production AI reads `62E8` / `62F0` as those gates (ALG-AI-002).
+**`0xF40F` mode pack [D]:** if current `840 == 0`, skip. Else for `i = 0…10` (11 words, `62E8…62FC`; corrected 2026-11-26, `62FE` is the direction table) write `ES:62E8[i] = (840 == 2) ? 1 : 0`. Called from the turn loop (`0xE9F9`, `0xEABB`) and `0xFCE6`, so on **grade 1 every flag is 0** during computer turns; the static image value 1 is only seen on human turns. **`ES:62F0` is `62E8[4]`**, `62F2` is `[5]`, `62F4` is `[6]`, `62F6` is `[7]`, `62FA` is `[9]`, `62FC` is `[10]` (byte shift count). Reader map: `agents/alg-ai-003-mode-flags-trace-2026-11-26.md`.
 
 **Other `840` effects [D]:** combat helper `0xDE40` uses factor **4** when `840==1`, else **5**, inside `(combat_eff * prod_eff / 5 * factor) / 50`. Combat path `0x199C5` sets per-player word `ES:504 = (840==2)`.
 
@@ -558,7 +558,7 @@ cities[p] + [bp-0xe] < ES:6384 >> 2
 
 `[bp-0xe]` is the owner-0 (neutral) city tally; the loop at `0xDF5F–0xDF78` zeros all four tallies, owner 0 included [D] (corrected 2026-11-25). Then set `4F8[p]=1` and dialog “The computer wishes|to resign!|Do you accept?” with buttons “`A`ccept|`C`rush Him”. **Accept** (`ax==1`) zeros the player's tally and sets `[bp-0x10] = 0xD8F1` (**−9999** signed); the unit scan adds armies to that, `cmp …,0; jle` is taken, so **accept crushes the computer at once** [D]: `638E=1`, `dec 6C7C` (2 → 1), “Player #%d has been CRUSHED!” / “`G`REAT!”, and `8E24` stays 1 (game over) because `6C7C <= 1`. Units and city owners are not changed. **Crush Him** leaves the computer in play (`4F8` stays set; never offered again). Corrected 2026-11-25 (`agents/alg-ai-004-resign-accept-effects-trace-2026-11-25.md`); the 2026-11-24 note read `0xD8F1` as positive.
 
-**Empirata:** `classic-resign.ts` + UI `respondClassicResign`. Predicate matches the gates except the neutral-city add: DOS tests `(computer + neutral cities) < floor(cityCount / 4)`; Empirata tests `computer / cityCount < 0.25`. Accept ends the game in both; Empirata also transfers cities and removes units first, which is cosmetic because the game is over.
+**Empirata:** `classic-resign.ts` + UI `respondClassicResign`. Predicate matches all gates, including the neutral-city add: `classicResignCityTally` tests `(computer + neutral cities) < cityCount >> 2` (v0.7.2). Accept ends the game in both; Empirata also transfers cities and removes units first, which is cosmetic because the game is over.
 
 ---
 
@@ -585,7 +585,7 @@ cities[p] + [bp-0xe] < ES:6384 >> 2
 | ALG-AI-001 move/order | `classicEscortStationCandidates`, `classicResolveLegalDirection`, `classicEscortCloseRangeGoal`; `agents/alg-ai-001-4c52-empirata-parity-2026-11-18.md` | **staged partial**: chart (v0.6.9); rim/`0x4C52` (v0.6.10); escort `0x4600` (v0.6.12); station `1D09:03C2` 20× random `(2n+1)²` probe (v0.6.17); DOS ring rotation + rim heuristic removed; None = type reissue / wander / garrison (v0.6.18) |
 | ALG-AI-002 production | `classic-production.ts` + `chooseClassicCityProduction`; `tests/alg-ai-002-*.test.mjs` | **staged partial**: `0x3ADC` stale+fresh **[D]**; `0x30EB` live recount **[D]**; `0x393A`/`0x3B45` tree order **[D]** Raiden trace |
 | ALG-AI-003 setup grades | `classic-grades.ts`, `combat.ts` (`dosAiCombatFactor`); `tests/alg-ai-003-grades.test.mjs` | grade A/B selectable; **combat `840` factor [D]** when `aiPolicy.kind==='classic-dos'` |
-| ALG-AI-004 resign offer | `classic-resign.ts`, `respondClassicResign`, `gameOutcome`; `agents/alg-ai-004-df58-crush-order-trace-2026-11-24.md` | crush-vs-resign order **[D]**; accept = immediate crush and game over in DOS, matching Empirata's outcome; city-share test omits neutral cities (**differs**) |
+| ALG-AI-004 resign offer | `classic-resign.ts`, `respondClassicResign`, `gameOutcome`; `agents/alg-ai-004-df58-crush-order-trace-2026-11-24.md` | crush-vs-resign order **[D]**; accept = immediate crush and game over in DOS, matching Empirata's outcome; city tally `(computer + neutral) < cityCount >> 2` **matches** (v0.7.2) |
 
 ---
 

@@ -1,5 +1,7 @@
 # ALG-AI-001 order numbers vs picker table
 
+> **Correction (2026-11-26):** the string table order is **not** the order-byte order. The status line `0x1310A` labels bytes 4 = `Move <dir>`, 5 = `Load`, 7 = `Land on`, 8 = `Escort`, 9 = `Patrol from`. The proposal "treat player escort as order 5" is withdrawn. See `alg-ai-001-human-order-display-trace-2026-11-26.md`.
+
 > **Update (2026-11-25):** order `0xC` is computer ship escort, not Wait; see `alg-ai-001-wait-order-0xc-trace-2026-11-25.md`.
 
 ```text
