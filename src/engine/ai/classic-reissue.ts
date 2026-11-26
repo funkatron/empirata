@@ -7,10 +7,14 @@ function chebyshev(a: Coord, b: Coord): number {
   return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 }
 
-/** ALG-AI-001 `0x4462` staging: assign a charted move-to before random bearing when idle. */
+/**
+ * ALG-AI-001 `0x4462` staging: assign a charted move-to before random bearing when idle.
+ * `view` may be a getter so callers skip building a PlayerView for units that never need it
+ * (only idle armies read it).
+ */
 export function classicTacticalReissueOrder(
   game: Game,
-  view: PlayerView,
+  view: PlayerView | (() => PlayerView),
   faction: FactionId,
   unit: Unit,
 ): UnitOrder | null {
@@ -25,7 +29,7 @@ export function classicTacticalReissueOrder(
     return { kind: 'go-home' };
   }
   if (unit.kind !== 'army') return null;
-  const targets = classicKnownHostileCityTiles(view);
+  const targets = classicKnownHostileCityTiles(typeof view === 'function' ? view() : view);
   if (!targets.length) return null;
   const unitPos = unit.position;
   targets.sort(

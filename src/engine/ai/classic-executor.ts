@@ -1,4 +1,4 @@
-import type { Coord, FactionId, Game, Unit, UnitType } from '../types.js';
+import type { Coord, FactionId, Game, PlayerView, Unit, UnitType } from '../types.js';
 import type { AiPolicy } from './classic-grades.js';
 import {
   chooseClassicCityProduction,
@@ -101,13 +101,21 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
       if (sanitized) g = ops.setOrder(g, unit.id, sanitized, true);
       let current = g.units.find(u => u.id === unit.id);
       if (!current) continue;
-      const reissue = classicTacticalReissueOrder(g, getPlayerView(g, faction), faction, current);
+      // Build the view only if reissue needs it (idle armies). Ops mutate `g` in place,
+      // so the view is reused below only when reissue changed nothing.
+      let cachedView: PlayerView | null = null;
+      const reissue = classicTacticalReissueOrder(
+        g,
+        () => (cachedView ??= getPlayerView(g, faction)),
+        faction,
+        current,
+      );
       if (reissue) {
         g = ops.setOrder(g, unit.id, reissue, true);
         current = g.units.find(u => u.id === unit.id);
       }
       if (!current || current.order.kind === 'load-ship') continue;
-      const view = getPlayerView(g, faction);
+      const view = !reissue && cachedView ? cachedView : getPlayerView(g, faction);
       const landing = current.kind === 'transport' ? classicTransportLandingChoice(g, view, current) : null;
       if (landing?.kind === 'disembark') {
         try {
