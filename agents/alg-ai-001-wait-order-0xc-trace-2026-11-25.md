@@ -1,5 +1,7 @@
 # ALG-AI-001 order `0xC` and order-5 targets
 
+> **Correction (2026-11-26):** `62F2`, `62F4` and `62F6` are not options with default 1. They are grade-B flags `62E8[5…7]`, rewritten by `0xF40F` on every computer turn: **0 on grade 1** (Empirata's default), 1 on grade 2. See `alg-ai-003-mode-flags-trace-2026-11-26.md`.
+
 ```text
 RUN_ID: wait-order-0xc-2026-11-25
 TRACE_ID: wait-order-0xc

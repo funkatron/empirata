@@ -532,7 +532,7 @@ Nearby-enemy scout `0x383D` counts owned units within distance `<= 6` of the cit
 
 No `Standard` / `Expert` string literals exist in the image; the two nonzero `840` grades are the binary’s computer difficulty knobs. Results-table header `Difficulty` at `0x317B0` is unrelated (Wins/Losses columns).
 
-**`0xF40F` mode pack [D]:** if current `840 == 0`, skip. Else for `i = 0…11` write `ES:62E8[i] = (840 == 2) ? 1 : 0`. Therefore **`ES:62F0` is `62E8[4]`** — same grade-B flag, not a separate writer. Production AI reads `62E8` / `62F0` as those gates (ALG-AI-002).
+**`0xF40F` mode pack [D]:** if current `840 == 0`, skip. Else for `i = 0…10` (11 words, `62E8…62FC`; corrected 2026-11-26, `62FE` is the direction table) write `ES:62E8[i] = (840 == 2) ? 1 : 0`. Called from the turn loop (`0xE9F9`, `0xEABB`) and `0xFCE6`, so on **grade 1 every flag is 0** during computer turns; the static image value 1 is only seen on human turns. **`ES:62F0` is `62E8[4]`**, `62F2` is `[5]`, `62F4` is `[6]`, `62F6` is `[7]`, `62FA` is `[9]`, `62FC` is `[10]` (byte shift count). Reader map: `agents/alg-ai-003-mode-flags-trace-2026-11-26.md`.
 
 **Other `840` effects [D]:** combat helper `0xDE40` uses factor **4** when `840==1`, else **5**, inside `(combat_eff * prod_eff / 5 * factor) / 50`. Combat path `0x199C5` sets per-player word `ES:504 = (840==2)`.
 

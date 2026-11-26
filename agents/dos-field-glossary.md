@@ -30,7 +30,7 @@ Add rows as traces confirm them; cite the trace note.
 | `0x51A + p*0xC8 + city*2` | city known (≥1) plus attention / tasked weight | writers listed in note | [D] write / [?] meaning | army-predicates |
 | `0x5A + p*0x3C + type*0xA` | 5 most-recent enemy sightings per type | `0x1EB32` | [D] | carrier-1de2a |
 | `0xD02 + p*0x28` | 20-slot hostile sighting ring | ALG-AI-002 | [D] | ruleset |
-| `6368[p]` | used in tasking cap `(0x78 − 6368[p]) / 10` | `0x1F538` | [?] | army-strategic |
+| `6368[p]` | combat efficiency (default 50, ruleset ALG-002); grade-2 tasking cap `(0x78 − 6368[p]) / 10` | `0x1F538`, `0xDEA9`; init `0xF342` | [D] | army-strategic |
 
 ## Per city
 
@@ -51,9 +51,9 @@ Add rows as traces confirm them; cite the trace note.
 | `646C` | 1 = one human (resign gate); 0 = no humans | `0xE0A8`, `0xE0FE` | [?] |
 | `8E24` | game over | `0xE05F`, `0xE0B6` | [D] |
 | `645C` | sound on | `0xE017` | [?] |
-| `62F2` | option, default 1: order 0xC releases only when the target dies | `0x4223` | [?] |
-| `62F4` | option, default 1: ship contact masks enabled | `0x1D52F` | [?] |
-| `62F6` | option, default 1: army city tasking radius 20 + cap (else 12) | `0x1F4CC` | [?] |
+| `62F2` | grade-B flag `62E8[5]` (0 on grade 1): set → order 0xC releases only when the target dies; 0 → reissue every activation and `0x1D1A6` attaches escorts | `0x4224`, `0x1D231`; writer `0xF40F` | [D] |
+| `62F4` | grade-B flag `62E8[6]` (0 on grade 1): ship contact masks; 0 → `0x4B52` returns 1 at once | `0x4B5F`, `0x1D530`, `0x1D637`; writer `0xF40F` | [D] |
+| `62F6` | grade-B flag `62E8[7]` (0 on grade 1): army city tasking radius 20 + cap, else 12 and no cap | `0x1F4CD`, `0x1DB90`; writer `0xF40F` | [D] |
 | `91B4` | fighter range compared with distance and `163C` | `0x1F9AD` | [?] |
 
 ## Chart glyphs

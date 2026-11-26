@@ -6,10 +6,10 @@
 export type DosComputerGrade = 1 | 2;
 export type AiPolicy = {kind:'classic-dos';grade:DosComputerGrade} | {kind:'modern-experimental'};
 
-/** The 12 mode bytes ES:62E8[0..11] are all set to 1 for grade 2, else 0. */
+/** The 11 mode words ES:62E8[0..10] (0xF40F) are all set to 1 for grade 2, else 0. */
 export function dosAiModeFlags(grade:DosComputerGrade):ReadonlyArray<0|1> {
   if(grade!==1&&grade!==2)throw new Error('Unsupported DOS computer grade.');
-  return Array.from({length:12},()=>grade===2?1:0);
+  return Array.from({length:11},()=>grade===2?1:0);
 }
 
 /** Recovered 0xDE40 combat helper factor, not a generic strength multiplier. */
