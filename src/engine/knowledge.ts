@@ -80,10 +80,12 @@ export function updateAllKnowledge(game:Game,activateSentries=true):void {
   // ALG-012 wake set [D]: Sentry, Patrol-from, Wait (`skip` in Empirata UI).
   const wakesOnContact=(kind:typeof game.units[number]['order']['kind'])=>
     kind==='sentry'||kind==='patrol'||kind==='skip';
+  const freshSets:Partial<Record<string,Set<string>>>={};
   for(const unit of game.units){
     if(unit.aboard||!wakesOnContact(unit.order.kind))continue;
     const knowledge=game.knowledge[unit.owner];
-    if(!knowledge.sightings.some(s=>knowledge.freshEnemies.includes(s.id)&&
+    const fresh=freshSets[unit.owner]??=new Set(knowledge.freshEnemies);
+    if(!knowledge.sightings.some(s=>fresh.has(s.id)&&
       Math.max(Math.abs(s.position.x-unit.position.x),Math.abs(s.position.y-unit.position.y))<=1))continue;
     const wakeLabel=unit.order.kind==='sentry'?'sentry awakened by adjacent enemy contact.':
       unit.order.kind==='patrol'?'patrol interrupted by adjacent enemy contact.':
@@ -183,9 +185,10 @@ export function getPlayerView(game:Game,faction:FactionId):PlayerView {
     // City lookup only checks whether a known city exists; never reads live city properties.
     return {terrain,visible:visible.has(i),city:terrain===null?null:(intel?{...intel}:null)};
   });
+  const fresh=new Set(k.freshEnemies);
   return {width:game.width,height:game.height,active:game.active,round:game.round,cells,
     ownCities:game.cities.filter(c=>c.owner===faction).map(c=>clonePlain(c)),
     ownUnits:game.units.filter(u=>u.owner===faction).map(u=>clonePlain(u)),
-    enemies:k.sightings.map(s=>({...clonePlain(s),stale:!k.freshEnemies.includes(s.id)})),
+    enemies:k.sightings.map(s=>({...clonePlain(s),stale:!fresh.has(s.id)})),
     events:game.events.filter(e=>e.recipient===null||e.recipient===faction).slice(-30).map(e=>({...e}))};
 }

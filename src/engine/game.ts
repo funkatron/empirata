@@ -321,8 +321,9 @@ export function knowledgeRoutePath(game:Game,unit:Unit,destination:Coord):Coord[
   const goal=index(game,destination),start=index(game,unit.position);
   if(start===goal)return [{...unit.position}];
   const visited=new Set<number>([start]),queue=[start],parent=new Map<number,number>();
-  const visibleEnemies=new Set(game.knowledge[unit.owner].sightings
-    .filter(s=>knowledge.freshEnemies.includes(s.id)).map(s=>index(game,s.position)));
+  const fresh=new Set(knowledge.freshEnemies);
+  const visibleEnemies=new Set(knowledge.sightings
+    .filter(s=>fresh.has(s.id)).map(s=>index(game,s.position)));
   const friendly=new Set(game.units.filter(u=>!u.aboard&&u.owner===unit.owner&&u.id!==unit.id).map(u=>index(game,u.position)));
   const cities=new Map(game.cities.filter(c=>knowledge.cities[c.id]!==undefined).map(c=>[index(game,c.position),c]));
   const domain=STATS[unit.kind].domain;
@@ -366,8 +367,9 @@ function routeStep(game:Game,unit:Unit,destination:Coord):Coord|null {
   const knowledge=game.knowledge[unit.owner];
   const goal=index(game,destination),start=index(game,unit.position);
   const visited=new Set<number>([start]),queue=[start],parent=new Map<number,number>();
-  const visibleEnemies=new Set(game.knowledge[unit.owner].sightings
-    .filter(s=>knowledge.freshEnemies.includes(s.id)).map(s=>index(game,s.position)));
+  const fresh=new Set(knowledge.freshEnemies);
+  const visibleEnemies=new Set(knowledge.sightings
+    .filter(s=>fresh.has(s.id)).map(s=>index(game,s.position)));
   const friendly=new Set(game.units.filter(u=>!u.aboard&&u.owner===unit.owner&&u.id!==unit.id).map(u=>index(game,u.position)));
   const cities=new Map(game.cities.filter(c=>knowledge.cities[c.id]!==undefined).map(c=>[index(game,c.position),c]));
   const domain=STATS[unit.kind].domain;
