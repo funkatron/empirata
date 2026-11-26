@@ -402,7 +402,7 @@ Computer movement-phase pass limit is **1** (ALG-013); humans get **100**.
 
 | Order | Name (status line `0x1310A`, [D] for 0…9; see `agents/alg-ai-001-human-order-display-trace-2026-11-26.md`) | Handler |
 |---|---|---|
-| 0 | None | `0x3E00`: return status **1** → `0x4462` type reissue; `0x44EA` returns **−1** (stay) for order 0. No default bearing. Idle armies: city garrison `0x11` unless explore probe `0x485E` hits, else wander `0x10` (`0x4836` heading, `0x4542` step) [D]. Picker underflows to stay **−1**. See `agents/alg-ai-001-none-order-trace-2026-11-24.md` |
+| 0 | None | `0x3E00`: return status **1** → `0x4462` type reissue; `0x44EA` returns **−1** (stay) for order 0. No default bearing. Idle armies run the army reissue `0x1F238` (corrected 2026-11-26): an army **on a transport glyph** (class 3) gets `0x11` and the `0845` / city task / explore-probe chain; an army **on land** gets the parity-gated city task `0x1F454`, the 20-slot list, transport boarding, else wander `0x10` (`0x4836` heading, `0x4542` step) [D]. See `agents/alg-ai-001-army-reissue-trace-2026-11-26.md`. Picker underflows to stay **−1**. See `agents/alg-ai-001-none-order-trace-2026-11-24.md` |
 | 1 | Sentry | `0x3E7C`. Picker `0x45E4` → `0x4714` |
 | 2 | Random | `0x3F0C`. Picker `0x45A2` |
 | 3 | Move To | `0x3F64` (Random for non-low-fuel). Picker `0x45A2` |

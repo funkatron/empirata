@@ -81,7 +81,7 @@ test('Classic army conquest step assaults an adjacent charted neutral city', () 
   assert.deepEqual(classicArmyConquestStep(g, view, 'blue', army, 1), { x: 11, y: 25 });
 });
 
-test('Classic executor captures an adjacent charted neutral (unowned) city', () => {
+test('Classic executor attacks an adjacent charted neutral (unowned) city', () => {
   let g = makeAiVsAiLab();
   g.aiPolicy = { kind: 'classic-dos', grade: 1 };
   g.cities.push({
@@ -107,8 +107,10 @@ test('Classic executor captures an adjacent charted neutral (unowned) city', () 
   g.active = 'blue';
   updateAllKnowledge(g);
   g = playBlueOpponent(g);
-  assert.equal(g.cities.find(c => c.id === 'neutral-1')?.owner, 'blue');
-  assert.ok(g.events.some(e => e.message?.includes('captured')));
+  // `12C2:115F` steps into the adjacent non-own city; the outcome is a combat roll.
+  const captured = g.cities.find(c => c.id === 'neutral-1')?.owner === 'blue';
+  const lost = g.events.some(e => e.message?.includes('lost attacking neutral-1'));
+  assert.ok(captured || lost);
 });
 
 test('Classic army conquest step assaults an adjacent charted enemy city', () => {

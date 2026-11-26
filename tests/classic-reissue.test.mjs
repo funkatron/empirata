@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  classicArmyActivation,
+  classicArmyCityTaskTurn,
   classicTacticalReissueOrder,
   getPlayerView,
   makeAiVsAiLab,
@@ -8,7 +10,7 @@ import {
   updateAllKnowledge,
 } from '../dist/engine/index.js';
 
-test('classicTacticalReissueOrder assigns move-to toward nearest charted neutral', () => {
+test('classicTacticalReissueOrder leaves armies to the DOS army reissue 0x1F238', () => {
   let g = makeAiVsAiLab();
   g.cities.push({
     id: 'neutral-1',
@@ -34,13 +36,10 @@ test('classicTacticalReissueOrder assigns move-to toward nearest charted neutral
   g.units = [army];
   updateAllKnowledge(g);
   const view = getPlayerView(g, 'blue');
-  assert.deepEqual(classicTacticalReissueOrder(g, view, 'blue', army), {
-    kind: 'move-to',
-    destination: { x: 11, y: 25 },
-  });
+  assert.equal(classicTacticalReissueOrder(g, view, 'blue', army), null);
 });
 
-test('classic executor persists reissued move-to after activation', () => {
+test('classic army city task (0x1F454) stores move-to on a parity turn and keeps it', () => {
   let g = makeAiVsAiLab();
   g.aiPolicy = { kind: 'classic-dos', grade: 1 };
   g.cities.push({
@@ -69,6 +68,15 @@ test('classic executor persists reissued move-to after activation', () => {
   g = setOrder(g, 'u-blue-army', { kind: 'none' });
   const before = g.units.find(u => u.id === 'u-blue-army').order;
   assert.equal(before.kind, 'none');
-  const reissue = classicTacticalReissueOrder(g, getPlayerView(g, 'blue'), 'blue', g.units[0]);
-  assert.equal(reissue?.kind, 'move-to');
+  // Pick a round whose parity bit runs the city task for this unit.
+  if (!classicArmyCityTaskTurn(g, g.units[0])) g.round += 1;
+  const act = classicArmyActivation(g, 'blue', 'u-blue-army', 1, (gg, o) => setOrder(gg, 'u-blue-army', o, true), () => null);
+  assert.deepEqual(act.game.units[0].order, { kind: 'move-to', destination: { x: 20, y: 25 } });
+  // One step closer along the land path (tie-break of `0x4714` is untraced).
+  assert.equal(Math.max(Math.abs(act.step.x - 20), Math.abs(act.step.y - 25)), 9);
+  // Next activation: order 0xF still active (not captured, reachable), no new rand draw.
+  const draws = act.game.rng.draws;
+  const again = classicArmyActivation(act.game, 'blue', 'u-blue-army', 1, (gg, o) => setOrder(gg, 'u-blue-army', o, true), () => null);
+  assert.equal(again.game.rng.draws, draws);
+  assert.equal(again.game.units[0].order.kind, 'move-to');
 });

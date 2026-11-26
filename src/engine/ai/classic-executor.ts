@@ -7,7 +7,6 @@ import {
 } from './classic-production.js';
 import { classicEscortStep } from './classic-escort.js';
 import {
-  classicArmyConquestStep,
   classicHomeRepairStep,
   classicIdleNoneStep,
   classicMoveToStep,
@@ -23,6 +22,7 @@ import {
   classicTransportSeaStep,
 } from './classic-amphibious.js';
 import { classicTacticalReissueOrder } from './classic-reissue.js';
+import { classicArmyActivation } from './classic-army.js';
 import { classicResolveLegalDirection } from './classic-path.js';
 import {
   classicAdvanceBearingWhenBlocked,
@@ -127,6 +127,7 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
       }
       let step: Coord | null = null;
       let wandered = false;
+      let armyHandled = false;
       if (classicFighterMoveToExhausted(current)) {
         g = ops.setOrder(g, unit.id, { kind: 'go-home' }, true);
       }
@@ -147,8 +148,19 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
           }
           else if (ship?.order.kind === 'patrol') step = classicPatrolStep(g, ship, grade);
           else if (current.kind === 'army') {
-            step = classicArmyPortEmbarkStep(g, view, current);
-            if (!step) step = classicArmyConquestStep(g, view, faction, current, grade);
+            // ALG-AI-001 army activation: dispatch, reissue `0x1F238`, picker, type step `0x1F376`.
+            const army = classicArmyActivation(
+              g,
+              faction,
+              unit.id,
+              grade,
+              (game, order) => ops.setOrder(game, unit.id, order, true),
+              classicArmyPortEmbarkStep,
+            );
+            g = army.game;
+            step = army.step;
+            wandered = army.wandered;
+            armyHandled = true;
           } else if (current.kind === 'transport') {
             const cargo = embarkedCargoCount(g, current.id);
             const objective =
@@ -160,7 +172,7 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
             }
           } else if (ship) step = classicMoveToStep(g, ship, ops.routeStep, grade);
         }
-        if (!step) {
+        if (!step && !armyHandled) {
           if (current.order.kind === 'random') {
             const rotated = classicRandomOrderTick(g, current);
             g = rotated.game;
@@ -207,7 +219,7 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
         g = ops.moveUnit(g, unit.id, step, protectedCargo, true);
         if (hadRandom) g = ops.setOrder(g, unit.id, { kind: 'random' }, true);
         else if (hadGoHome) g = ops.setOrder(g, unit.id, { kind: 'go-home' }, true);
-        else if (hadMoveTo && moveToDestination)
+        else if (hadMoveTo && moveToDestination && !armyHandled)
           g = ops.setOrder(g, unit.id, { kind: 'move-to', destination: moveToDestination }, true);
       } catch {
         /* Illegal classic step — leave bearing for standing-order phase. */
