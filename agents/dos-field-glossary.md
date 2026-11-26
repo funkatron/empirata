@@ -13,8 +13,8 @@ Add rows as traces confirm them; cite the trace note.
 | `24A[u]` (word) | heading 0…7, or goal location (order 5 / 0xA / 0xF), or unit index (order 0xC, Sentry target) | `0x1D7FB`, `0x1DE01`, `0x1DF1A`, `0x1F9F5` | [D] | wait-order-0xc |
 | `17FA[u]` (byte) | owner (player 1…3) | `0xDFC5`, `0x1D711`, `0x1ED23` | [D] | resign-accept |
 | `1AB2[u]` (byte) | unit type 0 army … 7 battleship | `0xDFD9`, `0x1D72B`, `0x1DE54` | [D] | resign-accept |
-| `17F6[u]` (word) | escort strength assigned to this unit | `0x1D6BB`, `0x1D81A` | [D] write / [?] meaning | wait-order-0xc |
-| `163C[u]` (byte) | value added per escort; fighters compare it with `91B4` | `0x1D802`, `0x1F9B7` | [?] | wait-order-0xc |
+| `17F6[u]` (word) | sum of the remaining HP (`163C`) of escorts assigned to this unit | `0x1D6BB`, `0x1D81A` | [D] | wait-order-0xc, human-order-display |
+| `163C[u]` (byte) | ship HP / fighter fuel (1000-byte array, alloc `0x0900`) | `0x1D802`, `0x1F9B7`, `0x18C2B`, `0x19B2F` | [D] | human-order-display |
 | `180C[u]` | sign gates fighter fuel 14/10 and carrier city scan | earlier notes | [?] | order3-45a2, reissue-1d39f |
 
 ## Per player
@@ -54,7 +54,7 @@ Add rows as traces confirm them; cite the trace note.
 | `62F2` | grade-B flag `62E8[5]` (0 on grade 1): set → order 0xC releases only when the target dies; 0 → reissue every activation and `0x1D1A6` attaches escorts | `0x4224`, `0x1D231`; writer `0xF40F` | [D] |
 | `62F4` | grade-B flag `62E8[6]` (0 on grade 1): ship contact masks; 0 → `0x4B52` returns 1 at once | `0x4B5F`, `0x1D530`, `0x1D637`; writer `0xF40F` | [D] |
 | `62F6` | grade-B flag `62E8[7]` (0 on grade 1): army city tasking radius 20 + cap, else 12 and no cap | `0x1F4CD`, `0x1DB90`; writer `0xF40F` | [D] |
-| `91B4` | fighter range compared with distance and `163C` | `0x1F9AD` | [?] |
+| `91B4` | fighter outbound radius: fuel (only when full, `≥ 63B9`) / 2, minus 4 when `180C[u] < 0` | `0x1F7D5`–`0x1F802` | [D] |
 
 ## Chart glyphs
 

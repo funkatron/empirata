@@ -396,20 +396,20 @@ Computer movement-phase pass limit is **1** (ALG-013); humans get **100**.
 
 **Pipeline [D]** (`0x3BFC` → `0x3D10` → optional `0x4462` → `0x44EA` → `0x47E0`):
 
-1. **Half-HP “go home” for ships** (`0x3D10`): if `type >= 2` and `HP <= DS:63B8[type]/2`, order ≠ `8` (Load), and (if transport) cargo == 0, call `1D09:07B2` (nearest friendly city search, best distance init `0x2710`). On success, reload order/direction from the unit (the helper mutates unit state).
+1. **Half-HP “go home” for ships** (`0x3D10`): if `type >= 2` and `HP <= DS:63B8[type]/2`, order ≠ `8` (repair/Escort), and (if transport) cargo == 0, call `1D09:07B2` (nearest friendly city search, best distance init `0x2710`). On success, reload order/direction from the unit (the helper mutates unit state).
 2. **Transport / carrier order cleanup** (`0x3D76`): empty transport with order ∉ `{8, 0xE}` clears order to `0`. Type-6 path also clears order under `ES:62EA` / negative location checks.
 3. **Order dispatch** jump table at image `0x3E54` (orders `0…0x11`):
 
-| Order | Name (string table) | Handler |
+| Order | Name (status line `0x1310A`, [D] for 0…9; see `agents/alg-ai-001-human-order-display-trace-2026-11-26.md`) | Handler |
 |---|---|---|
 | 0 | None | `0x3E00`: return status **1** → `0x4462` type reissue; `0x44EA` returns **−1** (stay) for order 0. No default bearing. Idle armies: city garrison `0x11` unless explore probe `0x485E` hits, else wander `0x10` (`0x4836` heading, `0x4542` step) [D]. Picker underflows to stay **−1**. See `agents/alg-ai-001-none-order-trace-2026-11-24.md` |
 | 1 | Sentry | `0x3E7C`. Picker `0x45E4` → `0x4714` |
 | 2 | Random | `0x3F0C`. Picker `0x45A2` |
 | 3 | Move To | `0x3F64` (Random for non-low-fuel). Picker `0x45A2` |
-| 4 / 5 / 7 | Land on / **Escort** / Move | shared `0x400E`. Picker `0x46FC`: heading if `8AD6<=7`, else `0x4714`. Every computer writer of order 5 (`0x1DF0A` ship hunt, `0x1F9DF` fighter, `0x1F66E` army) stores a **map location** in `24A`, never a unit index [D] (`agents/alg-ai-001-wait-order-0xc-trace-2026-11-25.md`) |
-| 6 | Patrol from | `0x3F9A`. Picker `0x45E4` |
-| 8 | Load | `0x4086`. Picker `0x46FC` |
-| 9…0xB | strings `Armies` / `Fighters` / `Patrol ` **[?]** as displayed names | `0x40E4` / `0x4152` / `0x41C0`. Picker `0x46FC`. Order **0xA** [D]: carrier station; `0x4152` sets order **9** on arrival (`8AD6 == 8AD8`), else status 1 when the goal glyph is neither 0 (unknown) nor 2 (sea) (`agents/alg-ai-001-carrier-1de2a-trace-2026-11-25.md`) |
+| 4 / 5 / 7 | `Move <direction>` / `Load Armies\|Fighters` / `Land on <target>` (corrected 2026-11-26; was Land on / Escort / Move from string order) | shared `0x400E`. Picker `0x46FC`: heading if `8AD6<=7`, else `0x4714`. Every computer writer of order 5 (`0x1DF0A` ship hunt, `0x1F9DF` fighter, `0x1F66E` army) stores a **map location** in `24A`, never a unit index [D] (`agents/alg-ai-001-wait-order-0xc-trace-2026-11-25.md`) |
+| 6 | `Patrol` | `0x3F9A`. Picker `0x45E4` |
+| 8 | `Escort <target>` on the status line; also the **ship repair** order written by `1D09:07B2` (`0x1D8E8`) with `24A` = city. Human `E` key byte **[?]** (DOSBox check in the 2026-11-26 trace) | `0x4086`: status 1 when HP is full. Picker `0x46FC` |
+| 9 / 0xA / 0xB | 9 = `Patrol from <target>`; 0xA, 0xB have no status-line label (computer only) | `0x40E4` / `0x4152` / `0x41C0`. Picker `0x46FC`. Order **0xA** [D]: carrier station; `0x4152` sets order **9** on arrival (`8AD6 == 8AD8`), else status 1 when the goal glyph is neither 0 (unknown) nor 2 (sea) (`agents/alg-ai-001-carrier-1de2a-trace-2026-11-25.md`) |
 | 0xC | **Computer ship escort** [D], not Wait. Writers: `0x1D6AA` (`0x1D7E1`) assigns the nearest own type 2/4/5 unit in order 0/3/0xB/0xD to escort unit X, `24A = X`, until `17F6[X]` reaches the caller's limit; `0x1DD44` (`0x1DDF1`) attaches a type 2/4/5/7 ship to a random reachable own transport, `24A` = transport index. Name slot text ` - ` | dispatch `0x421E`: status 1 if `62F2 == 0`, else status 1 only when the escorted unit's `84E` is 0. **Picker `0x4600`** |
 | 0xD…0xF | | `0x424A` / `0x42BC` / `0x4418`. Picker `0x46FC` |
 | 0x10 | | dispatch status 1. Picker `0x4542` |
