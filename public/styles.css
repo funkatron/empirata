@@ -88,3 +88,5 @@ body:not(.cvc) .statrow-cvc{display:none}
 .report .report-gone{display:inline;color:#8fa3ae;font-size:inherit}
 body.cvc .statrow-player{display:none}
 body.cvc .topstate .separator{visibility:hidden}
+.lab-toggle{display:flex;align-items:center;gap:8px;min-height:44px;font-size:11px;color:#8da4b5;cursor:pointer}
+.lab-toggle input{width:20px;height:20px;margin:0}

@@ -27,12 +27,19 @@ export function referenceTarget(view:PlayerView,ref:{unit?:string;city?:string})
   return null;
 }
 
+/** Developer notes about the lab and computer-player internals, not game events. */
+const LAB_MESSAGE=/^(Classic DOS AI \(grade|Rules laboratory loaded\.|AI versus AI laboratory:|Clean computer campaign:)|(assigned city objective|paused stalled objective|cleared its city objective|assembling for .+; wait limited)/;
+export function isLabMessage(event:{kind:string;message:string}):boolean {
+  return event.kind==='system'&&LAB_MESSAGE.test(event.message);
+}
+
 /** Reports as HTML. Live, visible units and known cities become tappable names. */
-export function reportsHtml(view:PlayerView,game:Game,limit=40):string {
-  if(!view.events.length)return '<p>No reports.</p>';
+export function reportsHtml(view:PlayerView,game:Game,showLab=false,limit=40):string {
+  const events=showLab?view.events:view.events.filter(e=>!isLabMessage(e));
+  if(!events.length)return '<p>No reports.</p>';
   const units=[...view.ownUnits,...view.enemies];
   const cities=game.cities;
-  return [...view.events].reverse().slice(0,limit).map(event=>{
+  return [...events].reverse().slice(0,limit).map(event=>{
     const body=reportParts(event.message,units,cities).map(part=>{
       if('text' in part)return text(part.text);
       const attr='unit' in part?`data-unit="${text(part.unit)}"`:`data-city="${text(part.city)}"`;

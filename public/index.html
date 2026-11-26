@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <meta name="theme-color" content="#101b24"/>
-<title>Empirata · Rules Laboratory v0.7.4</title>
+<title>Empirata · Rules Laboratory v0.7.5</title>
 <link rel="stylesheet" href="./styles.css"/></head>
 <body><div class="app">
-  <header class="topbar"><div class="brand"><span class="brand-mark">✦</span><div><strong>EMPIRATA</strong><small>CLASSIC RULES LAB · v0.7.4</small></div></div>
+  <header class="topbar"><div class="brand"><span class="brand-mark">✦</span><div><strong>EMPIRATA</strong><small>CLASSIC RULES LAB · v0.7.5</small></div></div>
    <button type="button" class="game-menu-trigger" id="gameMenu" aria-haspopup="dialog" aria-controls="gameMenuDialog" aria-label="Game menu, campaigns and saved games">Game</button><div class="topstate"><span id="round">ROUND 1</span><span class="separator"></span><span class="faction"><span class="dot"></span>BLUE</span></div>
    <button id="nextRound" class="primary">Next round <span aria-hidden="true">→</span></button>
   </header>
@@ -26,7 +26,7 @@
       <section class="spectator card" id="spectatorCard" hidden><h2>Computer vs computer</h2><div class="ai-spectator" id="aiSpectator" hidden><label for="spectatorSide">Observe</label><select id="spectatorSide" aria-label="Spectator viewpoint"><option value="both">Blue + Red intelligence</option><option value="blue">Blue intelligence only</option><option value="red">Red intelligence only</option></select><label class="spectator-fog-toggle" for="spectatorTerrain"><input type="checkbox" id="spectatorTerrain" checked/> Show entire map beneath fog (75%)</label><label class="spectator-fog-toggle" for="spectatorOrderGoals"><input type="checkbox" id="spectatorOrderGoals"/> Show order destinations on map</label><p class="spectator-fog-note">Unexplored terrain has 75% fog; explored but unseen terrain has 52%. City ownership and unit details follow the union of both sides when Blue + Red is selected, otherwise the chosen faction’s chart.</p><p id="spectatorNow" aria-live="off">Currently viewing Blue</p><div class="spectator-scores" aria-label="Both player totals"><div><strong>Blue</strong><span id="spectatorBlue">—</span></div><div><strong>Red</strong><span id="spectatorRed">—</span></div></div><label for="roundSpeed">Rounds per advance</label><select id="roundSpeed"><option value="1">1 round</option><option value="10">10 rounds</option><option value="50">50 rounds</option><option value="100">100 rounds</option></select><div class="actions"><button id="autoPlay" type="button">▶ Play</button><button id="advanceRounds" type="button">Advance 1 round</button></div><p>The map reveal is for you only; both computer players keep their own fog of war.</p></div></section>
       <section class="card" id="gameResult" role="status" hidden><h2 id="gameResultTitle">Game over</h2><p id="gameResultDetail"></p><div class="actions"><button id="resultReview" type="button">View result</button><button id="resultExport" type="button">Export final game</button><button id="resultNewGame" type="button">New game</button></div></section><section class="status card"><h2>Overview</h2><div class="statrow"><span>Controlled cities</span><strong id="cityCount">1</strong></div><div class="statrow"><span>Active units</span><strong id="unitCount">2</strong></div><div class="statrow"><span>Visible enemies</span><strong id="threatCount">0</strong></div><div class="statrow statrow-player"><span>Awaiting orders</span><strong id="awaitingCount">0</strong></div><div class="statrow statrow-cvc"><span>Current view</span><strong id="viewFaction">Blue</strong></div></section>
       <section class="inspector card"><div class="card-head"><h2>Selection &amp; orders</h2><button id="nextUnit" type="button" class="next-unit" title="Next unit or city awaiting orders (N)">Next ▸</button></div><div id="inspector" aria-live="polite"></div></section>
-      <section class="events card"><h2>Reports</h2><div id="events"></div></section>
+      <section class="events card"><div class="card-head"><h2>Reports</h2><label class="lab-toggle"><input type="checkbox" id="labMessages"/> Lab messages</label></div><div id="events"></div></section>
     </div></aside>
   </main>
 </div>
