@@ -33,7 +33,7 @@ import {
   classicSentryEngageTarget,
 } from './classic-order-tick.js';
 import { directions } from '../world.js';
-import { getPlayerView } from '../knowledge.js';
+import { getPlayerViewShared } from '../knowledge.js';
 import { humanRecipients, shouldOfferClassicResign } from './classic-resign.js';
 import { resolveAiPolicy } from './policy.js';
 
@@ -106,7 +106,7 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
       let cachedView: PlayerView | null = null;
       const reissue = classicTacticalReissueOrder(
         g,
-        () => (cachedView ??= getPlayerView(g, faction)),
+        () => (cachedView ??= getPlayerViewShared(g, faction)),
         faction,
         current,
       );
@@ -115,7 +115,7 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
         current = g.units.find(u => u.id === unit.id);
       }
       if (!current || current.order.kind === 'load-ship') continue;
-      const view = !reissue && cachedView ? cachedView : getPlayerView(g, faction);
+      const view = !reissue && cachedView ? cachedView : getPlayerViewShared(g, faction);
       const landing = current.kind === 'transport' ? classicTransportLandingChoice(g, view, current) : null;
       if (landing?.kind === 'disembark') {
         try {

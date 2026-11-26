@@ -14,7 +14,7 @@ import {
 } from './classic-order-tick.js';
 import { nextRandom15 } from '../rng.js';
 import { classicTilePassableChart } from './classic-passability.js';
-import { getPlayerView } from '../knowledge.js';
+import { getPlayerViewShared } from '../knowledge.js';
 import { directions, index, playable } from '../world.js';
 
 function distance(a: Coord, b: Coord): number {
@@ -46,8 +46,8 @@ export function embarkedCargoCount(game: Game, shipId: string): number {
   return game.units.filter(u => u.aboard === shipId).length;
 }
 
-export function classicUnitView(game: Game, faction: FactionId): ReturnType<typeof getPlayerView> {
-  return getPlayerView(game, faction);
+export function classicUnitView(game: Game, faction: FactionId): ReturnType<typeof getPlayerViewShared> {
+  return getPlayerViewShared(game, faction);
 }
 
 /** One activation step toward a Move To destination (PlayerView-blind routing uses live `routeStep`). */
@@ -163,7 +163,7 @@ const CITY_EXPLORE_DOS_ORDER: ReadonlyArray<number> = Object.freeze([1, 3, 5, 7,
  * DOS uses this only as a gate; the direction it finds is discarded.
  */
 export function classicCityArmyExploreProbe(game: Game, unit: Unit, grade: DosComputerGrade): boolean {
-  const view = getPlayerView(game, unit.owner);
+  const view = getPlayerViewShared(game, unit.owner);
   for (const dos of CITY_EXPLORE_DOS_ORDER) {
     const d = directions[CLASSIC_DOS_DIRECTION_ORDER[dos]!]!;
     const first = { x: unit.position.x + d.x, y: unit.position.y + d.y };

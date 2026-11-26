@@ -1,6 +1,6 @@
 import type { City, FactionId, Game, UnitType } from '../types.js';
 import { STATS } from '../units.js';
-import { getPlayerView } from '../knowledge.js';
+import { getPlayerViewShared } from '../knowledge.js';
 import { directions, isCoastal, terrainAt } from '../world.js';
 import type { DosComputerGrade } from './classic-grades.js';
 import { dosAiGradeBFlag } from './classic-grades.js';
@@ -24,7 +24,7 @@ const COUNTABLE: readonly UnitType[] = [
  * Living owned units per type (cargo aboard ships still counts).
  */
 export function classicInventoryBlock0x30EB(game: Game, faction: FactionId): Record<UnitType, number> {
-  const view = getPlayerView(game, faction);
+  const view = getPlayerViewShared(game, faction);
   const counts = Object.fromEntries(COUNTABLE.map(k => [k, 0])) as Record<UnitType, number>;
   for (const unit of view.ownUnits) counts[unit.kind] += 1;
   return counts;
@@ -60,7 +60,7 @@ export function cityAdjacentTransport(game: Game, faction: FactionId, city: City
 }
 
 function cityHasDefender(game: Game, faction: FactionId, city: City): boolean {
-  const view = getPlayerView(game, faction);
+  const view = getPlayerViewShared(game, faction);
   return view.ownUnits.some(
     u =>
       u.kind === 'army' &&
@@ -94,7 +94,7 @@ function trackedThreatRank(
  * Includes stale last-known coordinates until knowledge clears them (ALG-AI-002; manual [M]).
  */
 export function classicTrackedThreatLocations(game: Game, faction: FactionId, city: City) {
-  const view = getPlayerView(game, faction);
+  const view = getPlayerViewShared(game, faction);
   const dedupe = new Map<string, { x: number; y: number; stale: boolean }>();
   for (const enemy of view.enemies) {
     const key = `${enemy.position.x},${enemy.position.y}`;
@@ -120,7 +120,7 @@ export function classicCityPathInvasionThreat(
   city: City,
   _grade: DosComputerGrade,
 ): boolean {
-  const view = getPlayerView(game, faction);
+  const view = getPlayerViewShared(game, faction);
   for (const loc of classicTrackedThreatLocations(game, faction, city)) {
     if (classicArmyReachableOnChart(game, view, faction, loc, city.position)) return true;
   }
