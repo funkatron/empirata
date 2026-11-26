@@ -55,18 +55,21 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
     if (game.active !== faction) throw new Error('AI must act during its faction turn.');
     const policy = resolveAiPolicy(game);
     if (policy.kind !== 'classic-dos') throw new Error('Classic executor invoked for a non-classic policy.');
-    let g = runAlgAi002Production(game, faction, policy);
+    // One private copy per AI turn; both passes below mutate it in place.
+    let g = clone(game);
+    g = runAlgAi002Production(g, faction, policy);
     g = runAlgAi001Tranche(g, faction, policy);
     g = maybeOfferClassicResign(g, faction);
     return g;
   }
 
+  /** Mutates `turnGame` (the turn's private copy from `playAiOpponent`). */
   function runAlgAi002Production(
-    game: Game,
+    turnGame: Game,
     faction: FactionId,
     policy: Extract<AiPolicy, { kind: 'classic-dos' }>,
   ): Game {
-    let g = clone(game);
+    let g = turnGame;
     const owned = g.cities.filter(c => c.owner === faction).sort((a, b) => b.id.localeCompare(a.id));
     for (const city of owned) {
       const inventory = classicInventoryBlock0x30EB(g, faction);
@@ -80,8 +83,9 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
     return g;
   }
 
-  function runAlgAi001Tranche(game: Game, faction: FactionId, policy: Extract<AiPolicy, { kind: 'classic-dos' }>): Game {
-    let g = clone(game);
+  /** Mutates `turnGame` (the turn's private copy from `playAiOpponent`). */
+  function runAlgAi001Tranche(turnGame: Game, faction: FactionId, policy: Extract<AiPolicy, { kind: 'classic-dos' }>): Game {
+    let g = turnGame;
     const protectedCargo = new Set<string>();
     const actives = () => g.units.filter(u => u.owner === faction && !u.aboard).sort((a, b) => a.id.localeCompare(b.id));
     for (const unit of actives()) {
