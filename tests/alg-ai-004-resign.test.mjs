@@ -10,6 +10,7 @@ import {
   playRedOpponent,
   respondClassicResign,
   shouldOfferClassicResign,
+  classicResignCityTally,
 } from '../dist/engine/index.js';
 
 function classicCvC(round, redCities) {
@@ -25,6 +26,8 @@ function classicCvC(round, redCities) {
       i++;
     }
   }
+  // Neutral cities count toward the computer's resign tally (0xDF58); keep them out of the base fixture.
+  for (const c of g.cities) if (c.owner === null) c.owner = 'blue';
   return g;
 }
 
@@ -83,4 +86,18 @@ test('respondClassicResign decline keeps computer in play', () => {
   assert.equal(declined.classicResignPending, undefined);
   assert.ok(declined.cities.some(c => c.owner === 'red'));
   assert.ok(declined.units.some(u => u.owner === 'red'));
+});
+test('ALG-AI-004 resign tally counts neutral cities against floor(cities / 4)', () => {
+  const g = classicCvC(101, 0);
+  const threshold = g.cities.length >> 2;
+  assert.ok(threshold >= 2);
+  // Computer cities + neutral cities one below the threshold: offer.
+  g.cities[0].owner = 'red';
+  for (let i = 1; i < threshold - 1; i++) g.cities[i].owner = null;
+  assert.deepEqual(classicResignCityTally(g, 'red'), { tally: threshold - 1, threshold });
+  assert.equal(shouldOfferClassicResign(g, 'red'), true);
+  // One more neutral city reaches the threshold: no offer, although red alone is far below a quarter.
+  g.cities[threshold - 1].owner = null;
+  assert.deepEqual(classicResignCityTally(g, 'red'), { tally: threshold, threshold });
+  assert.equal(shouldOfferClassicResign(g, 'red'), false);
 });
