@@ -4,6 +4,13 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.7.4 — Map stays drawn at any zoom
+
+- **Bug fix:** at maximum zoom the terrain disappeared and only units and cities were drawn. The cached terrain layer was sized to the current zoom and passed the browser's canvas size limit.
+- The terrain layer is now built once at the atlas's native 32 px per tile (3200×1920, about 6.1 megapixels, inside iPad limits) and drawn scaled: crisp when zoomed in, smoothed when zoomed out. Zooming no longer rebuilds it.
+- When your knowledge of the map changes, only the changed squares and their neighbours are redrawn, instead of the whole layer on every refresh.
+- Fog is a 100×60 image scaled up instead of up to 6,000 rectangles; the grid is one path over the visible squares.
+
 ## Version 0.7.3 — Classic armies move like DOS
 
 Classic computer armies now follow the DOS army routine instead of heading for any known enemy city:

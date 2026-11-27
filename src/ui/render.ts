@@ -21,72 +21,128 @@ const COLORS={blue:'#68c4f1',red:'#f47c73',green:'#a4dc8b',neutral:'#e2c37c'};
 export function createRenderer(canvas:HTMLCanvasElement,ctx:CanvasRenderingContext2D) {
   let tilesRevision=0;
   let knowledgeLayerGeneration=0;
+  /** Terrain is cached at a fixed resolution: the atlas's native 32 px per tile.
+   * Layer size no longer grows with zoom (100×60 → 3200×1920 ≈ 6.1 MP, inside
+   * iPad canvas limits) and zooming never rebuilds it. */
+  const LAYER_TILE=32;
   let terrainLayer:HTMLCanvasElement|null=null;
   let terrainLayerKey='';
+  let terrainCodes:Uint8Array|null=null;
+  let terrainCodesRevision=-1;
+  /** Fog is one pixel per map cell, scaled up with smoothing off. */
   let fogLayer:HTMLCanvasElement|null=null;
   let fogLayerKey='';
-  let zoomGestureLayerTileSize:number|null=null;
-  let zoomGestureCommitTimer:ReturnType<typeof setTimeout>|null=null;
   let paintRaf:number|null=null;
   let lastParams:RenderParams|null=null;
-  const mapPaintStats={terrainRebuilds:0,lastEnsureMs:0,lastPaintMs:0,lastRebuild:false};
+  let gestureTimer:ReturnType<typeof setTimeout>|null=null;
+  const mapPaintStats={terrainRebuilds:0,lastEnsureMs:0,lastPaintMs:0,lastRebuild:false,fullRebuilds:0,lastStampedCells:0};
 
+  /** Draw the part of a whole-map layer that falls inside the viewport. */
   function blitWorldLayer(
-    layer:HTMLCanvasElement,layerTileSize:number,viewTileSize:number,
-    cameraX:number,cameraY:number,viewW:number,viewH:number,
+    layer:HTMLCanvasElement,layerTile:number,p:RenderParams,viewW:number,viewH:number,
   ):void{
-    if(layerTileSize===viewTileSize){ctx.drawImage(layer,-cameraX,-cameraY);return;}
-    const scale=viewTileSize/layerTileSize;
-    ctx.drawImage(layer,cameraX/scale,cameraY/scale,viewW/scale,viewH/scale,0,0,viewW,viewH);
+    const t=p.tileSize;
+    const x0=Math.max(0,p.cameraX/t),y0=Math.max(0,p.cameraY/t);
+    const x1=Math.min(p.game.width,(p.cameraX+viewW)/t),y1=Math.min(p.game.height,(p.cameraY+viewH)/t);
+    if(x1<=x0||y1<=y0)return;
+    const smoothing=ctx.imageSmoothingEnabled;
+    // Crisp when enlarging; filtered when shrinking (fit-to-world) to avoid shimmer.
+    const devicePerTile=t*Math.abs(ctx.getTransform().a||1);
+    ctx.imageSmoothingEnabled=devicePerTile<layerTile;
+    ctx.drawImage(layer,x0*layerTile,y0*layerTile,(x1-x0)*layerTile,(y1-y0)*layerTile,
+      x0*t-p.cameraX,y0*t-p.cameraY,(x1-x0)*t,(y1-y0)*t);
+    ctx.imageSmoothingEnabled=smoothing;
   }
 
-  function ensureTerrainLayer(p:RenderParams,layerTileSize:number):HTMLCanvasElement {
-    const key=terrainLayerCacheKey(tilesRevision,layerTileSize,p.revealSpectatorTerrain,knowledgeLayerGeneration);
+  const TERRAIN_CODE={land:1,sea:2} as const;
+  function terrainCodesFor(p:RenderParams):Uint8Array{
+    const codes=new Uint8Array(p.game.width*p.game.height);
+    for(let i=0;i<codes.length;i++){
+      const terrain=observerTerrain(p.game,p.view,i,p.revealSpectatorTerrain);
+      codes[i]=terrain?TERRAIN_CODE[terrain]:0;
+    }
+    return codes;
+  }
+
+  function stampTerrainCell(layer:CanvasRenderingContext2D,codes:Uint8Array,width:number,height:number,x:number,y:number):void{
+    const code=(cx:number,cy:number)=>cx>=0&&cx<width&&cy>=0&&cy<height?codes[cy*width+cx]!:0;
+    const c=code(x,y);
+    const terrain=c===1?'land':c===2?'sea':null;
+    const px=x*LAYER_TILE,py=y*LAYER_TILE;
+    layer.fillStyle='#08131b';layer.fillRect(px,py,LAYER_TILE,LAYER_TILE);
+    drawTerrain(layer,terrain,px,py,LAYER_TILE,x,y);
+    if(terrain==='land'){
+      const seaAt=(dx:number,dy:number)=>code(x+dx,y+dy)===2;
+      drawCoast(layer,px,py,LAYER_TILE,seaAt(0,-1),seaAt(1,0),seaAt(0,1),seaAt(-1,0),
+        seaAt(1,-1),seaAt(1,1),seaAt(-1,1),seaAt(-1,-1));
+    }
+  }
+
+  function ensureTerrainLayer(p:RenderParams):HTMLCanvasElement {
+    const key=terrainLayerCacheKey(tilesRevision,LAYER_TILE,p.revealSpectatorTerrain,knowledgeLayerGeneration);
     if(terrainLayer&&terrainLayerKey===key){
-      mapPaintStats.lastEnsureMs=0;mapPaintStats.lastRebuild=false;return terrainLayer;
+      mapPaintStats.lastEnsureMs=0;mapPaintStats.lastRebuild=false;mapPaintStats.lastStampedCells=0;return terrainLayer;
     }
     const started=performance.now();
-    const width=Math.max(1,Math.ceil(p.game.width*layerTileSize));
-    const height=Math.max(1,Math.ceil(p.game.height*layerTileSize));
+    const W=p.game.width,H=p.game.height;
+    const width=W*LAYER_TILE,height=H*LAYER_TILE;
+    const codes=terrainCodesFor(p);
     if(!terrainLayer)terrainLayer=document.createElement('canvas');
+    const full=!terrainCodes||terrainCodes.length!==codes.length||terrainCodesRevision!==tilesRevision||
+      terrainLayer.width!==width||terrainLayer.height!==height;
     if(terrainLayer.width!==width)terrainLayer.width=width;
     if(terrainLayer.height!==height)terrainLayer.height=height;
     const layer=terrainLayer.getContext('2d')!;
-    layer.setTransform(1,0,0,1,0,0);layer.clearRect(0,0,width,height);
-    layer.fillStyle='#08131b';layer.fillRect(0,0,width,height);
-    const displayTerrain=(x:number,y:number)=>x>=0&&x<p.view.width&&y>=0&&y<p.view.height?
-      observerTerrain(p.game,p.view,y*p.view.width+x,p.revealSpectatorTerrain):null;
-    for(let y=0;y<p.view.height;y++)for(let x=0;x<p.view.width;x++){
-      const terrain=displayTerrain(x,y);
-      const px=x*layerTileSize,py=y*layerTileSize;
-      const seaAt=(dx:number,dy:number)=>displayTerrain(x+dx,y+dy)==='sea';
-      drawTerrain(layer,terrain,px,py,layerTileSize,x,y);
-      if(terrain==='land')drawCoast(layer,px,py,layerTileSize,seaAt(0,-1),seaAt(1,0),seaAt(0,1),seaAt(-1,0),
-        seaAt(1,-1),seaAt(1,1),seaAt(-1,1),seaAt(-1,-1));
-      if(layerTileSize>=9){layer.strokeStyle='rgba(120,159,166,.12)';layer.lineWidth=.65;layer.strokeRect(px+.3,py+.3,layerTileSize-.6,layerTileSize-.6);}
+    layer.setTransform(1,0,0,1,0,0);
+    let stamped=0;
+    if(full){
+      for(let y=0;y<H;y++)for(let x=0;x<W;x++)stampTerrainCell(layer,codes,W,H,x,y);
+      stamped=W*H;mapPaintStats.fullRebuilds++;
+    }else{
+      // Re-stamp changed cells and their neighbours (coast shapes depend on neighbours).
+      const dirty=new Uint8Array(codes.length);
+      for(let i=0;i<codes.length;i++){
+        if(codes[i]===terrainCodes![i])continue;
+        const x=i%W,y=(i-x)/W;
+        for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+          const nx=x+dx,ny=y+dy;
+          if(nx>=0&&nx<W&&ny>=0&&ny<H)dirty[ny*W+nx]=1;
+        }
+      }
+      for(let i=0;i<dirty.length;i++)if(dirty[i]){const x=i%W;stampTerrainCell(layer,codes,W,H,x,(i-x)/W);stamped++;}
     }
-    terrainLayerKey=key;
-    mapPaintStats.terrainRebuilds++;mapPaintStats.lastRebuild=true;mapPaintStats.lastEnsureMs=performance.now()-started;
+    terrainCodes=codes;terrainCodesRevision=tilesRevision;terrainLayerKey=key;
+    mapPaintStats.terrainRebuilds++;mapPaintStats.lastRebuild=true;mapPaintStats.lastStampedCells=stamped;
+    mapPaintStats.lastEnsureMs=performance.now()-started;
     return terrainLayer;
   }
 
-  function ensureFogLayer(p:RenderParams,layerTileSize:number):HTMLCanvasElement|null{
-    const key=fogLayerCacheKey(tilesRevision,layerTileSize,p.revealSpectatorTerrain,knowledgeLayerGeneration);
+  function ensureFogLayer(p:RenderParams):HTMLCanvasElement{
+    const key=fogLayerCacheKey(tilesRevision,1,p.revealSpectatorTerrain,knowledgeLayerGeneration);
     if(fogLayer&&fogLayerKey===key)return fogLayer;
-    const width=Math.max(1,Math.ceil(p.game.width*layerTileSize));
-    const height=Math.max(1,Math.ceil(p.game.height*layerTileSize));
+    const W=p.game.width,H=p.game.height;
     if(!fogLayer)fogLayer=document.createElement('canvas');
-    if(fogLayer.width!==width)fogLayer.width=width;
-    if(fogLayer.height!==height)fogLayer.height=height;
+    if(fogLayer.width!==W)fogLayer.width=W;
+    if(fogLayer.height!==H)fogLayer.height=H;
     const layer=fogLayer.getContext('2d')!;
-    layer.setTransform(1,0,0,1,0,0);layer.clearRect(0,0,width,height);
-    for(let y=0;y<p.view.height;y++)for(let x=0;x<p.view.width;x++){
-      const fog=observerFogOpacity(p.game,p.view,y*p.view.width+x,p.revealSpectatorTerrain);
+    const image=layer.createImageData(W,H);
+    for(let i=0;i<W*H;i++){
+      const fog=observerFogOpacity(p.game,p.view,i,p.revealSpectatorTerrain);
       if(fog===0)continue;
-      layer.fillStyle=`rgba(3,13,22,${fog})`;
-      layer.fillRect(x*layerTileSize,y*layerTileSize,layerTileSize,layerTileSize);
+      image.data[i*4]=3;image.data[i*4+1]=13;image.data[i*4+2]=22;image.data[i*4+3]=Math.round(fog*255);
     }
+    layer.putImageData(image,0,0);
     fogLayerKey=key;return fogLayer;
+  }
+
+  /** Cell grid as one path over the visible cells. */
+  function strokeGrid(p:RenderParams,viewW:number,viewH:number,sx:number,ex:number,sy:number,ey:number):void{
+    if(p.tileSize<9||ex<=sx||ey<=sy)return;
+    const t=p.tileSize;
+    ctx.beginPath();
+    for(let x=sx;x<=ex;x++){const px=Math.round(x*t-p.cameraX)+.5;ctx.moveTo(px,Math.max(0,sy*t-p.cameraY));ctx.lineTo(px,Math.min(viewH,ey*t-p.cameraY));}
+    for(let y=sy;y<=ey;y++){const py=Math.round(y*t-p.cameraY)+.5;ctx.moveTo(Math.max(0,sx*t-p.cameraX),py);ctx.lineTo(Math.min(viewW,ex*t-p.cameraX),py);}
+    ctx.strokeStyle='rgba(120,159,166,.14)';ctx.lineWidth=1;ctx.stroke();
   }
 
   function paintFrameWith(p:RenderParams):void {
@@ -107,15 +163,14 @@ export function createRenderer(canvas:HTMLCanvasElement,ctx:CanvasRenderingConte
     const neighbors=[[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]] as const;
     const cellAt=(x:number,y:number)=>x>=0&&x<p.view.width&&y>=0&&y<p.view.height?p.view.cells[y*p.view.width+x]:undefined;
     const revealMap=p.game.scenario==='ai-vs-ai'&&p.revealSpectatorTerrain;
-    const layerTileSize=zoomGestureLayerTileSize??p.tileSize;
     const displayTerrain=(x:number,y:number)=>x>=0&&x<p.view.width&&y>=0&&y<p.view.height?
       observerTerrain(p.game,p.view,y*p.view.width+x,p.revealSpectatorTerrain):null;
     const concealedCityCells=new Set(revealMap?p.game.cities.filter(c=>
       !cellAt(c.position.x,c.position.y)?.city).map(c=>c.position.y*p.view.width+c.position.x):[]);
     const fitSize=Math.min(w/p.view.width,h/p.view.height);
     const fitWeight=Math.max(0,Math.min(1,(Math.max(30,fitSize+8)-p.tileSize)/(Math.max(30,fitSize+8)-fitSize)));
-    const layer=ensureTerrainLayer(p,layerTileSize);
-    blitWorldLayer(layer,layerTileSize,p.tileSize,p.cameraX,p.cameraY,w,h);
+    blitWorldLayer(ensureTerrainLayer(p),LAYER_TILE,p,w,h);
+    strokeGrid(p,w,h,sx,ex,sy,ey);
     for(let y=sy;y<ey;y++)for(let x=sx;x<ex;x++){
       const i=y*p.view.width+x,c=p.view.cells[i]!;
       const px=x*p.tileSize-p.cameraX,py=y*p.tileSize-p.cameraY;
@@ -155,18 +210,11 @@ export function createRenderer(canvas:HTMLCanvasElement,ctx:CanvasRenderingConte
       }
       if(u.id===p.selectedUnit||u.id===p.spectatorContact){ctx.strokeStyle='#fff0a4';ctx.lineWidth=2.3;ctx.strokeRect(px+1,py+1,Math.max(1,p.tileSize-2),Math.max(1,p.tileSize-2));}
     }
-    const fog=ensureFogLayer(p,layerTileSize);
-    if(fog)blitWorldLayer(fog,layerTileSize,p.tileSize,p.cameraX,p.cameraY,w,h);
+    blitWorldLayer(ensureFogLayer(p),1,p,w,h);
     p.postPaint?.();
     mapPaintStats.lastPaintMs=performance.now()-paintStarted;
   }
 
-  function commitZoomGestureLayers():void{
-    if(zoomGestureCommitTimer!==null){clearTimeout(zoomGestureCommitTimer);zoomGestureCommitTimer=null;}
-    if(zoomGestureLayerTileSize===null)return;
-    zoomGestureLayerTileSize=null;
-    if(lastParams)paintFrameWith(lastParams);
-  }
 
   return {
     invalidateMapLayer():void{tilesRevision++;knowledgeLayerGeneration++;terrainLayerKey='';fogLayerKey='';},
@@ -184,15 +232,16 @@ export function createRenderer(canvas:HTMLCanvasElement,ctx:CanvasRenderingConte
       if(paintRaf!==null){cancelAnimationFrame(paintRaf);paintRaf=null;}
       paintFrameWith(p);
     },
-    beginZoomGesture(currentTileSize:number):void{
-      if(zoomGestureLayerTileSize===null)zoomGestureLayerTileSize=currentTileSize;
-      if(zoomGestureCommitTimer!==null)clearTimeout(zoomGestureCommitTimer);
-      zoomGestureCommitTimer=setTimeout(commitZoomGestureLayers,150);
+    /** Layers are zoom-independent now; kept so gesture callers need no change. */
+    beginZoomGesture(_currentTileSize:number):void{
+      if(gestureTimer!==null)clearTimeout(gestureTimer);
+      gestureTimer=setTimeout(()=>{gestureTimer=null;},150);
     },
-    commitZoomGesture():void{commitZoomGestureLayers();},
+    commitZoomGesture():void{if(gestureTimer!==null){clearTimeout(gestureTimer);gestureTimer=null;}},
     get mapPaintStats(){return {...mapPaintStats};},
     resetPaintStats():void{
       mapPaintStats.terrainRebuilds=0;mapPaintStats.lastEnsureMs=0;mapPaintStats.lastPaintMs=0;mapPaintStats.lastRebuild=false;
+      mapPaintStats.fullRebuilds=0;mapPaintStats.lastStampedCells=0;
     },
   };
 }
