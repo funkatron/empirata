@@ -14,7 +14,6 @@ import {
   embarkedCargoCount,
 } from './classic-move.js';
 import {
-  classicArmyPortEmbarkStep,
   classicEmptyTransportPortStep,
   classicOffshoreObjectives,
   classicTransportLandingChoice,
@@ -22,8 +21,8 @@ import {
   classicTransportSeaStep,
 } from './classic-amphibious.js';
 import { classicTacticalReissueOrder } from './classic-reissue.js';
-import { classicArmyActivation } from './classic-army.js';
-import { classicResolveLegalDirection } from './classic-path.js';
+import { classicArmyActivation, classicArmyBoardingClaim } from './classic-army.js';
+import { classicResolveLegalDirection, classicRouteStep } from './classic-path.js';
 import {
   classicAdvanceBearingWhenBlocked,
   classicDamagedShipSeeksPort,
@@ -155,7 +154,8 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
               unit.id,
               grade,
               (game, order) => ops.setOrder(game, unit.id, order, true),
-              classicArmyPortEmbarkStep,
+              (game, army) =>
+                classicArmyBoardingClaim(game, faction, army, (gg, id, order) => ops.setOrder(gg, id, order, true)),
             );
             g = army.game;
             step = army.step;
@@ -163,9 +163,21 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
             armyHandled = true;
           } else if (current.kind === 'transport') {
             const cargo = embarkedCargoCount(g, current.id);
+            const claimDest = cargo === 0 ? current.classicBoardGoal ?? null : null;
             const objective =
               cargo > 0 ? classicTransportObjective(g, view, faction, current) : null;
-            if (cargo > 0 && objective) {
+            if (cargo > 0 && current.classicBoardGoal) delete current.classicBoardGoal;
+            if (claimDest) {
+              // `0x1F6AA` claim: sail to the army; once beside it, load (Load Ship).
+              const near = Math.max(Math.abs(current.position.x - claimDest.x), Math.abs(current.position.y - claimDest.y)) <= 1;
+              if (near) {
+                const ship = g.units.find(u => u.id === current.id);
+                if (ship) delete ship.classicBoardGoal;
+                g = ops.setOrder(g, current.id, { kind: 'load-ship' }, true);
+                // The transport sails with what it loaded; it does not wait to fill.
+                g = ops.setOrder(g, current.id, { kind: 'none' }, true);
+              } else step = classicRouteStep(g, current, claimDest, grade);
+            } else if (cargo > 0 && objective) {
               step = classicTransportSeaStep(g, view, faction, current, grade, objective);
             } else if (cargo === 0 && classicOffshoreObjectives(g, view, faction).length) {
               step = classicEmptyTransportPortStep(g, faction, current, grade);

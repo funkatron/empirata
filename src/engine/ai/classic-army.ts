@@ -9,7 +9,7 @@
  * 2. Type reissue `0x1F238` (land branch), when the order ended:
  *    a. if `(turns[p] ^ unitIndex) & 1`: city task `0x1F454`;
  *    b. twenty-slot list `0x1F5F4` — not modelled (writers untraced) [?];
- *    c. board a transport `0x1F6AA` — staged as `classicArmyPortEmbarkStep`;
+ *    c. board a transport `0x1F6AA` — `classicArmyBoardingClaim`;
  *    d. wander order 0x10 (heading `0x4836` unless already wandering).
  * 3. Picker: 0xF → one step along the land path [? tie-break of `0x4714`]; 0x10 → `0x4542`.
  * 4. Type step `0x1F376`: adjacent non-own city (`12C2:115F`), explore probe
@@ -193,10 +193,48 @@ function directionIndexToward(from: Coord, to: Coord): number {
   return directions.findIndex(d => d.x === to.x - from.x && d.y === to.y - from.y);
 }
 
+/** Own empty transport that is free to take an army (DOS order 0xE, unit type 3). */
+export function classicWaitingTransport(game: Game, ship: Unit, faction: FactionId): boolean {
+  if (ship.owner !== faction || ship.kind !== 'transport' || ship.aboard) return false;
+  if (game.units.some(u => u.aboard === ship.id)) return false;
+  return ship.order.kind === 'none';
+}
+
+/**
+ * `0x1F6AA` [D]: draw one random unit slot, then scan every unit slot once (wrapping) for an
+ * own, existing, waiting transport within Chebyshev 10 of the army. The first hit gets the
+ * army's square as its goal and the army goes on Sentry (order 1). No capacity check.
+ * The RNG advances whether or not a transport qualifies.
+ */
+export function classicArmyBoardingClaim(
+  game: Game,
+  faction: FactionId,
+  army: Unit,
+  setOrder: (g: Game, unitId: string, order: UnitOrder) => Game,
+): { game: Game; claimed: boolean } {
+  const units = game.units;
+  if (!units.length) return { game, claimed: false };
+  const draw = nextRandom15(game.rng);
+  let g: Game = { ...game, rng: draw.next };
+  const first = draw.value % units.length;
+  for (let n = 0; n < units.length; n++) {
+    const ship = units[(first + n) % units.length]!;
+    if (!classicWaitingTransport(g, ship, faction)) continue;
+    if (chebyshev(ship.position, army.position) > 10) continue;
+    // The goal lives in the DOS target table, not in the order byte (0x3D76 keeps order 0xE).
+    const live = g.units.find(u => u.id === ship.id)!;
+    live.classicBoardGoal = { ...army.position };
+    g = setOrder(g, army.id, { kind: 'sentry' });
+    return { game: g, claimed: true };
+  }
+  return { game: g, claimed: false };
+}
+
 /**
  * One classic army activation. `setOrder` writes the Empirata order for the DOS order the
  * activation ends with (0xF → `move-to`, 0x10 → `none` + `classicWander`).
- * `embarkStep` is the staged `0x1F6AA` analogue.
+ * `claimTransport` is `0x1F6AA` (`classicArmyBoardingClaim`): when it claims a transport the
+ * army is on Sentry and takes no step; otherwise the army goes on to wander.
  */
 export function classicArmyActivation(
   game: Game,
@@ -204,7 +242,7 @@ export function classicArmyActivation(
   unitId: string,
   grade: DosComputerGrade,
   setOrder: (g: Game, order: UnitOrder) => Game,
-  embarkStep: (g: Game, view: PlayerView, unit: Unit) => Coord | null,
+  claimTransport: (g: Game, unit: Unit) => { game: Game; claimed: boolean } | null,
 ): ClassicArmyActivation {
   let g = game;
   let unit = g.units.find(u => u.id === unitId);
@@ -238,8 +276,12 @@ export function classicArmyActivation(
       }
     }
     if (!goal) {
-      const board = embarkStep(g, view, unit);
-      if (board) return { game: g, step: board, wandered: false };
+      const claim = claimTransport(g, unit);
+      if (claim) {
+        g = claim.game;
+        if (claim.claimed) return { game: g, step: null, wandered: false };
+        unit = g.units.find(u => u.id === unitId)!;
+      }
       let heading = unit.classicWander?.direction;
       if (heading === undefined) {
         const roll = classicWanderHeadingRoll(g);

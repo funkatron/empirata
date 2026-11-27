@@ -4,6 +4,12 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.7.6 — Classic armies claim waiting transports (staged)
+
+A classic army that has no city task now does what DOS `0x1F6AA` does: it picks a random unit slot, scans all units once for an **empty own transport within 10 squares**, sends that transport to the army's square and goes on Sentry. The transport sails to the army, loads it with Load Ship, and then continues with its cargo. This replaces the old rule that an army could only board a transport already adjacent in port.
+
+Staged: when a loaded transport leaves, and what happens if the claimed transport is lost, are not traced yet. In 3-seed runs continents are about as before; islands still stall because single-army landings often lose. Trace: `agents/alg-ai-001-transport-boarding-trace-2026-11-27.md`.
+
 ## Version 0.7.5 — Quieter reports
 
 - Reports now hide developer notes (computer-player objectives and lab descriptions). Tick **Lab messages** above the list to show them; the choice is remembered in this browser.

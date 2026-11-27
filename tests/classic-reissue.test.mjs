@@ -70,13 +70,13 @@ test('classic army city task (0x1F454) stores move-to on a parity turn and keeps
   assert.equal(before.kind, 'none');
   // Pick a round whose parity bit runs the city task for this unit.
   if (!classicArmyCityTaskTurn(g, g.units[0])) g.round += 1;
-  const act = classicArmyActivation(g, 'blue', 'u-blue-army', 1, (gg, o) => setOrder(gg, 'u-blue-army', o, true), () => null);
+  const act = classicArmyActivation(g, 'blue', 'u-blue-army', 1, (gg, o) => setOrder(gg, "u-blue-army", o, true), () => null);
   assert.deepEqual(act.game.units[0].order, { kind: 'move-to', destination: { x: 20, y: 25 } });
   // One step closer along the land path (tie-break of `0x4714` is untraced).
   assert.equal(Math.max(Math.abs(act.step.x - 20), Math.abs(act.step.y - 25)), 9);
   // Next activation: order 0xF still active (not captured, reachable), no new rand draw.
   const draws = act.game.rng.draws;
-  const again = classicArmyActivation(act.game, 'blue', 'u-blue-army', 1, (gg, o) => setOrder(gg, 'u-blue-army', o, true), () => null);
+  const again = classicArmyActivation(act.game, 'blue', 'u-blue-army', 1, (gg, o) => setOrder(gg, "u-blue-army", o, true), () => null);
   assert.equal(again.game.rng.draws, draws);
   assert.equal(again.game.units[0].order.kind, 'move-to');
 });
