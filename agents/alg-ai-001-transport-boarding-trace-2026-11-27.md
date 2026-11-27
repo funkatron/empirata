@@ -25,12 +25,17 @@ The helpers set the order byte (0xB objective, 0xD explore) and the target table
 
 `03BF:0D34` [D]: up to 10 tries of `rand % 0x16A6 + 0x65`; accept the first cell whose chart byte (`[0x234] + 6444[p]`) is 0 (uncharted) and for which `1E46:0C7F` is 0. Returns the cell or 0.
 
-Unknown: what `1E46:0CBA` and `1E46:0C7F` test (taken as "city is reachable by ship" and "cell is blocked"), and the per-city tally writers.
+### Helpers and tally, now traced [D]
+- `1E46:0C7F(pos)` = **on the rim**: row (`pos/100`) is 0 or 59, or column (`pos%100`) is 0 or 99. The explore cell must not be on the rim (Empirata `playable`).
+- `1E46:0CBA(pos)` = number of on-map neighbours (`62FE[9..1]`, so the west offset counts twice) whose **charted** glyph has `6CD6 != 0` (sea glyph). `0xDA38` skips a city with 0, i.e. it needs a charted sea square beside it. Empirata: `seaApproachesForLand(view, city)` is non-empty.
+- Per-city tally `ES:51A + p*200 + 2*city`: cleared at new game (`0xF0D2`) and when a city changes hands (`0x19809`); set to 1 when the player first charts a non-own city (`0x1EA21`, in `0x1E930`, which also resets own transports on order 3 or 0xD to order 0 so they reissue); incremented by the army city task (`0x1F55C`) and by `0xDA38` (`+ cargo` via `12C2:0DAD`). Tally 0 = city not yet known. Grade 1 has no cap, so the tally only matters as "known".
+- **Order 0xE** (`0x1D5A7`): the ship step does not sail; it runs `0x1DF56`. For a transport **not on a city glyph**, scan the 8 neighbours (`6300`): an own army glyph (class 0) whose unit has order **1 (Sentry)** sets `*target = -1` and returns 1 (the army is picked up). So the claim works by sentry plus adjacency, which matches Load Ship beside the army. Otherwise the ship only legalizes a move (`03BF:1062` = `0x4C52`).
 
 ## Empirata mapping (staged)
 - Waiting transport = own, empty, not aboard, order None.
 - Claim = `Unit.classicBoardGoal` (army square), saved and validated; army goes on Sentry.
 - Executor: claimed transport routes toward the army; within 1 square it uses Load Ship, drops the goal, and then sails with what it loaded.
+- `classicTransportObjectivePick` now also requires a charted sea square beside the city (`0CBA`).
 - Loaded transport: `classicLoadedTransportReissue` (coin, objective pick, explore cell) writes a `move-to`; the order ends on arrival or when no step exists. Chebyshev distance replaces the `1A9E:006C` path length; grade-2 cap and the per-city tally are not modelled.
 - `classicArmyPortEmbarkStep` (adjacent in port) is no longer used by the AI.
 
@@ -47,4 +52,4 @@ Unknown: what `1E46:0CBA` and `1E46:0C7F` test (taken as "city is reachable by s
 (Table above is from the first version, before `0x1D114`.) With `0x1D114` added: continents 17 `42/1/21`, 23 `8/33/23`, 41 `10/2/52`; islands 17 `1/2/61` (first capture round 147), 23 `2/4/58`, 41 `2/3/59`. Islands are still weaker than `main`: one army per sortie, and a landed army attacks a city alone.
 
 ## Still [?]
-Meaning of `1E46:0CBA` / `0C7F`, per-city tally writers, grade-2 cap, order-3 wander, claim release when the transport is lost, whether a transport waits for more armies, how `0xE` transports use their city target.
+Grade-2 cap use, order-3 wander target, claim release when the transport is lost (the sentried army keeps waiting), the reset of order 3/0xD transports when a new city is charted (not modelled), path length instead of Chebyshev distance, how `0xE` transports use their city target (`0x1D92C`).

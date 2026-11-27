@@ -178,6 +178,8 @@ export function classicTransportObjectivePick(
     const d = chebyshev(city, ship.position);
     const best: { d: number; city: Coord } | null = slot === 'neutral' ? neutral : enemy;
     if (best && (d > best.d || (d === best.d && (city.y > best.city.y || (city.y === best.city.y && city.x > best.city.x))))) continue;
+    // `1E46:0CBA`: the city needs at least one charted sea square beside it.
+    if (!seaApproachesForLand(view, city).length) continue;
     const tile = classicSealiftApproachTile(view, ship, city);
     if (chebyshev(tile, ship.position) > 0 && !classicRouteStep(game, ship, tile, grade)) continue;
     if (slot === 'neutral') neutral = { d, city };
