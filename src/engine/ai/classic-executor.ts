@@ -17,8 +17,7 @@ import {
   classicEmptyTransportPortStep,
   classicOffshoreObjectives,
   classicTransportLandingChoice,
-  classicTransportObjective,
-  classicTransportSeaStep,
+  classicLoadedTransportReissue,
 } from './classic-amphibious.js';
 import { classicTacticalReissueOrder } from './classic-reissue.js';
 import { classicArmyActivation, classicArmyBoardingClaim } from './classic-army.js';
@@ -164,8 +163,6 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
           } else if (current.kind === 'transport') {
             const cargo = embarkedCargoCount(g, current.id);
             const claimDest = cargo === 0 ? current.classicBoardGoal ?? null : null;
-            const objective =
-              cargo > 0 ? classicTransportObjective(g, view, faction, current) : null;
             if (cargo > 0 && current.classicBoardGoal) delete current.classicBoardGoal;
             if (claimDest) {
               // `0x1F6AA` claim: sail to the army; once beside it, load (Load Ship).
@@ -177,8 +174,18 @@ export function createClassicAiExecutor(ops: ClassicAiGameOps) {
                 // The transport sails with what it loaded; it does not wait to fill.
                 g = ops.setOrder(g, current.id, { kind: 'none' }, true);
               } else step = classicRouteStep(g, current, claimDest, grade);
-            } else if (cargo > 0 && objective) {
-              step = classicTransportSeaStep(g, view, faction, current, grade, objective);
+            } else if (cargo > 0) {
+              // `0x1D114`: sailing orders (0xB/0xD) persist as Move To until reached or blocked.
+              if (current.order.kind !== 'move-to') {
+                const re = classicLoadedTransportReissue(g, view, current, grade);
+                g = re.game;
+                if (re.destination) g = ops.setOrder(g, current.id, { kind: 'move-to', destination: re.destination }, true);
+              }
+              const sailing = g.units.find(u => u.id === current.id);
+              if (sailing?.order.kind === 'move-to') {
+                step = classicMoveToStep(g, sailing, ops.routeStep, grade);
+                if (!step) g = ops.setOrder(g, current.id, { kind: 'none' }, true);
+              }
             } else if (cargo === 0 && classicOffshoreObjectives(g, view, faction).length) {
               step = classicEmptyTransportPortStep(g, faction, current, grade);
             }

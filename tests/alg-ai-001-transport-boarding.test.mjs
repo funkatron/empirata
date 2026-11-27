@@ -41,3 +41,27 @@ test('waiting transport must be own, empty and on no tactical order', () => {
   g.units.push({ id: 'c', owner: 'blue', kind: 'army', position: { x: 10, y: 20 }, order: { kind: 'none' }, spent: 0, damage: 0, fuel: null, aboard: 't0' });
   assert.equal(classicWaitingTransport(g, g.units[1], 'blue'), false);
 });
+
+import { classicTransportExploreTarget, classicLoadedTransportReissue, getPlayerView, updateAllKnowledge } from '../dist/engine/index.js';
+
+test('0x1D114 reissue draws a coin plus explore tries and returns a playable target or null', () => {
+  const g = lab([{ position: { x: 10, y: 20 } }]);
+  g.units.push({ id: 'cargo', owner: 'blue', kind: 'army', position: { x: 10, y: 20 }, order: { kind: 'none' }, spent: 0, damage: 0, fuel: null, aboard: 't0' });
+  updateAllKnowledge(g);
+  const view = getPlayerView(g, 'blue');
+  const r = classicLoadedTransportReissue(g, view, g.units.find(u => u.id === 't0'), 1);
+  assert.ok(r.game.rng.draws > g.rng.draws);
+  if (r.destination) {
+    assert.ok(r.destination.x >= 0 && r.destination.x < g.width && r.destination.y >= 0 && r.destination.y < g.height);
+  }
+});
+
+test('0x4924 explore target tries at most 10 random cells and only takes uncharted ones', () => {
+  const g = lab([{ position: { x: 10, y: 20 } }]);
+  updateAllKnowledge(g);
+  const view = getPlayerView(g, 'blue');
+  const known = view.cells.map(c => ({ ...c, terrain: c.terrain ?? 'sea' }));
+  const none = classicTransportExploreTarget(g, { ...view, cells: known });
+  assert.equal(none.target, null);
+  assert.equal(none.game.rng.draws, g.rng.draws + 10);
+});

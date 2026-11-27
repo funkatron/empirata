@@ -6,9 +6,9 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 ## Version 0.7.6 — Classic armies claim waiting transports (staged)
 
-A classic army that has no city task now does what DOS `0x1F6AA` does: it picks a random unit slot, scans all units once for an **empty own transport within 10 squares**, sends that transport to the army's square and goes on Sentry. The transport sails to the army, loads it with Load Ship, and then continues with its cargo. This replaces the old rule that an army could only board a transport already adjacent in port.
+A classic army that has no city task now does what DOS `0x1F6AA` does: it picks a random unit slot, scans all units once for an **empty own transport within 10 squares**, sends that transport to the army's square and goes on Sentry. The transport sails to the army, loads it with Load Ship, and then continues with its cargo. A loaded transport with no sailing order flips a coin (DOS `0x1D114`) between heading for the nearest known neutral or enemy city and exploring a random uncharted square. This replaces the old rule that an army could only board a transport already adjacent in port.
 
-Staged: when a loaded transport leaves, and what happens if the claimed transport is lost, are not traced yet. In 3-seed runs continents are about as before; islands still stall because single-army landings often lose. Trace: `agents/alg-ai-001-transport-boarding-trace-2026-11-27.md`.
+Staged: the claim release if the transport is lost, grade-2 caps and the per-city tally are not modelled. In 3-seed runs continents are mixed and islands are still weaker than before, because each sortie carries one army that lands alone. Trace: `agents/alg-ai-001-transport-boarding-trace-2026-11-27.md`.
 
 ## Version 0.7.5 — Quieter reports
 
