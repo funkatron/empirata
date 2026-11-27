@@ -73,8 +73,6 @@ function spectatorView():PlayerView {
 function flushObserverBatch():void {
   if(!observerRefreshPending)return;
   observerRefreshPending=false;
-  view=spectatorView();
-  if(selectedUnit&&!view.ownUnits.some(u=>u.id===selectedUnit))selectedUnit=null;
   refresh();
   void saveLocally(game).catch(()=>uiMessage('Local save unavailable; use Export JSON.'));
 }
@@ -116,6 +114,10 @@ let replacedGame:UndoEntry|null=null;
 /** Combat reported from this event id onward is marked on the map. */
 let combatMarkersSince=Number.MAX_SAFE_INTEGER;
 let lastEventsKey='';
+/** Per-viewer display preference; never part of the game or its save. */
+const LAB_MESSAGES_KEY='empirata.labMessages';
+let showLabMessages=false;
+try{showLabMessages=localStorage.getItem(LAB_MESSAGES_KEY)==='1';}catch{/* storage unavailable */}
 const stackDialog=el('stackDialog') as HTMLDialogElement;
 const gameMenuDialog=el('gameMenuDialog') as HTMLDialogElement;
 function uiMessage(message:string):void {el('toast').textContent=message;}
@@ -263,7 +265,7 @@ function publishMapPaintProbe():void {
     stats:()=>renderer.mapPaintStats,
     reset(){renderer.resetPaintStats();},
     paintOnce:()=>paint(),
-    refreshOnce:()=>refresh(),
+    refreshOnce(){refresh();paint();},
     invalidateAndPaint(){invalidateMapLayer();paint();},
     setReveal(enabled:boolean){
       revealSpectatorTerrain=enabled;
@@ -355,8 +357,6 @@ function dispatch(operation:()=>Game,deferObserverRefresh=false,undoLabel:string
       syncUndoButton();
     }
     if(deferObserverRefresh){observerRefreshPending=true;return true;}
-    view=spectatorView();
-    if(selectedUnit&&!view.ownUnits.some(u=>u.id===selectedUnit))selectedUnit=null;
     refresh();
     const result=view.events.filter(e=>e.id>=before&&e.kind==='combat').at(-1);
     if(result){
@@ -675,6 +675,7 @@ function bindInspectorControls(unit:Unit|undefined,city:City|undefined):void {
 }
 function refresh():void {
   view=spectatorView();
+  if(selectedUnit&&!view.ownUnits.some(u=>u.id===selectedUnit))selectedUnit=null;
   if(refreshShouldInvalidateKnowledgeLayer(game.scenario,revealSpectatorTerrain)){
     renderer.invalidateKnowledgeLayer(game.scenario,revealSpectatorTerrain);
   }
@@ -743,10 +744,10 @@ function refresh():void {
     else inspector.innerHTML=game.scenario==='ai-vs-ai'?'<p>Tap a unit or city on the map to inspect it.</p>':'<p>Tap a blue unit or city, or press Next.</p>';
     bindInspectorControls(unit,city);
   }
-  const eventsKey=view.events.map(e=>e.id).join(',');
+  const eventsKey=`${showLabMessages}|${view.events.map(e=>e.id).join(',')}`;
   if(eventsKey!==lastEventsKey){
     lastEventsKey=eventsKey;
-    el('events').innerHTML=reportsHtml(view,game);
+    el('events').innerHTML=reportsHtml(view,game,showLabMessages);
   }
   const outcome=gameOutcome(game),finished=outcome.state==='finished';
   el('gameResult').hidden=!finished;
@@ -763,7 +764,7 @@ function refresh():void {
   }else resignOffer.close();
   for(const id of ['autoPlay','advanceRounds','nextRound']) (el(id) as HTMLButtonElement).disabled=finished||resignBlocked;
   if(finished)inspector.querySelectorAll<HTMLButtonElement|HTMLSelectElement>('button,select').forEach(control=>{if(!control.classList.contains('cargoButton'))control.disabled=true;});
-  paint();
+  schedulePaint();
 }
 function pinchPoints(){if(touches.size<2)return null;const [a,b]=[...touches.values()];return pinchGestureSample(a!,b!);}
 function beginPinch():void {
@@ -879,6 +880,12 @@ el('events').addEventListener('click',ev=>{
   focus(at);refresh();
 });
 el('undoButton').addEventListener('click',()=>undo());
+(el('labMessages') as HTMLInputElement).checked=showLabMessages;
+el('labMessages').addEventListener('change',()=>{
+  showLabMessages=(el('labMessages') as HTMLInputElement).checked;
+  try{localStorage.setItem(LAB_MESSAGES_KEY,showLabMessages?'1':'0');}catch{/* storage unavailable */}
+  refresh();
+});
 el('nextUnit').addEventListener('click',()=>nextAwaiting());
 el('orderConfirm').addEventListener('click',()=>commitOrderMode());
 el('orderCancel').addEventListener('click',()=>{cancelOrderMode();uiMessage('Order cancelled.');});

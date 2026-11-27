@@ -4,6 +4,12 @@ A browser-based, classic-rules strategy wargame based on the **gameplay** of *Em
 
 **[Play the current development build](https://funkatron.github.io/empirata/)** · [Classic rules specification](docs/Empirata_Classic_Rules_Specification_v0.1.md) · [Implementation status](docs/ENGINE_STATUS.md) · [Development roadmap](docs/ROADMAP.md)
 
+## Version 0.7.5 — Quieter reports
+
+- Reports now hide developer notes (computer-player objectives and lab descriptions). Tick **Lab messages** above the list to show them; the choice is remembered in this browser.
+- The map and view are rebuilt once per action instead of twice, and redraws wait for the next frame.
+- `npm start` serves SVG files with the right type, and `HOST=0.0.0.0 npm start` allows testing from another device.
+
 ## Version 0.7.4 — Map stays drawn at any zoom
 
 - **Bug fix:** at maximum zoom the terrain disappeared and only units and cities were drawn. The cached terrain layer was sized to the current zoom and passed the browser's canvas size limit.
