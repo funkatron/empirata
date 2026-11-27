@@ -20,8 +20,9 @@ export const GOLDEN = {
   classic: {
     // v0.7.3: classic army activation (0x1F238 / 0x1F454 / 0x1F376) replaces the
     // BFS-to-any-hostile-city step; one rand per city task and wander heading.
-    continents: { hash: 'cbf0d0bc1f504f1d', draws: 10665 },
-    islands: { hash: '66811325b3192df7', draws: 929 },
+    // v0.7.6: army boarding 0x1F6AA and loaded-transport reissue 0x1D114 each draw rands.
+    continents: { hash: '2ee8eb29372d58bf', draws: 19119 },
+    islands: { hash: '278b914e6e860f51', draws: 433 },
   },
   modern: {
     continents: { hash: 'f9e6126b9092f628', draws: 88 },

@@ -98,6 +98,11 @@ export function importSave(json:string):Game {
       if(!w||!Number.isInteger(w.direction)||w.direction<0||w.direction>7)
         throw new Error('Invalid classic wander heading.');
     }
+    if(u.classicBoardGoal!==undefined){
+      const b=u.classicBoardGoal;
+      if(u.kind!=='transport'||!b||!Number.isInteger(b.x)||!Number.isInteger(b.y)||b.x<0||b.y<0||b.x>=g.width||b.y>=g.height)
+        throw new Error('Invalid classic boarding goal.');
+    }
     if(u.aiAvoidObjective!==undefined){
       const a=u.aiAvoidObjective;
       if(u.kind!=='transport'||!a||!cityIds.has(a.id)||!finiteInt(a.until)||a.until<1)

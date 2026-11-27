@@ -3,6 +3,8 @@ import type { DosComputerGrade } from './classic-grades.js';
 import { classicArmyReachableOnChart, classicRouteStep } from './classic-path.js';
 import { classicKnownHostileCityTiles } from './classic-move.js';
 import { directions, isCoastal, playable, terrainAt } from '../world.js';
+import { nextRandom15 } from '../rng.js';
+import { dosAiModeFlags } from './classic-grades.js';
 
 function chebyshev(a: Coord, b: Coord): number {
   return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
@@ -155,4 +157,78 @@ export function classicArmyPortEmbarkStep(
     if (transports.some(t => t.position.x === to.x && t.position.y === to.y)) return to;
   }
   return null;
+}
+/**
+ * `0xDA38` objective pick for a loaded transport [D structure, ? tie-breaks]: the nearest known
+ * enemy city and the nearest known neutral city that the ship can route to; the neutral one wins
+ * when its distance `>> flag[62FC]` is smaller (flag is 0 on grade 1). Distance is Chebyshev here;
+ * DOS uses the path length of `1A9E:006C`. Returns the sea tile to sail to.
+ */
+export function classicTransportObjectivePick(
+  game: Game,
+  view: PlayerView,
+  ship: Unit,
+  grade: DosComputerGrade,
+): Coord | null {
+  let enemy = null as { d: number; city: Coord } | null;
+  let neutral = null as { d: number; city: Coord } | null;
+  for (const city of classicKnownHostileCityTiles(view)) {
+    const info = view.cells[city.y * view.width + city.x]?.city;
+    const slot = info?.owner === null ? 'neutral' : 'enemy';
+    const d = chebyshev(city, ship.position);
+    const best: { d: number; city: Coord } | null = slot === 'neutral' ? neutral : enemy;
+    if (best && (d > best.d || (d === best.d && (city.y > best.city.y || (city.y === best.city.y && city.x > best.city.x))))) continue;
+    // `1E46:0CBA`: the city needs at least one charted sea square beside it.
+    if (!seaApproachesForLand(view, city).length) continue;
+    const tile = classicSealiftApproachTile(view, ship, city);
+    if (chebyshev(tile, ship.position) > 0 && !classicRouteStep(game, ship, tile, grade)) continue;
+    if (slot === 'neutral') neutral = { d, city };
+    else enemy = { d, city };
+  }
+  if (!neutral && !enemy) return null;
+  const shift = dosAiModeFlags(grade)[10] ?? 0;
+  const pick = neutral && (!enemy || neutral.d >> shift < enemy.d) ? neutral : enemy!;
+  const tile = classicSealiftApproachTile(view, ship, pick.city);
+  return playable(game, tile) ? tile : null;
+}
+
+/** `03BF:0D34` [D]: up to 10 random cells; the first the player has not charted. One rand per try. */
+export function classicTransportExploreTarget(
+  game: Game,
+  view: PlayerView,
+): { game: Game; target: Coord | null } {
+  let g = game;
+  const cells = game.width * game.height;
+  for (let tries = 0; tries < 10; tries++) {
+    const draw = nextRandom15(g.rng);
+    g = { ...g, rng: draw.next };
+    const idx = draw.value % cells;
+    const cell = { x: idx % game.width, y: Math.floor(idx / game.width) };
+    if (view.cells[idx]?.terrain === null && playable(game, cell)) return { game: g, target: { x: idx % game.width, y: Math.floor(idx / game.width) } };
+  }
+  return { game: g, target: null };
+}
+
+/**
+ * `0x1D114` [D]: a loaded transport with no sailing order flips a coin (`rand % 2`): odd tries the
+ * objective (`0xDA38`, order 0xB) then the explore cell (order 0xD); even tries them in the
+ * other order. If neither yields a target DOS sets order 3 with a wander target (not modelled).
+ */
+export function classicLoadedTransportReissue(
+  game: Game,
+  view: PlayerView,
+  ship: Unit,
+  grade: DosComputerGrade,
+): { game: Game; destination: Coord | null } {
+  const coin = nextRandom15(game.rng);
+  let g: Game = { ...game, rng: coin.next };
+  const objective = () => classicTransportObjectivePick(g, view, ship, grade);
+  const explore = () => {
+    const r = classicTransportExploreTarget(g, view);
+    g = r.game;
+    return r.target;
+  };
+  const destination =
+    coin.value % 2 !== 0 ? (objective() ?? explore()) : (explore() ?? objective());
+  return { game: g, destination };
 }

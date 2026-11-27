@@ -20,6 +20,8 @@ export type Unit = {
   aboard: string | null;
   /** Classic DOS AI only: idle wander heading (`ES:24A`, order `0x10`), engine `directions` index 0–7. */
   classicWander?: { direction: number };
+  /** Classic AI `0x1F6AA`: an army's square a waiting transport was sent to (DOS target table). */
+  classicBoardGoal?: Coord;
   /** Modern AI only — see docs/MODERN_AI_UNIT_FIELDS.md */
   aiMissionProgress?: {round:number; bestDistance:number; metric:'sea'|'city'; cargo:number};
   aiAvoidObjective?: {id:string; until:number};
